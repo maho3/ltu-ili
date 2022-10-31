@@ -1,0 +1,5 @@
+trainSBI:
+    lr: 0.01
+    epochs: 200
+    optimizer: Adam
+

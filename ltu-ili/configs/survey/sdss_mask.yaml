@@ -1,0 +1,4 @@
+applySurveyMask:
+    mask_file: ./inputs/sdss_mask.npy
+    min_stellar_mass: 10**9.5
+

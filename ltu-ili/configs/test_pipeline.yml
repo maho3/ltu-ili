@@ -1,0 +1,21 @@
+stages:
+    - name: generateLightCone
+      config: gen_lc/lightcone_interpolated.yml
+
+    - name: applySurveyMask
+      config: survey/sdss_mask.yml
+
+    - name: summaryLinearPowerSpectrum
+      config: compression/linear_power_spectrum.yml
+
+    - name: trainSBI
+      config: training/train_normalizing_flow.yml
+
+    - name: computePosteriorCoverage
+      config: validation/posterior_coverage.yml
+
+log_dir: ./logs
+output_dir: ./outputs
+
+resume: True
+

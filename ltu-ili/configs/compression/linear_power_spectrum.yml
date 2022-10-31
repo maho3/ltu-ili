@@ -1,0 +1,5 @@
+summaryLinearPowerSpectrum:
+    backend: pylians
+    type: catalog
+    kmax: 0.1
+
