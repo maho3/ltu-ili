@@ -8,6 +8,7 @@ Here is a quick guide for getting started with the ltu-ili framework.
 First, clone the main branch of the ltu-ili repository onto your local machine.
 ```bash
     git clone git@github.com:maho3/ltu-ili.git
+    cd ltu-ili
 ```
 Next, setup your environment to support the required dependencies for ltu-ili. ltu-ili requires a Python version >=3.7. The list of required modules is given in [requirements.txt](requirements.txt). There are two ways to install these, either using an environment manager such as [conda](https://docs.anaconda.com/) or the default Python installer pip. While we recommend the former, we give instructions for both methods.
 ### pip
