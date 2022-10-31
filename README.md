@@ -1,6 +1,6 @@
 # ltu-ili
 
-The [Learning the Universe](https://www.learning-the-universe.org/) Implicit Likelihood Inference (LtU-ILI) pipeline is a framework for applying simulation-based inference methods to constrain posteriors on cosmological parameters using astronomical survey data. The code is currently built to analyze spectroscopic surveys of the universe's Large-Scale Structure (LSS), such as SDSS-BOSS.
+The [Simons Collaboration on Learning the Universe](https://www.learning-the-universe.org/) Implicit Likelihood Inference (LtU-ILI) pipeline is a framework for applying simulation-based inference methods to constrain posteriors on cosmological parameters using astronomical survey data. The code is currently built to analyze spectroscopic surveys of the universe's Large-Scale Structure (LSS), such as SDSS-BOSS.
 
 
 ## Installing 
@@ -16,3 +16,7 @@ If you have comments, questions, or feedback, please [write us an issue](https:/
 Below is a list of contributors to this repository.
 * [Matthew Ho](https://github.com/maho3) (IAP)
 * [Deaglan Bartlett](https://github.com/DeaglanBartlett) (IAP)
+
+
+## Acknowledgements
+This work was supported by the Simons Collaboration on "Learning the Universe".
