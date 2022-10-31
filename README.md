@@ -4,10 +4,13 @@ The [Learning the Universe](https://www.learning-the-universe.org/) Implicit Lik
 
 
 ## Installing 
-See [INSTALL.md](INSTALL.md)
+Follow the instructions detailed in [INSTALL.md](INSTALL.md).
+
+## Contributing
+Before contributing, please familiarize yourself with the contribution workflow described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Contact
-The current leads of the LtU ILI working group are Benjamin Wandelt (benwandelt@gmail.com) and Matthew Ho (matthew.annam.ho@gmail.com)
+If you have comments, questions, or feedback, please [write us an issue](https://github.com/maho3/ltu-ili/issues). The current leads of the LtU ILI working group are Benjamin Wandelt (benwandelt@gmail.com) and Matthew Ho (matthew.annam.ho@gmail.com)
 
 ## Contributors
 Below is a list of contributors to this repository.
