@@ -16,3 +16,6 @@ If you have comments, questions, or feedback, please [write us an issue](https:/
 Below is a list of contributors to this repository.
 * [Matthew Ho](https://github.com/maho3) (IAP)
 * [Deaglan Bartlett](https://github.com/DeaglanBartlett) (IAP)
+
+## Documentation
+The documentation for this project can be found [at this link](https://ltu-ili.readthedocs.io/en/latest/)
