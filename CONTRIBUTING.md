@@ -38,4 +38,5 @@ In this process, you may run into merge conflicts. [Here's a tutorial](https://d
 
 Once you've updated your branch with the newest main changes, you can submit a pull request by navigating to the 'Pull requests' tab in the ltu-ili repository and clicking `New pull request.' Ensure you select the correct branch to merge into main and that you assign a reviewer to approve your merge. Once they have reviewed your code, they will merge your changes into the main branch.
 
-
+### Documenting changes
+Once you've made your changes, you will want to also edit the documentation to reflect these. The [LtU-ILI documentation](https://ltu-ili.readthedocs.io/en/latest/) has been created using Sphinx and is published to ReadTheDocs. To automatically generate documentation, you should format your docstrings to be compatible with Sphinx's `autodoc` extension. [Here's a tutorial](https://sphinx-rtd-tutorial.readthedocs.io/en/latest/index.html) explaining how to use Sphinx and ReadTheDocs.
