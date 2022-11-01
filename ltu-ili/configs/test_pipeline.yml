@@ -1,6 +1,6 @@
 stages:
     - name: generateLightCone
-      config: gen_lc/lightcone_interpolated.yml
+      config: lcgen/lightcone_interpolated.yml
 
     - name: applySurveyMask
       config: survey/sdss_mask.yml
