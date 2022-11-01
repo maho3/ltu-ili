@@ -6,13 +6,18 @@
 Welcome to LtU ILI's documentation!
 ===================================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
 .. include:: README.md
    :parser: myst_parser.sphinx_
 
+.. include:: INSTALL.md
+   :parser: myst_parser.sphinx_
+
+.. include:: CONTRIBUTING.md
+   :parser: myst_parser.sphinx_
+
+.. toctree::
+   Home <self>
+   api
 
 
 Indices and tables
