@@ -6,6 +6,7 @@ This version is based on CAMB. Eventually, we could add support for other Boltzm
 
 import camb
 
+
 class Cosmology(object):
     def __init__(self, h=0.67, ombh2=0.022, omch2=0.12, omk=0.0, tau=0.06, ns=0.96, As=2.1e-9, w=-1.0, wa=0.0):
         """
@@ -41,12 +42,13 @@ class Cosmology(object):
         results = camb.get_results(pars)
         return results
 
-    def get_matter_power_spectrum(self, minkh=1e-4, maxkh=1, npoints = 200):
+    def get_matter_power_spectrum(self, minkh=1e-4, maxkh=1, npoints=200):
         """
         :param minkh: Minimum k
         :param maxkh: Maximum k
         :param npoints: Number of points
+        :return: k, z and Matter power spectrum
         """
         results = self.get_cosmology()
         kh, z, pk = results.get_matter_power_spectrum(minkh=minkh, maxkh=maxkh, npoints=npoints)
-        return pk
+        return kh, z, pk
