@@ -5,22 +5,29 @@ import importlib
 import pickle
 import torch
 from pathlib import Path
+from ili.inference.loaders import BaseLoader
+from sbi.inference.posteriors import NeuralPosterior
+from ili.validation.metrics import BaseMetric
 
 logging.basicConfig(level = logging.INFO)
 
-default_config = Path(__file__).parent.parent / 'examples/configs/sample_inference_config.yaml'
-
+default_config = Path(__file__).parent.parent / 'examples/configs/sample_validation_config.yaml'
 
 class ValidationRunner:
     def __init__(
         self,
-        loader,
-        posterior,
-        metrics,
-        output_path
+        loader: BaseLoader,
+        posterior: NeuralPosterior,
+        metrics: List[BaseMetric],
+        output_path: Path
     ):
-        """Class to run training and validation of posterior inference models using the sbi package
+        """Class to measure validation metrics of posterior inference models
 
+        Args:
+            loader (BaseLoader): data loader with stored summary-parameter pairs
+            posterior (NeuralPosterior): trained sbi posterior inference engine
+            metrics (List[BaseMetric]): list of metric objects to measure on the test set
+            output_path (Path): path where to store outputs
         """
         self.loader = loader
         self.posterior = posterior
@@ -33,9 +40,13 @@ class ValidationRunner:
     def from_config(
         cls,
         config_path
-    ):
-        """Create an sbi runner from a yaml config file
+    )->"ValidationRunner":
+        """Create an validation runner from a yaml config file
 
+        Args:
+            config_path (Path, optional): path to config file. Defaults to default_config.
+        Returns:
+            SBIRunner: the validation runner specified by the config file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
@@ -72,13 +83,19 @@ class ValidationRunner:
 
     @classmethod
     def load_posterior(cls, path):
+        """Load a pretrained sbi posterior from file
+        Args:
+            path (Path): path to stored .pkl of trained sbi posterior
+        Returns:
+            posterior (NeuralPosterior): the posterior of interest
+        """
         with open(path, "rb") as handle:
             return pickle.load(handle)
 
     def __call__(
         self
     ):
-        """Train your posterior and save it to file
+        """Run your validation metrics and save them to file
         """
         t0 = time.time()
 

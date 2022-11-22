@@ -18,10 +18,10 @@ if not os.path.isdir('toy'):
 np.save('toy/theta.npy', theta)
 np.save('toy/x.npy', x)
 
-# train a model to infer x -> theta. Save it as toy/posterior.pkl
+# train a model to infer x -> theta. save it as toy/posterior.pkl
 runner = SBIRunner.from_config('configs/sample_inference_config.yaml')
 runner()
 
-# Use the trained posterior model to predict on a single example from the test set
+# use the trained posterior model to predict on a single example from the test set
 valrunner = ValidationRunner.from_config('configs/sample_validation_config.yaml')
 valrunner()

@@ -6,6 +6,10 @@ import pickle
 import torch
 import sbi
 from pathlib import Path
+from ili.inference.loaders import BaseLoader
+from torch.distributions import Independent
+from sbi.inference.snpe.snpe_base import PosteriorEstimator
+from typing import Dict, Any
 
 logging.basicConfig(level = logging.INFO)
 
@@ -14,14 +18,20 @@ default_config = Path(__file__).parent.parent / 'examples/configs/sample_inferen
 class SBIRunner:
     def __init__(
         self,
-        loader,
-        prior,
-        model,
-        train_args,
-        output_path
+        loader: BaseLoader,
+        prior: Independent,
+        model: PosteriorEstimator,
+        train_args: Dict,
+        output_path: Path,
     ):
-        """Class to run training and validation of posterior inference models using the sbi package
+        """Class to train posterior inference models using the sbi package
 
+        Args:
+            loader (BaseLoader): data loader with stored summary-parameter pairs
+            prior (Independent): prior on the parameters
+            model (PosteriorEstimator): sbi posterior estimator for doing parameter inference
+            train_args (Dict): dictionary of hyperparameters for training
+            output_path (Path): path where to store outputs
         """
         self.loader = loader
         self.prior = prior
@@ -35,9 +45,13 @@ class SBIRunner:
     def from_config(
         cls,
         config_path
-    ):
+    )->"SBIRunner":
         """Create an sbi runner from a yaml config file
 
+        Args:
+            config_path (Path, optional): path to config file. Defaults to default_config.
+        Returns:
+            SBIRunner: the sbi runner specified by the config file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
@@ -45,6 +59,7 @@ class SBIRunner:
         loader = cls.load_object(config['loader'])
         prior = cls.load_object(config['prior'])
 
+        # prior object and device needed for model instantiation
         config['model']['prior'] = prior
         config['model']['device'] = config['device']
         model = cls.load_object(config['model'])
@@ -61,12 +76,12 @@ class SBIRunner:
         )
 
     @classmethod
-    def load_object(cls, config):
+    def load_object(cls, config) -> Any:
         """Load the right object, according to config file
         Args:
             config (Dict): dictionary with the configuration for the object
         Returns:
-            object (): the object of choice
+            object (Any): the object of choice
         """
         module = importlib.import_module(config["module"])
         return getattr(

@@ -1,15 +1,44 @@
+from abc import ABC, abstractmethod
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
+import torch
+from sbi.inference.posteriors import NeuralPosterior
+from typing import List
+from pathlib import Path
 
-class PlotSinglePosterior():
+
+class BaseMetric(ABC):
+    @abstractmethod
+    def __call__(
+        self,
+        posterior: NeuralPosterior,
+        x: torch.Tensor,
+        theta: torch.Tensor
+    ):
+        """Given a posterior and test data, measure a validation metric and save to file.
+
+        Args:
+            posterior (NeuralPosterior): trained sbi posterior inference engine
+            x (torch.Tensor): tensor of test summaries
+            y (torch.Tensor): tensor of test parameters
+        """
+
+class PlotSinglePosterior(BaseMetric):
     def __init__(
         self,
-        num_samples,
-        labels,
-        output_path
+        num_samples: int,
+        labels: List[str],
+        output_path: Path,
     ):
+        """Perform inference sampling on a single test point and plot the posterior in a corner plot.
+
+        Args:
+            num_samples (int): number of posterior samples
+            labels (List[str]): list of parameter names
+            output_path (Path): path where to store outputs
+        """
         self.num_samples = num_samples
         self.labels = labels
         self.output_path = output_path
@@ -20,6 +49,13 @@ class PlotSinglePosterior():
         x,
         theta
     ):
+        """Given a posterior and test data, plot the inferred posterior of a single point and save to file.
+
+        Args:
+            posterior (NeuralPosterior): trained sbi posterior inference engine
+            x (torch.Tensor): tensor of test summaries
+            y (torch.Tensor): tensor of test parameters
+        """
         ndim = theta.shape[-1]
 
         # choose a random test datapoint
