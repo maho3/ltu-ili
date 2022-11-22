@@ -1,0 +1,27 @@
+loader:
+  module: 'ili.inference.loaders'
+  class: 'StaticNumpyLoader'
+  args:
+    in_dir: 'toy'
+    x_file: 'x.npy'
+    theta_file: 'theta.npy'
+
+prior:
+  module: 'sbi.utils'
+  class: 'BoxUniform'
+  args:
+    low: [0,0]
+    high: [1,1]
+
+model:
+  module: 'sbi.inference'
+  class: 'SNPE_C'
+  args:
+    density_estimator: 'maf'
+
+train_args:
+  training_batch_size: 32
+  learning_rate: 0.001
+
+device: 'cpu'
+output_path: 'toy'
