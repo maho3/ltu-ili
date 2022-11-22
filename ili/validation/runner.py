@@ -4,29 +4,27 @@ import logging
 import importlib
 import pickle
 import torch
-import sbi
 from pathlib import Path
 
 logging.basicConfig(level = logging.INFO)
 
 default_config = Path(__file__).parent.parent / 'examples/configs/sample_inference_config.yaml'
 
-class SBIRunner:
+
+class ValidationRunner:
     def __init__(
         self,
         loader,
-        prior,
-        model,
-        train_args,
+        posterior,
+        metrics,
         output_path
     ):
         """Class to run training and validation of posterior inference models using the sbi package
 
         """
         self.loader = loader
-        self.prior = prior
-        self.model = model
-        self.train_args = train_args
+        self.posterior = posterior
+        self.metrics = metrics
         self.output_path = output_path
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
@@ -43,20 +41,18 @@ class SBIRunner:
             config = yaml.safe_load(fd)
 
         loader = cls.load_object(config['loader'])
-        prior = cls.load_object(config['prior'])
-
-        config['model']['prior'] = prior
-        config['model']['device'] = config['device']
-        model = cls.load_object(config['model'])
-
-        train_args = config['train_args']
+        posterior = cls.load_posterior(config['posterior_path'])
         output_path = Path(config['output_path'])
+
+        metrics = {}
+        for key, value in config['metrics'].items():
+            value['args']['output_path'] = output_path
+            metrics[key] = cls.load_object(value)
 
         return cls(
             loader=loader,
-            prior=prior,
-            model=model,
-            train_args = train_args,
+            posterior=posterior,
+            metrics=metrics,
             output_path=output_path
         )
 
@@ -74,6 +70,11 @@ class SBIRunner:
             config["class"],
         )(**config["args"])
 
+    @classmethod
+    def load_posterior(cls, path):
+        with open(path, "rb") as handle:
+            return pickle.load(handle)
+
     def __call__(
         self
     ):
@@ -86,16 +87,10 @@ class SBIRunner:
 
         # TODO: this is maybe not the best place to train-test split
         split_ind = int(0.9*len(self.loader))
-        x_train, theta_train = x[:split_ind], theta[:split_ind]
+        x_test, theta_test = x[split_ind:], theta[split_ind:]
 
-        # train
-        _ = self.model.append_simulations(theta_train, x_train).train(**self.train_args)
-        posterior = self.model.build_posterior()
+        # evaluate metrics
+        for metric in self.metrics.values():
+            metric(self.posterior, x_test, theta_test)
 
-        # save posterior
-        with open(self.output_path / "posterior.pkl", "wb") as handle:
-            pickle.dump(posterior, handle)
-
-        logging.info(f'It took {time.time() - t0} seconds to train all models.')
-
-# Todo: Add cross-validation
+        logging.info(f'It took {time.time() - t0} seconds to run all metrics.')
