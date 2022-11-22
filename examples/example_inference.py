@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from ili.inference.runner_sbi import SBIRunner
 from ili.validation.runner import ValidationRunner
@@ -11,12 +12,16 @@ def simulator(params):
     return y
 x = np.array([simulator(t) for t in theta])
 
+# save them as numpy files
+if not os.path.isdir('toy'):
+    os.mkdir('toy')
 np.save('toy/theta.npy', theta)
 np.save('toy/x.npy', x)
 
+# train a model to infer x -> theta. Save it as toy/posterior.pkl
 runner = SBIRunner.from_config('configs/sample_inference_config.yaml')
-
 runner()
 
+# Use the trained posterior model to predict on a single example from the test set
 valrunner = ValidationRunner.from_config('configs/sample_validation_config.yaml')
 valrunner()

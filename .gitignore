@@ -133,3 +133,9 @@ dmypy.json
 
 # PyCharm
 .idea
+
+# sbi
+*sbi-logs
+
+# examples
+*toy
