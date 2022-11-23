@@ -6,8 +6,9 @@ import pickle
 import torch
 from pathlib import Path
 from ili.inference.loaders import BaseLoader
-from sbi.inference.posteriors import NeuralPosterior
+from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from ili.validation.metrics import BaseMetric
+from typing import List
 
 logging.basicConfig(level = logging.INFO)
 
@@ -99,6 +100,7 @@ class ValidationRunner:
         """
         t0 = time.time()
 
+        # NOTE: sbi posteriors only accept torch.Tensor inputs
         x = torch.Tensor(self.loader.get_all_data())
         theta = torch.Tensor(self.loader.get_all_parameters())
 
