@@ -6,6 +6,7 @@ import json
 import pandas as pd
 from summarizer.dataset import Dataset
 
+
 class BaseLoader(ABC):
     @abstractmethod
     def __len__(self) -> int:
@@ -15,13 +16,9 @@ class BaseLoader(ABC):
             int: length of dataset
         """
 
+
 class StaticNumpyLoader(BaseLoader):
-    def __init__(
-        self,
-        in_dir: str,
-        x_file: str,
-        theta_file: str
-    ):
+    def __init__(self, in_dir: str, x_file: str, theta_file: str):
         """Class to load single numpy files of summaries and parameters
 
         Args:
@@ -37,7 +34,7 @@ class StaticNumpyLoader(BaseLoader):
         self.theta = np.load(self.theta_path)
 
         if len(self.x) != len(self.theta):
-            raise Exception('Stored summaries and parameters are not of same length.')
+            raise Exception("Stored summaries and parameters are not of same length.")
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -63,6 +60,7 @@ class StaticNumpyLoader(BaseLoader):
         """
         return self.theta
 
+
 class SummarizerDatasetLoader(BaseLoader):
     def __init__(
         self,
@@ -71,7 +69,7 @@ class SummarizerDatasetLoader(BaseLoader):
         summary_root_file: str,
         param_file: str,
         train_test_split_file: str,
-        param_names: List[str]
+        param_names: List[str],
     ):
         """Class to load netCF files of summaries and a csv of parameters
         Basically a wrapper for ili-summarizer's Dataset, with added parameter loading
@@ -79,23 +77,23 @@ class SummarizerDatasetLoader(BaseLoader):
         Args:
             data_dir (str): path to the location of stored data
         """
-        #self.num_nodes = num_nodes
-        self.nodes = self.get_nodes_for_stage(stage=stage, train_test_split_file=train_test_split_file)
         self.data_dir = Path(data_dir)
+        self.nodes = self.get_nodes_for_stage(
+            stage=stage, train_test_split_file=train_test_split_file
+        )
         self.data = Dataset(
             nodes=self.nodes,
             path_to_data=self.data_dir,
             root_file=summary_root_file,
         )
         self.theta = self.load_parameters(
-            data_dir = self.data_dir,
-            param_file = param_file,
-            nodes = self.nodes,
-            param_names = param_names,
-            
+            data_dir=self.data_dir,
+            param_file=param_file,
+            nodes=self.nodes,
+            param_names=param_names,
         )
         if len(self.data) != len(self.theta):
-            raise Exception('Stored summaries and parameters are not of same length.')
+            raise Exception("Stored summaries and parameters are not of same length.")
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -111,7 +109,7 @@ class SummarizerDatasetLoader(BaseLoader):
         Returns:
             np.array: summaries
         """
-        return self.data.load().reshape((self.num_nodes,-1))
+        return self.data.load().reshape((self.num_nodes, -1))
 
     def get_all_parameters(self):
         """Returns all the loaded parameters
@@ -120,18 +118,18 @@ class SummarizerDatasetLoader(BaseLoader):
             np.array: parameters
         """
         return self.theta.values
-    
+
     def get_nodes_for_stage(self, stage: str, train_test_split_file: str):
         with open(self.data_dir / train_test_split_file) as f:
             train_test_split = json.load(f)
         return train_test_split[stage]
 
-    def load_parameters(self, data_dir: Path, param_file: str, nodes: List[int], param_names: List[str])->np.array:
-        theta = pd.read_csv(
-            data_dir / param_file,
-            sep=' ',
-            skipinitialspace=True
-        ).iloc[nodes]
+    def load_parameters(
+        self, data_dir: Path, param_file: str, nodes: List[int], param_names: List[str]
+    ) -> np.array:
+        theta = pd.read_csv(data_dir / param_file, sep=" ", skipinitialspace=True).iloc[
+            nodes
+        ]
         return theta[param_names].values
 
 
