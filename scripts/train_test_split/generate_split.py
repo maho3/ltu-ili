@@ -35,7 +35,7 @@ def get_split(
 
 if __name__ == "__main__":
     random.seed(10)
-    filename = "quijote_train_test_val.json"
+    filename = "/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/ili_summaries/summaries/quijote_train_test_val.json"
     n_nodes = 2000
     percent_test = 0.1
     percent_val = 0.1
