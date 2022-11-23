@@ -66,8 +66,8 @@ class SummarizerDatasetLoader(BaseLoader):
     def __init__(
         self,
         num_nodes: str,
-        in_dir: str,
-        root_file: str,
+        data_dir: str,
+        summary_root_file: str,
         param_file: str,
         param_names: List[str]
     ):
@@ -75,24 +75,22 @@ class SummarizerDatasetLoader(BaseLoader):
         Basically a wrapper for ili-summarizer's Dataset, with added parameter loading
 
         Args:
-            in_dir (str): path to the location of stored data
+            data_dir (str): path to the location of stored data
         """
         self.num_nodes = num_nodes
-        self.in_dir = Path(in_dir)
+        self.data_dir = Path(data_dir)
 
         self.dat = Dataset(
             nodes=range(self.num_nodes),
-            path_to_data=self.in_dir,
-            root_file=root_file,
+            path_to_data=self.data_dir,
+            root_file=summary_root_file,
         )
-
-        self.theta = pd.read_csv(
-            self.in_dir / param_file,
-            sep=' ',
-            skipinitialspace=True
+        self.theta = self.load_parameters(
+            data_dir = self.data_dir,
+            param_file = param_file,
+            param_names = param_names,
+            
         )
-        self.theta = self.theta[param_names]
-
         if self.num_nodes != len(self.theta):
             raise Exception('Stored summaries and parameters are not of same length.')
 
@@ -119,5 +117,14 @@ class SummarizerDatasetLoader(BaseLoader):
             np.array: parameters
         """
         return self.theta.values
+
+    def load_parameters(self, data_dir: Path, param_file: str, param_names: List[str])->np.array:
+        theta = pd.read_csv(
+            data_dir / param_file,
+            sep=' ',
+            skipinitialspace=True
+        )
+        return theta[param_names].values
+
 
 # TODO: Add loaders which load dynamically from many files

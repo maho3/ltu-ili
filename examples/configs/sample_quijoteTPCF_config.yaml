@@ -3,8 +3,8 @@ loader:
   class: 'SummarizerDatasetLoader'
   args:
     num_nodes: 2000
-    in_dir: '/Users/matthewho/git/ltu-ili/data/quijote'
-    root_file: 'tpcf/z_0.50/quijote'
+    data_dir: '/Users/matthewho/git/ltu-ili/data/quijote'
+    summary_root_file: 'tpcf/z_0.50/quijote'
     param_file: 'latin_hypercube_params.txt'
     param_names: ['Omega_m', 'h', 'sigma_8']
 
