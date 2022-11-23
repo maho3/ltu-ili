@@ -109,7 +109,7 @@ class SummarizerDatasetLoader(BaseLoader):
         Returns:
             np.array: summaries
         """
-        return self.data.load().reshape((self.num_nodes, -1))
+        return self.data.load().reshape((len(self), -1))
 
     def get_all_parameters(self):
         """Returns all the loaded parameters
@@ -117,7 +117,7 @@ class SummarizerDatasetLoader(BaseLoader):
         Returns:
             np.array: parameters
         """
-        return self.theta.values
+        return self.theta
 
     def get_nodes_for_stage(self, stage: str, train_test_split_file: str):
         with open(self.data_dir / train_test_split_file) as f:

@@ -82,4 +82,6 @@ class PlotSinglePosterior(BaseMetric):
                     g.axes[i, j].axvline(theta_obs[j], color='r')
                     g.axes[i, j].plot(theta_obs[j], theta_obs[i], 'ro')
 
+        if self.output_path is None:
+            return g
         g.savefig(self.output_path / 'plot_single_posterior.jpg')

@@ -101,13 +101,8 @@ class ValidationRunner:
         t0 = time.time()
 
         # NOTE: sbi posteriors only accept torch.Tensor inputs
-        x = torch.Tensor(self.loader.get_all_data())
-        theta = torch.Tensor(self.loader.get_all_parameters())
-
-        # TODO: this is maybe not the best place to train-test split
-        split_ind = int(0.9*len(self.loader))
-        x_test, theta_test = x[split_ind:], theta[split_ind:]
-
+        x_test = torch.Tensor(self.loader.get_all_data())
+        theta_test = torch.Tensor(self.loader.get_all_parameters())
         # evaluate metrics
         for metric in self.metrics.values():
             metric(self.posterior, x_test, theta_test)
