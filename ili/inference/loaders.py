@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from pathlib import Path
+from summarizer.dataset import Dataset
+from typing import List
+import pandas as pd
 
 class BaseLoader(ABC):
     @abstractmethod
@@ -58,5 +61,63 @@ class StaticNumpyLoader(BaseLoader):
             np.array: parameters
         """
         return self.theta
+
+class SummarizerDatasetLoader(BaseLoader):
+    def __init__(
+        self,
+        num_nodes: str,
+        in_dir: str,
+        root_file: str,
+        param_file: str,
+        param_names: List[str]
+    ):
+        """Class to load netCF files of summaries and a csv of parameters
+        Basically a wrapper for ili-summarizer's Dataset, with added parameter loading
+
+        Args:
+            in_dir (str): path to the location of stored data
+        """
+        self.num_nodes = num_nodes
+        self.in_dir = Path(in_dir)
+
+        self.dat = Dataset(
+            nodes=range(self.num_nodes),
+            path_to_data=self.in_dir,
+            root_file=root_file,
+        )
+
+        self.theta = pd.read_csv(
+            self.in_dir / param_file,
+            sep=' ',
+            skipinitialspace=True
+        )
+        self.theta = self.theta[param_names]
+
+        if self.num_nodes != len(self.theta):
+            raise Exception('Stored summaries and parameters are not of same length.')
+
+    def __len__(self) -> int:
+        """Returns the total number of data points in the dataset
+
+        Returns:
+            int: length of dataset
+        """
+        return self.num_nodes
+
+    def get_all_data(self) -> np.array:
+        """Returns all the loaded summaries
+
+        Returns:
+            np.array: summaries
+        """
+        return self.dat.load().reshape((self.num_nodes,-1))
+
+    def get_all_parameters(self):
+        """Returns all the loaded parameters
+
+        Returns:
+            np.array: parameters
+        """
+        return self.theta.values
 
 # TODO: Add loaders which load dynamically from many files
