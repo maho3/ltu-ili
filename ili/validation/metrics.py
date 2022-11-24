@@ -12,10 +12,7 @@ from pathlib import Path
 class BaseMetric(ABC):
     @abstractmethod
     def __call__(
-        self,
-        posterior: NeuralPosterior,
-        x: torch.Tensor,
-        theta: torch.Tensor
+        self, posterior: NeuralPosterior, x: torch.Tensor, theta: torch.Tensor
     ):
         """Given a posterior and test data, measure a validation metric and save to file.
 
@@ -24,6 +21,7 @@ class BaseMetric(ABC):
             x (torch.Tensor): tensor of test summaries
             y (torch.Tensor): tensor of test parameters
         """
+
 
 class PlotSinglePosterior(BaseMetric):
     def __init__(
@@ -43,12 +41,7 @@ class PlotSinglePosterior(BaseMetric):
         self.labels = labels
         self.output_path = output_path
 
-    def __call__(
-        self,
-        posterior,
-        x,
-        theta
-    ):
+    def __call__(self, posterior, x, theta):
         """Given a posterior and test data, plot the inferred posterior of a single point and save to file.
 
         Args:
@@ -68,20 +61,21 @@ class PlotSinglePosterior(BaseMetric):
 
         g = sns.pairplot(
             pd.DataFrame(samples, columns=self.labels),
-            kind=None, diag_kind='kde',
+            kind=None,
+            diag_kind="kde",
             corner=True,
         )
         g.map_lower(sns.kdeplot, levels=4, color=".2")
 
         for i in range(ndim):
-            for j in range(i+1):
-                if i==j:
-                    g.axes[i, i].axvline(theta_obs[i], color='r')
+            for j in range(i + 1):
+                if i == j:
+                    g.axes[i, i].axvline(theta_obs[i], color="r")
                 else:
-                    g.axes[i, j].axhline(theta_obs[i], color='r')
-                    g.axes[i, j].axvline(theta_obs[j], color='r')
-                    g.axes[i, j].plot(theta_obs[j], theta_obs[i], 'ro')
+                    g.axes[i, j].axhline(theta_obs[i], color="r")
+                    g.axes[i, j].axvline(theta_obs[j], color="r")
+                    g.axes[i, j].plot(theta_obs[j], theta_obs[i], "ro")
 
         if self.output_path is None:
             return g
-        g.savefig(self.output_path / 'plot_single_posterior.jpg')
+        g.savefig(self.output_path / "plot_single_posterior.jpg")
