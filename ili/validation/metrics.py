@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import torch
+import tqdm
 from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from typing import List
 from pathlib import Path
@@ -130,7 +131,7 @@ class PlotRankStatistics(BaseMetric):
         ranks = []
         mus, stds = [], []
         trues = []
-        for ii in range(x.shape[0]):
+        for ii in tqdm.tqdm(range(x.shape[0])):
             try:
                 posterior_samples = posterior.sample((self.num_samples,),
                                                      x=x[ii],

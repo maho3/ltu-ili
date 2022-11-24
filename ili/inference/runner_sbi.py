@@ -60,8 +60,8 @@ class SBIRunner:
         prior = cls.load_object(config['prior'])
 
         # prior object and device needed for model instantiation
-        config['model']['prior'] = prior
-        config['model']['device'] = config['device']
+        config['model']['args']['prior'] = prior
+        config['model']['args']['device'] = config['device']
         model = cls.load_object(config['model'])
 
         train_args = config['train_args']
