@@ -10,9 +10,12 @@ from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from ili.validation.metrics import BaseMetric
 from typing import List
 
-logging.basicConfig(level = logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
-default_config = Path(__file__).parent.parent / 'examples/configs/sample_validation_config.yaml'
+default_config = (
+    Path(__file__).parent.parent / "examples/configs/sample_validation_config.yaml"
+)
+
 
 class ValidationRunner:
     def __init__(
@@ -20,7 +23,7 @@ class ValidationRunner:
         loader: BaseLoader,
         posterior: NeuralPosterior,
         metrics: List[BaseMetric],
-        output_path: Path
+        output_path: Path,
     ):
         """Class to measure validation metrics of posterior inference models
 
@@ -38,10 +41,7 @@ class ValidationRunner:
             self.output_path.mkdir(parents=True, exist_ok=True)
 
     @classmethod
-    def from_config(
-        cls,
-        config_path
-    )->"ValidationRunner":
+    def from_config(cls, config_path) -> "ValidationRunner":
         """Create an validation runner from a yaml config file
 
         Args:
@@ -52,20 +52,17 @@ class ValidationRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
 
-        loader = cls.load_object(config['loader'])
-        posterior = cls.load_posterior(config['posterior_path'])
-        output_path = Path(config['output_path'])
+        loader = cls.load_object(config["loader"])
+        posterior = cls.load_posterior(config["posterior_path"])
+        output_path = Path(config["output_path"])
 
         metrics = {}
-        for key, value in config['metrics'].items():
-            value['args']['output_path'] = output_path
+        for key, value in config["metrics"].items():
+            value["args"]["output_path"] = output_path
             metrics[key] = cls.load_object(value)
 
         return cls(
-            loader=loader,
-            posterior=posterior,
-            metrics=metrics,
-            output_path=output_path
+            loader=loader, posterior=posterior, metrics=metrics, output_path=output_path
         )
 
     @classmethod
@@ -93,23 +90,15 @@ class ValidationRunner:
         with open(path, "rb") as handle:
             return pickle.load(handle)
 
-    def __call__(
-        self
-    ):
-        """Run your validation metrics and save them to file
-        """
+    def __call__(self):
+        """Run your validation metrics and save them to file"""
         t0 = time.time()
 
         # NOTE: sbi posteriors only accept torch.Tensor inputs
-        x = torch.Tensor(self.loader.get_all_data())
-        theta = torch.Tensor(self.loader.get_all_parameters())
-
-        # TODO: this is maybe not the best place to train-test split
-        split_ind = int(0.9*len(self.loader))
-        x_test, theta_test = x[split_ind:], theta[split_ind:]
-
+        x_test = torch.Tensor(self.loader.get_all_data())
+        theta_test = torch.Tensor(self.loader.get_all_parameters())
         # evaluate metrics
         for metric in self.metrics.values():
             metric(self.posterior, x_test, theta_test)
 
-        logging.info(f'It took {time.time() - t0} seconds to run all metrics.')
+        logging.info(f"It took {time.time() - t0} seconds to run all metrics.")

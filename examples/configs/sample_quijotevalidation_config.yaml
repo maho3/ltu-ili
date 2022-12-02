@@ -2,10 +2,11 @@ loader:
   module: 'ili.inference.loaders'
   class: 'SummarizerDatasetLoader'
   args:
-    num_nodes: 2000
-    in_dir: '/Users/matthewho/git/ltu-ili/data/quijote'
-    root_file: 'tpcf/z_0.50/quijote'
+    stage: 'val'
+    data_dir: '/Users/matthewho/git/ltu-ili/data/quijote'
+    summary_root_file: 'tpcf/z_0.50/quijote'
     param_file: 'latin_hypercube_params.txt'
+    train_test_split_file: 'quijote_train_test_val.json'
     param_names: ['Omega_m', 'h', 'sigma_8']
 
 posterior_path: 'toy/posterior.pkl'

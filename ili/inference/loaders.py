@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
-import numpy as np
-from pathlib import Path
-from summarizer.dataset import Dataset
 from typing import List
+from pathlib import Path
+import numpy as np
+import json
 import pandas as pd
+from summarizer.dataset import Dataset
+
 
 class BaseLoader(ABC):
     @abstractmethod
@@ -14,13 +16,9 @@ class BaseLoader(ABC):
             int: length of dataset
         """
 
+
 class StaticNumpyLoader(BaseLoader):
-    def __init__(
-        self,
-        in_dir: str,
-        x_file: str,
-        theta_file: str
-    ):
+    def __init__(self, in_dir: str, x_file: str, theta_file: str):
         """Class to load single numpy files of summaries and parameters
 
         Args:
@@ -36,7 +34,7 @@ class StaticNumpyLoader(BaseLoader):
         self.theta = np.load(self.theta_path)
 
         if len(self.x) != len(self.theta):
-            raise Exception('Stored summaries and parameters are not of same length.')
+            raise Exception("Stored summaries and parameters are not of same length.")
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -62,39 +60,48 @@ class StaticNumpyLoader(BaseLoader):
         """
         return self.theta
 
+
 class SummarizerDatasetLoader(BaseLoader):
     def __init__(
         self,
-        num_nodes: str,
-        in_dir: str,
-        root_file: str,
+        stage: str,
+        data_dir: str,
+        summary_root_file: str,
         param_file: str,
-        param_names: List[str]
+        train_test_split_file: str,
+        param_names: List[str],
     ):
         """Class to load netCF files of summaries and a csv of parameters
         Basically a wrapper for ili-summarizer's Dataset, with added parameter loading
 
+
         Args:
-            in_dir (str): path to the location of stored data
+            stage (str): whether to load train, test or val data
+            data_dir (str): path to data directory
+            summary_root_file (str): root of summary files
+            param_file (str): parameter file name
+            train_test_split_file (str): file name where train, test, val split idx are stored
+            param_names (List[str]): parameters to fit
+
+        Raises:
+            Exception: won't work when summaries and parameters don't have same length
         """
-        self.num_nodes = num_nodes
-        self.in_dir = Path(in_dir)
-
-        self.dat = Dataset(
-            nodes=range(self.num_nodes),
-            path_to_data=self.in_dir,
-            root_file=root_file,
+        self.data_dir = Path(data_dir)
+        self.nodes = self.get_nodes_for_stage(
+            stage=stage, train_test_split_file=train_test_split_file
         )
-
-        self.theta = pd.read_csv(
-            self.in_dir / param_file,
-            sep=' ',
-            skipinitialspace=True
+        self.data = Dataset(
+            nodes=self.nodes,
+            path_to_data=self.data_dir,
+            root_file=summary_root_file,
         )
-        self.theta = self.theta[param_names]
-
-        if self.num_nodes != len(self.theta):
-            raise Exception('Stored summaries and parameters are not of same length.')
+        self.theta = self.load_parameters(
+            param_file=param_file,
+            nodes=self.nodes,
+            param_names=param_names,
+        )
+        if len(self.data) != len(self.theta):
+            raise Exception("Stored summaries and parameters are not of same length.")
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -102,7 +109,7 @@ class SummarizerDatasetLoader(BaseLoader):
         Returns:
             int: length of dataset
         """
-        return self.num_nodes
+        return len(self.nodes)
 
     def get_all_data(self) -> np.array:
         """Returns all the loaded summaries
@@ -110,7 +117,7 @@ class SummarizerDatasetLoader(BaseLoader):
         Returns:
             np.array: summaries
         """
-        return self.dat.load().reshape((self.num_nodes,-1))
+        return self.data.load().reshape((len(self), -1))
 
     def get_all_parameters(self):
         """Returns all the loaded parameters
@@ -118,6 +125,39 @@ class SummarizerDatasetLoader(BaseLoader):
         Returns:
             np.array: parameters
         """
-        return self.theta.values
+        return self.theta
+
+    def get_nodes_for_stage(self, stage: str, train_test_split_file: str) -> List[int]:
+        """Get nodes for a given stage (train, test or val)
+
+        Args:
+            stage (str): either train, test or val
+            train_test_split_file (str): file where node idx for each stage are stored
+
+        Returns:
+            List[int]: list of idx for stage
+        """
+        with open(self.data_dir / train_test_split_file) as f:
+            train_test_split = json.load(f)
+        return train_test_split[stage]
+
+    def load_parameters(
+        self, param_file: str, nodes: List[int], param_names: List[str]
+    ) -> np.array:
+        """Get parameters for nodes
+
+        Args:
+            param_file (str): where to find parameters of latin hypercube
+            nodes (List[int]): list of nodes to read
+            param_names (List[str]): parameters to use
+
+        Returns:
+            np.array: array of parameters
+        """
+        theta = pd.read_csv(
+            self.data_dir / param_file, sep=" ", skipinitialspace=True
+        ).iloc[nodes]
+        return theta[param_names].values
+
 
 # TODO: Add loaders which load dynamically from many files
