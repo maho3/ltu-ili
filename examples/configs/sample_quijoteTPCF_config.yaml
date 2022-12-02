@@ -17,11 +17,21 @@ prior:
     low: [0.1, 0.5, 0.6]
     high: [0.5, 0.9, 1.0]
 
+embedding_net:
+  module: 'ili.embedding'
+  class: 'FCN'
+  args:
+    n_summary: 100
+    n_hidden: [100,100,100]
+    act_fn: "SiLU"
+
 model:
   module: 'sbi.inference'
   class: 'SNPE_C'
-  args:
-    density_estimator: 'maf'
+  posterior_nn:
+    model: 'maf'
+    hidden_features: 100
+    num_transforms: 2
 
 train_args:
   training_batch_size: 32
