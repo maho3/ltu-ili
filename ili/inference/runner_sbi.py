@@ -66,7 +66,7 @@ class SBIRunner:
                 config=config["embedding_net"],
             )
         else:
-            embedding_net = None
+            embedding_net = nn.Identity() 
         model = cls.load_inference_model(
             prior=prior,
             device=config["device"],
