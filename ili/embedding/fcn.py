@@ -22,6 +22,11 @@ class FCN(nn.Module):
         self.n_summary = n_summary
 
     def initalize_model(self, n_input: int):
+        """ Initialize network once the input dimensionality is known
+
+        Args:
+            n_input (int): input dimensionality 
+        """
         model = []
         n_left = n_input
         for layer in range(self.n_layers):
