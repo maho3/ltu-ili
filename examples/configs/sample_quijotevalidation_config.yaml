@@ -18,4 +18,11 @@ metrics:
     class: 'PlotSinglePosterior'
     args:
       num_samples: 1000
-      labels: ['Omega_m', 'h', 'sigma_8']
+      labels: [ 'Omega_m', 'h', 'sigma_8' ]
+
+  rank_stats:
+    module: 'ili.validation.metrics'
+    class: 'PlotRankStatistics'
+    args:
+      num_samples: 1000
+      labels: [ 'Omega_m', 'h', 'sigma_8' ]
