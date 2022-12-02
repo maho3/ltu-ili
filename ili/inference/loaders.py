@@ -60,7 +60,7 @@ class StaticNumpyLoader(BaseLoader):
         """
         return self.theta
 
-    
+
 class SummarizerDatasetLoader(BaseLoader):
     def __init__(
         self,
@@ -71,17 +71,17 @@ class SummarizerDatasetLoader(BaseLoader):
         train_test_split_file: str,
         param_names: List[str],
     ):
-        """ Class to load netCF files of summaries and a csv of parameters
+        """Class to load netCF files of summaries and a csv of parameters
         Basically a wrapper for ili-summarizer's Dataset, with added parameter loading
 
 
         Args:
-            stage (str): whether to load train, test or val data 
+            stage (str): whether to load train, test or val data
             data_dir (str): path to data directory
             summary_root_file (str): root of summary files
             param_file (str): parameter file name
             train_test_split_file (str): file name where train, test, val split idx are stored
-            param_names (List[str]): parameters to fit 
+            param_names (List[str]): parameters to fit
 
         Raises:
             Exception: won't work when summaries and parameters don't have same length
@@ -96,7 +96,6 @@ class SummarizerDatasetLoader(BaseLoader):
             root_file=summary_root_file,
         )
         self.theta = self.load_parameters(
-            data_dir=self.data_dir,
             param_file=param_file,
             nodes=self.nodes,
             param_names=param_names,
@@ -128,12 +127,12 @@ class SummarizerDatasetLoader(BaseLoader):
         """
         return self.theta
 
-    def get_nodes_for_stage(self, stage: str, train_test_split_file: str)->List[int]:
-        """ Get nodes for a given stage (train, test or val)
+    def get_nodes_for_stage(self, stage: str, train_test_split_file: str) -> List[int]:
+        """Get nodes for a given stage (train, test or val)
 
         Args:
             stage (str): either train, test or val
-            train_test_split_file (str): file where node idx for each stage are stored 
+            train_test_split_file (str): file where node idx for each stage are stored
 
         Returns:
             List[int]: list of idx for stage
@@ -145,19 +144,19 @@ class SummarizerDatasetLoader(BaseLoader):
     def load_parameters(
         self, param_file: str, nodes: List[int], param_names: List[str]
     ) -> np.array:
-        """ Get parameters for nodes
+        """Get parameters for nodes
 
         Args:
-            param_file (str): where to find parameters of latin hypercube 
-            nodes (List[int]): list of nodes to read 
-            param_names (List[str]): parameters to use 
+            param_file (str): where to find parameters of latin hypercube
+            nodes (List[int]): list of nodes to read
+            param_names (List[str]): parameters to use
 
         Returns:
-            np.array: array of parameters 
+            np.array: array of parameters
         """
-        theta = pd.read_csv(self.data_dir / param_file, sep=" ", skipinitialspace=True).iloc[
-            nodes
-        ]
+        theta = pd.read_csv(
+            self.data_dir / param_file, sep=" ", skipinitialspace=True
+        ).iloc[nodes]
         return theta[param_names].values
 
 

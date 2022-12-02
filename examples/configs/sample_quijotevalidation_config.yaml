@@ -2,7 +2,7 @@ loader:
   module: 'ili.inference.loaders'
   class: 'SummarizerDatasetLoader'
   args:
-    num_nodes: 2000
+    stage: 'val'
     data_dir: '/Users/matthewho/git/ltu-ili/data/quijote'
     summary_root_file: 'tpcf/z_0.50/quijote'
     param_file: 'latin_hypercube_params.txt'
