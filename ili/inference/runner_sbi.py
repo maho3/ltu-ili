@@ -85,6 +85,17 @@ class SBIRunner:
             config["class"],
         )(**config["args"])
 
+    @classmethod
+    def load_inference(cls, prior, embedding_net, inference_config) -> "Inference":
+        posterior_config = inference_config['posterior_nn']
+        neural_posterior = sbi.utils.posterior_nn(
+            embedding_net=embedding_net, 
+            **posterior_config, 
+        )
+        inference_class = getattr(inference_config['module'], inference_config['class'])
+        return inference_class(prior=prior, density_estimator=neural_posterior)
+
+
     def __call__(self):
         """Train your posterior and save it to file"""
         t0 = time.time()
