@@ -133,7 +133,7 @@ class SBIRunner:
         t0 = time.time()
 
         x = torch.Tensor(self.loader.get_all_data())
-        if self.embedding_net is not None:
+        if not isinstance(self.embedding_net, nn.Identity()):
             self.embedding_net.initalize_model(n_input=x.shape[-1])
         theta = torch.Tensor(self.loader.get_all_parameters())
         # train
