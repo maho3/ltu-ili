@@ -61,3 +61,15 @@ You can verify that the installation is working by running the toy example
 ```
 After the script completed, you should be able to find some metric summaries and plots in the **examples/toy** folder.
 
+It's also possible to download some pre-processed Quijote data from ...
+
+The config file for the quijote inference assumes that the data can be found in the **examples/** folder.
+Run the inference using
+```bash
+   cd examples
+   python quijote_inference.py 
+```
+In case you want to use a mixture density network as density estimator instead of a normalizing flow, then execute
+```bash
+   python quijote_inference.py --use_mdn
+```
