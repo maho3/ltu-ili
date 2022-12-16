@@ -10,7 +10,8 @@ from pathlib import Path
 from ili.inference.loaders import BaseLoader
 from torch.distributions import Independent
 from sbi.inference.snpe.snpe_base import PosteriorEstimator
-from typing import Dict, Any
+from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble 
+from typing import Dict, Any, Optional
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,6 +29,7 @@ class SBIRunner:
         embedding_net: nn.Module,
         train_args: Dict,
         output_path: Path,
+        n_ensemble: Optional[int] = 1,
     ):
         """Class to train posterior inference models using the sbi package
 
@@ -38,13 +40,16 @@ class SBIRunner:
             embedding_net (nn.MOdule): neural network to compress high dimensional data into lower dimensionality
             train_args (Dict): dictionary of hyperparameters for training
             output_path (Path): path where to store outputs
+            n_ensemble (int): number of poseriors to train and ensemble. Defaults to one, which means no ensembling
         """
         self.loader = loader
         self.prior = prior
         self.model = model
         self.embedding_net = embedding_net
+        self.n_ensemble = n_ensemble
         self.train_args = train_args
         self.output_path = output_path
+        self.n_ensemble = n_ensemble
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
 
@@ -82,6 +87,7 @@ class SBIRunner:
             embedding_net=embedding_net,
             train_args=train_args,
             output_path=output_path,
+            n_ensemble=config["model"]["n_ensemble"],
         )
 
     @classmethod
@@ -131,16 +137,19 @@ class SBIRunner:
     def __call__(self):
         """Train your posterior and save it to file"""
         t0 = time.time()
-
         x = torch.Tensor(self.loader.get_all_data())
-        if not isinstance(self.embedding_net, nn.Identity):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
         theta = torch.Tensor(self.loader.get_all_parameters())
-        # train
-        _ = self.model.append_simulations(theta, x).train(**self.train_args)
-        posterior = self.model.build_posterior()
-        # save posterior
+        self.model = self.model.append_simulations(theta, x)
+        posteriors = []
+        for n in range(self.n_ensemble):
+            logging.info(f'Training model {n} out of {self.n_ensemble} ensemble models')
+            if not isinstance(self.embedding_net, nn.Identity):
+                self.embedding_net.initalize_model(n_input=x.shape[-1])
+            #TODO: retrain_from_scratch as argument not working? Do this more elegantly
+            self.model._neural_net = None
+            density_estimator = self.model.train(**self.train_args,)
+            posteriors.append(self.model.build_posterior(density_estimator))
+        posterior = NeuralPosteriorEnsemble(posteriors=posteriors)
         with open(self.output_path / "posterior.pkl", "wb") as handle:
             pickle.dump(posterior, handle)
-
         logging.info(f"It took {time.time() - t0} seconds to train all models.")
