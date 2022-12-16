@@ -16,9 +16,11 @@ prior:
 model:
   module: 'sbi.inference'
   class: 'SNPE_C'
-  args:
-    density_estimator: 'maf'
-
+  posterior_nn:
+    model: 'maf'
+    hidden_features: 100
+    num_transforms: 2
+    
 train_args:
   training_batch_size: 32
   learning_rate: 0.001
