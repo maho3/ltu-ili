@@ -20,22 +20,44 @@ Next, setup your environment to support the required dependencies for ltu-ili. l
 ```bash
     pip install --upgrade pip
 ```
-3. Install all packages within [requirements.txt](requirements.txt).
+3. Install additional dependencies from forked repository [ili-summarizer](https://github.com/florpi/ili-summarizer).
 ```bash
-    pip install -r requirements.txt
+   git clone git@github.com:florpi/ili-summarizer.git
+   cd ili-summarizer
+   pip install -e .
+```
+4. Finally setup the project via
+```bash
+    pip install -e .
 ```
 
 ### conda
 1. Ensure that you have anaconda3 installed by following its [installation instructions](https://docs.anaconda.com/anaconda/install/index.html).
-2. Create a new virtual environment with a Python version >=3.7. For example,
+2. Create a new virtual environment with a Python version >=3.7 and required dependencies. For example,
 ```bash
-    conda create --name myenv python=3.9
+    conda env create -f environment.yml
 ```
 3. Activate the newly created environment.
 ```bash
-    conda activate myenv
+    conda activate ili_env 
 ```
-4. Install all packages within [requirements.txt](requirements.txt) into your environment.
+5. Install additional dependencies from forked repository [ili-summarizer](https://github.com/florpi/ili-summarizer).
 ```bash
-    conda install --file requirements.txt
+   git clone git@github.com:florpi/ili-summarizer.git
+   cd ili-summarizer
+   pip install -e .
 ```
+6. Finally setup the project via
+```bash
+    pip install -e .
+```
+
+### Verify installation
+
+You can verify that the installation is working by running the toy example
+```bash
+   cd examples
+   python example_inference.py 
+```
+After the script completed, you should be able to find some metric summaries and plots in the **examples/toy** folder.
+
