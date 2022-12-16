@@ -29,9 +29,9 @@ model:
   module: 'sbi.inference'
   class: 'SNPE_C'
   posterior_nn:
-    model: 'maf'
-    hidden_features: 100
-    num_transforms: 2
+    model: 'mdn'
+    hidden_features: 50
+    num_components: 1
 
 train_args:
   training_batch_size: 32
