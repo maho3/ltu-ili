@@ -24,6 +24,11 @@ Next, setup your environment to support the required dependencies for ltu-ili. l
 ```bash
     pip install -r requirements.txt
 ```
+4. Install additional dependencies from forked repositories
+5. Finally setup the project via
+```bash
+    pip install -e .
+```
 
 ### conda
 1. Ensure that you have anaconda3 installed by following its [installation instructions](https://docs.anaconda.com/anaconda/install/index.html).
@@ -39,3 +44,9 @@ Next, setup your environment to support the required dependencies for ltu-ili. l
 ```bash
     conda install --file requirements.txt
 ```
+5. Install additional dependencies from forked repositories
+6. Finally setup the project via
+```bash
+    pip install -e .
+```
+
