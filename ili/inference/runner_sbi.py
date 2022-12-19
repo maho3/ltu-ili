@@ -7,11 +7,11 @@ import torch
 import torch.nn as nn
 import sbi
 from pathlib import Path
-from ili.inference.loaders import BaseLoader
+from typing import Dict, Any, List, Callable
 from torch.distributions import Independent
-from sbi.inference.snpe.snpe_base import PosteriorEstimator
-from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble 
-from typing import Dict, Any, Optional
+from sbi.inference import NeuralInference
+from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+from ili.inference.loaders import BaseLoader
 
 logging.basicConfig(level=logging.INFO)
 
@@ -25,31 +25,32 @@ class SBIRunner:
         self,
         loader: BaseLoader,
         prior: Independent,
-        model: PosteriorEstimator,
+        inference_class: NeuralInference,
+        neural_posteriors: List[Callable],
+        device: str,
         embedding_net: nn.Module,
         train_args: Dict,
         output_path: Path,
-        n_ensemble: Optional[int] = 1,
     ):
         """Class to train posterior inference models using the sbi package
 
         Args:
             loader (BaseLoader): data loader with stored summary-parameter pairs
             prior (Independent): prior on the parameters
-            model (PosteriorEstimator): sbi posterior estimator for doing parameter inference
-            embedding_net (nn.MOdule): neural network to compress high dimensional data into lower dimensionality
+            inference_class (NeuralInference): sbi inference class used to that train neural posteriors
+            neural_posteriors (List[Callable]): list of neural posteriors to train
+            embedding_net (nn.Module): neural network to compress high dimensional data into lower dimensionality
             train_args (Dict): dictionary of hyperparameters for training
             output_path (Path): path where to store outputs
-            n_ensemble (int): number of poseriors to train and ensemble. Defaults to one, which means no ensembling
         """
         self.loader = loader
         self.prior = prior
-        self.model = model
+        self.inference_class = inference_class
+        self.neural_posteriors = neural_posteriors
+        self.device = device
         self.embedding_net = embedding_net
-        self.n_ensemble = n_ensemble
         self.train_args = train_args
         self.output_path = output_path
-        self.n_ensemble = n_ensemble
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
 
@@ -71,23 +72,26 @@ class SBIRunner:
                 config=config["embedding_net"],
             )
         else:
-            embedding_net = nn.Identity() 
-        model = cls.load_inference_model(
-            prior=prior,
-            device=config["device"],
+            embedding_net = nn.Identity()
+        inference_class = cls.load_inference_class(
+            inference_module=config["model"]["module"],
+            inference_class=config["model"]["class"],
+        )
+        neural_posteriors = cls.load_neural_posteriors(
             embedding_net=embedding_net,
-            inference_config=config["model"],
+            posteriors_config=config["model"]["neural_posteriors"],
         )
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
         return cls(
             loader=loader,
             prior=prior,
-            model=model,
+            inference_class=inference_class,
+            neural_posteriors=neural_posteriors,
+            device=config["device"],
             embedding_net=embedding_net,
             train_args=train_args,
             output_path=output_path,
-            n_ensemble=config["model"]["n_ensemble"],
         )
 
     @classmethod
@@ -105,51 +109,76 @@ class SBIRunner:
         )(**config["args"])
 
     @classmethod
-    def load_inference_model(
+    def load_inference_class(
         cls,
-        prior: Independent,
-        device: str,
+        inference_module: str,
+        inference_class: str,
+    ) -> NeuralInference:
+        """Neural inference class used to train posterior
+
+        Args:
+            inference_module (str): module from which to import class
+            inference_class (str): class name
+
+        Returns:
+            NeuralInference: neural inference class
+        """
+        module = importlib.import_module(inference_module)
+        return getattr(module, inference_class)
+
+    @classmethod
+    def load_neural_posteriors(
+        cls,
         embedding_net: nn.Module,
-        inference_config: Dict,
-    ) -> "InferenceModel":
+        posteriors_config: List[Dict],
+    ) -> List[Callable]:
         """Load the inference model
 
         Args:
-            prior (Independent): prior for parameters to infer
-            device (str): cpu or gpu
             embedding_net (nn.Module): neural network to compress high dimensional data
-            inference_config (Dict): configuration for the inference module
+            posterior_config(List[Dict]): list with configurations for each neural posterior
+            model in the ensemble
 
         Returns:
-            InferenceModel: model to fit posterior
+            List[Callable]: list of neural posterior models with forward methods
         """
-        posterior_config = inference_config["posterior_nn"]
-        neural_posterior = sbi.utils.posterior_nn(
-            embedding_net=embedding_net,
-            **posterior_config,
-        )
-        module = importlib.import_module(inference_config["module"])
-        inference_class = getattr(module, inference_config["class"])
-        return inference_class(
-            prior=prior, density_estimator=neural_posterior, device=device
-        )
+        neural_posteriors = []
+        for model_args in posteriors_config:
+            neural_posteriors.append(
+                sbi.utils.posterior_nn(
+                    embedding_net=embedding_net,
+                    **model_args,
+                )
+            )
+        return neural_posteriors
 
     def __call__(self):
         """Train your posterior and save it to file"""
         t0 = time.time()
         x = torch.Tensor(self.loader.get_all_data())
         theta = torch.Tensor(self.loader.get_all_parameters())
-        self.model = self.model.append_simulations(theta, x)
-        posteriors = []
-        for n in range(self.n_ensemble):
-            logging.info(f'Training model {n} out of {self.n_ensemble} ensemble models')
+        posteriors, val_loss = [], []
+        for n, posterior in enumerate(self.neural_posteriors):
+            logging.info(
+                f"Training model {n+1} out of {len(self.neural_posteriors)} ensemble models"
+            )
+            model = self.inference_class(
+                prior=self.prior,
+                density_estimator=posterior,
+                device=self.device,
+            )
+            model = model.append_simulations(theta, x)
             if not isinstance(self.embedding_net, nn.Identity):
                 self.embedding_net.initalize_model(n_input=x.shape[-1])
-            #TODO: retrain_from_scratch as argument not working? Do this more elegantly
-            self.model._neural_net = None
-            density_estimator = self.model.train(**self.train_args,)
-            posteriors.append(self.model.build_posterior(density_estimator))
-        posterior = NeuralPosteriorEnsemble(posteriors=posteriors)
+            density_estimator = model.train(
+                **self.train_args,
+            )
+            posteriors.append(model.build_posterior(density_estimator))
+            val_loss += model.summary["best_validation_log_prob"]
+        posterior = NeuralPosteriorEnsemble(
+            posteriors=posteriors,
+            weights=torch.tensor([float(vl) for vl in val_loss]),
+        )
         with open(self.output_path / "posterior.pkl", "wb") as handle:
             pickle.dump(posterior, handle)
         logging.info(f"It took {time.time() - t0} seconds to train all models.")
