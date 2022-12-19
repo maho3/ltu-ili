@@ -61,10 +61,9 @@ You can verify that the installation is working by running the toy example
 ```
 After the script completed, you should be able to find some metric summaries and plots in the **examples/toy** folder.
 
-It's also possible to download some pre-processed Quijote data from ...
+It's also possible to use pre-processed Quijote two point correlation function (TPCF) summaries and run example cosmological inference. Quijote TPCF summaries can be found the LtU Open Storage Network data repository ([https://sdsc.osn.xsede.org/learningtheuniverse](https://sdsc.osn.xsede.org/learningtheuniverse)). See notes in the #ili-wg Slack channel or ping Matt Ho if you need help downloading this data. 
 
-The config file for the quijote inference assumes that the data can be found in the **examples/** folder.
-Run the inference using
+Store this data in a subfolder called ili-wg/data and run the inference using
 ```bash
    cd examples
    python quijote_inference.py 
