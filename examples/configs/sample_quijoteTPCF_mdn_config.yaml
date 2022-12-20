@@ -3,7 +3,7 @@ loader:
   class: 'SummarizerDatasetLoader'
   args:
     stage: 'train'
-    data_dir: './ltu-ili-data/quijote'
+    data_dir: 'ltu-ili-data/quijote'
     summary_root_file: 'tpcf/z_0.50/quijote'
     param_file: 'latin_hypercube_params.txt'
     train_test_split_file: 'quijote_train_test_val.json'
@@ -29,13 +29,13 @@ model:
   module: 'sbi.inference'
   class: 'SNPE_C'
   posterior_nn:
-    model: 'maf'
-    hidden_features: 100
-    num_transforms: 2
+    model: 'mdn'
+    hidden_features: 50
+    num_components: 1
 
 train_args:
   training_batch_size: 32
   learning_rate: 0.001
 
 device: 'cpu'
-output_path: './toy'
+output_path: 'toy'
