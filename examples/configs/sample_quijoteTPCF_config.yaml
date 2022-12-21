@@ -28,10 +28,10 @@ embedding_net:
 model:
   module: 'sbi.inference'
   class: 'SNPE_C'
-  posterior_nn:
-    model: 'maf'
-    hidden_features: 100
-    num_transforms: 2
+  neural_posteriors:
+    - model: 'maf'
+      hidden_features: 100 
+      num_transforms: 2
 
 train_args:
   training_batch_size: 32
