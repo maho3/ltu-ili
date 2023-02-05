@@ -70,5 +70,5 @@ Store this data in a subfolder called ili-wg/data and run the inference using
 ```
 In case you want to use a mixture density network as density estimator instead of a normalizing flow, then execute
 ```bash
-   python quijote_inference.py --cfgtrain configs/sample_quijoteTPCF_mdn_config.yaml
+   python quijote_inference.py --cfgtrain configs/quijote_MDN.yaml
 ```

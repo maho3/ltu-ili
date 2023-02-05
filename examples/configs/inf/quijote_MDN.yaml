@@ -1,14 +1,3 @@
-loader:
-  module: 'ili.dataloaders'
-  class: 'SummarizerDatasetLoader'
-  args:
-    stage: 'train'
-    data_dir: 'ltu-ili-data/quijote'
-    summary_root_file: 'tpcf/z_0.50/quijote'
-    param_file: 'latin_hypercube_params.txt'
-    train_test_split_file: 'quijote_train_test_val.json'
-    param_names: ['Omega_m', 'h', 'sigma_8']
-
 
 prior:
   module: 'sbi.utils'

@@ -1,11 +1,3 @@
-loader:
-  module: 'ili.dataloaders'
-  class: 'StaticNumpyLoader'
-  args:
-    in_dir: './toy'
-    x_file: 'x.npy'
-    theta_file: 'theta.npy'
-
 posterior_path: './toy/posterior.pkl'
 output_path: './toy'
 

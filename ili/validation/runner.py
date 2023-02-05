@@ -14,14 +14,13 @@ from ili.utils import load_from_config
 logging.basicConfig(level=logging.INFO)
 
 default_config = (
-    Path(__file__).parent.parent / "examples/configs/sample_validation_config.yaml"
+    Path(__file__).parent.parent / "examples/configs/sample.yaml"
 )
 
 
 class ValidationRunner:
     def __init__(
         self,
-        loader: BaseLoader,
         posterior: NeuralPosterior,
         metrics: List[BaseMetric],
         output_path: Path,
@@ -34,7 +33,6 @@ class ValidationRunner:
             metrics (List[BaseMetric]): list of metric objects to measure on the test set
             output_path (Path): path where to store outputs
         """
-        self.loader = loader
         self.posterior = posterior
         self.metrics = metrics
         self.output_path = output_path
@@ -53,7 +51,6 @@ class ValidationRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
 
-        loader = load_from_config(config["loader"])
         posterior = cls.load_posterior(config["posterior_path"])
         output_path = Path(config["output_path"])
 
@@ -62,9 +59,7 @@ class ValidationRunner:
             value["args"]["output_path"] = output_path
             metrics[key] = load_from_config(value)
 
-        return cls(
-            loader=loader, posterior=posterior, metrics=metrics, output_path=output_path
-        )
+        return cls(posterior=posterior, metrics=metrics, output_path=output_path)
 
     @classmethod
     def load_posterior(cls, path):
@@ -77,13 +72,17 @@ class ValidationRunner:
         with open(path, "rb") as handle:
             return pickle.load(handle)
 
-    def __call__(self):
-        """Run your validation metrics and save them to file"""
+    def __call__(self, loader):
+        """Run your validation metrics and save them to file
+
+        Args:
+            loader (BaseLoader): data loader with stored summary-parameter pairs
+        """
         t0 = time.time()
 
         # NOTE: sbi posteriors only accept torch.Tensor inputs
-        x_test = torch.Tensor(self.loader.get_all_data())
-        theta_test = torch.Tensor(self.loader.get_all_parameters())
+        x_test = torch.Tensor(loader.get_all_data())
+        theta_test = torch.Tensor(loader.get_all_parameters())
         # evaluate metrics
         for metric in self.metrics.values():
             metric(self.posterior, x_test, theta_test)

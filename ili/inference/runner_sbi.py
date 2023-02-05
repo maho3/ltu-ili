@@ -10,20 +10,18 @@ from typing import Dict, Any, List, Callable
 from torch.distributions import Independent
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
-from ili.dataloaders import BaseLoader
 from ili.utils import load_class, load_from_config
 
 logging.basicConfig(level=logging.INFO)
 
 default_config = (
-    Path(__file__).parent.parent / "examples/configs/sample_inference_config.yaml"
+    Path(__file__).parent.parent / "examples/configs/sample_ensemble.yaml"
 )
 
 
 class SBIRunner:
     def __init__(
         self,
-        loader: BaseLoader,
         prior: Independent,
         inference_class: NeuralInference,
         neural_posteriors: List[Callable],
@@ -35,7 +33,6 @@ class SBIRunner:
         """Class to train posterior inference models using the sbi package
 
         Args:
-            loader (BaseLoader): data loader with stored summary-parameter pairs
             prior (Independent): prior on the parameters
             inference_class (NeuralInference): sbi inference class used to that train neural posteriors
             neural_posteriors (List[Callable]): list of neural posteriors to train
@@ -43,7 +40,6 @@ class SBIRunner:
             train_args (Dict): dictionary of hyperparameters for training
             output_path (Path): path where to store outputs
         """
-        self.loader = loader
         self.prior = prior
         self.inference_class = inference_class
         self.neural_posteriors = neural_posteriors
@@ -65,7 +61,6 @@ class SBIRunner:
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
-        loader = load_from_config(config["loader"])
         prior = load_from_config(config["prior"])
         if "embedding_net" in config:
             embedding_net = load_from_config(
@@ -84,7 +79,6 @@ class SBIRunner:
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
         return cls(
-            loader=loader,
             prior=prior,
             inference_class=inference_class,
             neural_posteriors=neural_posteriors,
@@ -121,11 +115,16 @@ class SBIRunner:
             )
         return neural_posteriors
 
-    def __call__(self):
-        """Train your posterior and save it to file"""
+    def __call__(self, loader):
+        """Train your posterior and save it to file
+
+        Args:
+            loader (BaseLoader): data loader with stored summary-parameter pairs
+        """
+
         t0 = time.time()
-        x = torch.Tensor(self.loader.get_all_data())
-        theta = torch.Tensor(self.loader.get_all_parameters())
+        x = torch.Tensor(loader.get_all_data())
+        theta = torch.Tensor(loader.get_all_parameters())
         posteriors, val_loss = [], []
         for n, posterior in enumerate(self.neural_posteriors):
             logging.info(
