@@ -8,7 +8,7 @@ if __name__ == '__main__':
         description="Run SBI inference for quijote test data.")
     parser.add_argument("--cfgdata", type=str,
                         default="configs/data/quijote_TPCF.yaml",
-                        help="Configuration file to use for inference training")
+                        help="Configuration file to use for dataloaders")
     parser.add_argument("--cfginfer", type=str,
                         default="configs/infer/quijote_MAF.yaml",
                         help="Configuration file to use for inference training")
