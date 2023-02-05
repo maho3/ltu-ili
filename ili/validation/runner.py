@@ -5,10 +5,11 @@ import importlib
 import pickle
 import torch
 from pathlib import Path
-from ili.dataloaders import BaseLoader
-from sbi.inference.posteriors.base_posterior import NeuralPosterior
-from ili.validation.metrics import BaseMetric
 from typing import List
+from sbi.inference.posteriors.base_posterior import NeuralPosterior
+from ili.dataloaders import BaseLoader
+from ili.validation.metrics import BaseMetric
+from ili.utils import load_from_config
 
 logging.basicConfig(level=logging.INFO)
 
@@ -52,32 +53,18 @@ class ValidationRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
 
-        loader = cls.load_object(config["loader"])
+        loader = load_from_config(config["loader"])
         posterior = cls.load_posterior(config["posterior_path"])
         output_path = Path(config["output_path"])
 
         metrics = {}
         for key, value in config["metrics"].items():
             value["args"]["output_path"] = output_path
-            metrics[key] = cls.load_object(value)
+            metrics[key] = load_from_config(value)
 
         return cls(
             loader=loader, posterior=posterior, metrics=metrics, output_path=output_path
         )
-
-    @classmethod
-    def load_object(cls, config):
-        """Load the right object, according to config file
-        Args:
-            config (Dict): dictionary with the configuration for the object
-        Returns:
-            object (): the object of choice
-        """
-        module = importlib.import_module(config["module"])
-        return getattr(
-            module,
-            config["class"],
-        )(**config["args"])
 
     @classmethod
     def load_posterior(cls, path):

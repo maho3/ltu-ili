@@ -1,7 +1,6 @@
 import yaml
 import time
 import logging
-import importlib
 import pickle
 import torch
 import torch.nn as nn
@@ -12,6 +11,7 @@ from torch.distributions import Independent
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
 from ili.dataloaders import BaseLoader
+from ili.utils import load_class, load_from_config
 
 logging.basicConfig(level=logging.INFO)
 
@@ -65,17 +65,17 @@ class SBIRunner:
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
-        loader = cls.load_object(config["loader"])
-        prior = cls.load_object(config["prior"])
+        loader = load_from_config(config["loader"])
+        prior = load_from_config(config["prior"])
         if "embedding_net" in config:
-            embedding_net = cls.load_object(
+            embedding_net = load_from_config(
                 config=config["embedding_net"],
             )
         else:
             embedding_net = nn.Identity()
-        inference_class = cls.load_inference_class(
-            inference_module=config["model"]["module"],
-            inference_class=config["model"]["class"],
+        inference_class = load_class(
+            module_name=config["model"]["module"],
+            class_name=config["model"]["class"],
         )
         neural_posteriors = cls.load_neural_posteriors(
             embedding_net=embedding_net,
@@ -94,37 +94,6 @@ class SBIRunner:
             output_path=output_path,
         )
 
-    @classmethod
-    def load_object(cls, config: Dict) -> Any:
-        """Load the right object, according to config file
-        Args:
-            config (Dict): dictionary with the configuration for the object
-        Returns:
-            object (Any): the object of choice
-        """
-        module = importlib.import_module(config["module"])
-        return getattr(
-            module,
-            config["class"],
-        )(**config["args"])
-
-    @classmethod
-    def load_inference_class(
-        cls,
-        inference_module: str,
-        inference_class: str,
-    ) -> NeuralInference:
-        """Neural inference class used to train posterior
-
-        Args:
-            inference_module (str): module from which to import class
-            inference_class (str): class name
-
-        Returns:
-            NeuralInference: neural inference class
-        """
-        module = importlib.import_module(inference_module)
-        return getattr(module, inference_class)
 
     @classmethod
     def load_neural_posteriors(
