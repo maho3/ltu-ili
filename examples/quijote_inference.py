@@ -9,8 +9,8 @@ if __name__ == '__main__':
     parser.add_argument("--cfgdata", type=str,
                         default="configs/data/quijote_TPCF.yaml",
                         help="Configuration file to use for inference training")
-    parser.add_argument("--cfgtrain", type=str,
-                        default="configs/inf/quijote_MAF.yaml",
+    parser.add_argument("--cfginfer", type=str,
+                        default="configs/infer/quijote_MAF.yaml",
                         help="Configuration file to use for inference training")
     parser.add_argument("--cfgval", type=str,
                         default="configs/val/quijote.yaml",
