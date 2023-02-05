@@ -11,7 +11,7 @@ from typing import Dict, Any, List, Callable
 from torch.distributions import Independent
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
-from ili.inference.loaders import BaseLoader
+from ili.dataloaders import BaseLoader
 
 logging.basicConfig(level=logging.INFO)
 

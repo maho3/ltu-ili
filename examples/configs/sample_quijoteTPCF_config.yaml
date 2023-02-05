@@ -1,5 +1,5 @@
 loader:
-  module: 'ili.inference.loaders'
+  module: 'ili.dataloaders'
   class: 'SummarizerDatasetLoader'
   args:
     stage: 'train'

@@ -5,7 +5,7 @@ import importlib
 import pickle
 import torch
 from pathlib import Path
-from ili.inference.loaders import BaseLoader
+from ili.dataloaders import BaseLoader
 from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from ili.validation.metrics import BaseMetric
 from typing import List

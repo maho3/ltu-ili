@@ -1,5 +1,5 @@
 loader:
-  module: 'ili.inference.loaders'
+  module: 'ili.dataloaders'
   class: 'StaticNumpyLoader'
   args:
     in_dir: './toy'
