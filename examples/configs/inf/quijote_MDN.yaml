@@ -17,10 +17,10 @@ embedding_net:
 model:
   module: 'sbi.inference'
   class: 'SNPE_C'
-  posterior_nn:
-    model: 'mdn'
-    hidden_features: 50
-    num_components: 1
+  neural_posteriors:
+    - model: 'mdn'
+      hidden_features: 50
+      num_components: 1
 
 train_args:
   training_batch_size: 32
