@@ -14,7 +14,7 @@ def simulator(params):
 
 
 theta = np.random.rand(2000, 3)  # 2000 simulations, 3 parameters
-# x = np.array([simulator(t) for t in theta])
+x = np.array([simulator(t) for t in theta])
 
 # save them as numpy files
 if not os.path.isdir("toy"):
