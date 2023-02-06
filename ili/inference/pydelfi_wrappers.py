@@ -7,26 +7,50 @@ from ili.utils import load_class, load_from_config
 
 
 class DelfiWrapper(Delfi):
-    """Wrapper for pydelfi.delfi.Delfi which adds necessary functionality and interface.
-    """
-    def __init__(self, config_ndes, **kwargs):
+    def __init__(
+        self,
+        config_ndes: List[Dict],
+        **kwargs
+    ):
+        """Wrapper for pydelfi.delfi.Delfi which adds some necessary functionality and interface.
+
+        Args:
+            config_ndes (List[Dict]): list with configurations for each neural posterior
+            model in the ensemble
+
+        Other parameters are passed as input to the pydelfi.delfi.Delfi class
+        """
         super().__init__(**kwargs)
         self.config_ndes = config_ndes
     
     def sample(
         self,
-        sample_shape, 
-        x,
-        show_progress_bars = False,
-        burn_in_chain = 100
-    ):
-        """Modification of Delfi.emcee_sample
+        sample_shape: int,
+        x: np.array,
+        show_progress_bars=False,
+        burn_in_chain=100
+    ) -> np.array:
+        """Modification of Delfi.emcee_sample designed to conform with the sbi.utils.posterior_ensemble sampler
+
+        Args:
+            sample_shape (int): number of samples to generate with each MCMC walker, after burn-in
+            x (np.array): data vector to condition the inference on
+            show_progress_bars (bool): whether to print sampling progress
+            burn_in_chain (int): length of burn-in for MCMC sampling
+
+        Returns:
+            np.array: array of unique samples of shape (# of samples, # of parameters), after MCMC rejection
         """
         # build posterior to sample
         log_target = lambda t: self.log_posterior_stacked(t, x)
         
         # Initialize walkers
-        x0 = self.posterior_samples[np.random.choice(np.arange(len(self.posterior_samples)), p=self.posterior_weights.astype(np.float32)/sum(self.posterior_weights), replace=False, size=self.nwalkers),:]
+        x0 = self.posterior_samples[
+             np.random.choice(np.arange(len(self.posterior_samples)),
+                              p=self.posterior_weights.astype(np.float32)/sum(self.posterior_weights),
+                              replace=False,
+                              size=self.nwalkers),
+             :]
         
         # Set up the sampler
         sampler = emcee.EnsembleSampler(self.nwalkers, self.npar, log_target)
@@ -44,7 +68,7 @@ class DelfiWrapper(Delfi):
         # pull out the log probabilities
         log_prob, _ = np.unique(sampler.get_log_prob(flat=True), axis=0, return_counts=True)
 
-        return chain # , weights, log_prob
+        return chain  # , weights, log_prob
     
     
     @classmethod
@@ -59,6 +83,8 @@ class DelfiWrapper(Delfi):
         Args:
             config_ndes(List[Dict]): list with configurations for each neural posterior
             model in the ensemble
+            n_params (int): dimensionality of each parameter vector
+            n_data (int): dimensionality of each datapoint
 
         Returns:
             List[Callable]: list of neural posterior models with forward methods
@@ -83,9 +109,13 @@ class DelfiWrapper(Delfi):
     
     def save_engine(
         self,
-        meta_filename,
+        meta_filename: str,
     ):
-        
+        """Save necessary metadata for reloading to file
+
+        Args:
+            meta_filename (str): filename of saved metadata
+        """
         metadata = {
             'n_data': self.D,
             'n_params': self.npar,
@@ -104,15 +134,23 @@ class DelfiWrapper(Delfi):
     @classmethod
     def load_engine(
         cls,
-        meta_path
-    ):
+        meta_path: str,
+    ) -> DelfiWrapper:
+        """Load a DelfiWrapper from metadata file
+
+        Args:
+            meta_path (str): path to saved metadata
+
+        Returns:
+            DelfiWrapper: a full Delfi inference model with pre-trained weights
+        """
         with open(meta_path, 'rb') as f:
             metadata = pickle.load(f)
-            
+
         ndes = cls.load_ndes(
-            n_params = metadata['n_params'],
-            n_data = metadata['n_data'],
-            config_ndes = metadata['config_ndes']
+            n_params=metadata['n_params'],
+            n_data=metadata['n_data'],
+            config_ndes=metadata['config_ndes']
         )
         metadata.pop('n_params')
         metadata.pop('n_data')

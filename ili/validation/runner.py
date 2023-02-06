@@ -1,30 +1,30 @@
-import yaml
-import time
-import logging
 import importlib
+import logging
 import pickle
+import time
+import yaml
 from pathlib import Path
 from typing import List
+
 from ili.dataloaders import BaseLoader
-from ili.validation.metrics import BaseMetric
 from ili.utils import load_from_config
+from ili.validation.metrics import BaseMetric
+
 try:
+    import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
+    ModelClass = NeuralPosterior
 except ModuleNotFoundError:
-    pass
-try:
-    from ili.inference.pydelfi_wrappers import DelfiWrapper
-except ModuleNotFoundError:
-    pass
+    from ili.inference.pydelfi_wrapper import DelfiWrapper
+    ModelClass = DelfiWrapper
 
 logging.basicConfig(level=logging.INFO)
-
 
 
 class ValidationRunner:
     def __init__(
         self,
-        posterior,
+        posterior: ModelClass,
         metrics: List[BaseMetric],
         backend: str,
         output_path: Path,
@@ -32,9 +32,9 @@ class ValidationRunner:
         """Class to measure validation metrics of posterior inference models
 
         Args:
-            loader (BaseLoader): data loader with stored summary-parameter pairs
-            posterior (NeuralPosterior): trained sbi posterior inference engine
+            posterior (ModelClass): trained sbi posterior inference engine
             metrics (List[BaseMetric]): list of metric objects to measure on the test set
+            backend (str): the backend for the posterior models (either 'sbi' or 'pydelfi')
             output_path (Path): path where to store outputs
         """
         self.posterior = posterior
@@ -46,19 +46,19 @@ class ValidationRunner:
 
     @classmethod
     def from_config(cls, config_path) -> "ValidationRunner":
-        """Create an validation runner from a yaml config file
+        """Create a validation runner from a yaml config file
 
         Args:
             config_path (Path, optional): path to config file. Defaults to default_config.
         Returns:
-            SBIRunner: the validation runner specified by the config file
+            ValidationRunner: the validation runner specified by the config file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
-        
+
         backend = config['backend']
         if backend == 'sbi':
-            posterior = cls.load_posterior(config["posterior_path"])
+            posterior = cls.load_posterior_sbi(config["posterior_path"])
         elif backend == 'pydelfi':
             posterior = DelfiWrapper.load_engine(config["meta_path"])
         else:
@@ -74,7 +74,7 @@ class ValidationRunner:
         return cls(backend=backend, posterior=posterior, metrics=metrics, output_path=output_path)
 
     @classmethod
-    def load_posterior(cls, path):
+    def load_posterior_sbi(cls, path):
         """Load a pretrained sbi posterior from file
         Args:
             path (Path): path to stored .pkl of trained sbi posterior

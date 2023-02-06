@@ -1,8 +1,10 @@
-import os
 import numpy as np
+import os
+
 from ili.dataloaders import StaticNumpyLoader
 from ili.inference.runner_pydelfi import DelfiRunner
 from ili.validation.runner import ValidationRunner
+
 
 # create toy 'simulations'
 def simulator(params):
@@ -21,12 +23,11 @@ if not os.path.isdir("toy"):
 np.save("toy/theta.npy", theta)
 np.save("toy/x.npy", x)
 
-
 # reload all simulator examples as a dataloader
 all_loader = StaticNumpyLoader.from_config("configs/data/sample.yaml")
 
 # train a model to infer x -> theta. save it as toy/posterior.pkl
-runner = DelfiRunner.from_config("configs/infer/sample_delfi.yaml")
+runner = DelfiRunner.from_config("configs/infer/sample_pydelfi.yaml")
 runner(loader=all_loader)
 
 # use the trained posterior model to predict on a single example from the test set
