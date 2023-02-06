@@ -2,6 +2,7 @@ name: ili_env
 channels:
   - conda-forge
   - defaults
+  - pytorch
 dependencies:
   - python=3.9
   - numpy
@@ -10,8 +11,11 @@ dependencies:
   - pandas
   - pathlib
   - pyaml
-  - torch
+  - pytorch
+  - pytorch-lightning
+  - xarray
   - seaborn
+  - cython
   - pip:
-    - pylians
-    - sbi
+      - pylians
+      - sbi
