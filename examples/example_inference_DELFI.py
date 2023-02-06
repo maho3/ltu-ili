@@ -2,7 +2,7 @@ import os
 import numpy as np
 from ili.dataloaders import StaticNumpyLoader
 from ili.inference.runner_pydelfi import DelfiRunner
-# from ili.validation.runner import ValidationRunner
+from ili.validation.runner import ValidationRunner
 
 # create toy 'simulations'
 def simulator(params):
@@ -30,6 +30,5 @@ runner = DelfiRunner.from_config("configs/infer/sample_delfi.yaml")
 runner(loader=all_loader)
 
 # use the trained posterior model to predict on a single example from the test set
-val_runner = ValidationRunner.from_config("configs/val/sample.yaml")
+val_runner = ValidationRunner.from_config("configs/val/sample_pydelfi.yaml")
 val_runner(loader=all_loader)
-

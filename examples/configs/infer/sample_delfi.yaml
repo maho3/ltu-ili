@@ -28,7 +28,6 @@ model:
     
 train_args:
   batch_size: 32
-  epochs: 10
+  epochs: 2
 
-device: 'cpu'
-output_path: './toy'
+output_path: 'toy'

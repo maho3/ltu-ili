@@ -3,17 +3,32 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import torch
 import tqdm
-from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from typing import List
 from pathlib import Path
+try:
+    import torch
+    from sbi.inference.posteriors.base_posterior import NeuralPosterior
+except ModuleNotFoundError:
+    pass
+try:
+    from ili.inference.pydelfi_wrapper import DelfiWrapper
+except ModuleNotFoundError:
+    pass
 
 
 class BaseMetric(ABC):
+    def __init__(
+        self,
+        backend,
+        output_path
+    ):
+        self.backend = backend
+        self.output_path = output_path
+        
     @abstractmethod
     def __call__(
-        self, posterior: NeuralPosterior, x: torch.Tensor, theta: torch.Tensor
+        self, posterior, x, theta
     ):
         """Given a posterior and test data, measure a validation metric and save to file.
 
@@ -29,6 +44,7 @@ class PlotSinglePosterior(BaseMetric):
         self,
         num_samples: int,
         labels: List[str],
+        backend: str,
         output_path: Path,
     ):
         """Perform inference sampling on a single test point and plot the posterior in a corner plot.
@@ -38,22 +54,22 @@ class PlotSinglePosterior(BaseMetric):
             labels (List[str]): list of parameter names
             output_path (Path): path where to store outputs
         """
+        super().__init__(backend, output_path)
         self.num_samples = num_samples
         self.labels = labels
-        self.output_path = output_path
 
     def __call__(
         self,
-        posterior: NeuralPosterior,
-        x: torch.Tensor,
-        theta: torch.Tensor
+        posterior,
+        x,
+        theta,
     ):
         """Given a posterior and test data, plot the inferred posterior of a single point and save to file.
 
         Args:
             posterior (NeuralPosterior): trained sbi posterior inference engine
-            x (torch.Tensor): tensor of test summaries
-            y (torch.Tensor): tensor of test parameters
+            x (np.array): tensor of test summaries
+            y (np.array): tensor of test parameters
         """
         ndim = theta.shape[-1]
 
@@ -63,7 +79,7 @@ class PlotSinglePosterior(BaseMetric):
         theta_obs = theta[ind]
 
         # sample from the posterior
-        samples = posterior.sample((self.num_samples,), x=x_obs)
+        samples = posterior.sample(self.num_samples, x=x_obs, show_progress_bars=True)
 
         g = sns.pairplot(
             pd.DataFrame(samples, columns=self.labels),
@@ -86,11 +102,13 @@ class PlotSinglePosterior(BaseMetric):
             return g
         g.savefig(self.output_path / "plot_single_posterior.jpg")
 
+        
 class PlotRankStatistics(BaseMetric):
     def __init__(
         self,
         num_samples: int,
         labels: List[str],
+        backend: str,
         output_path: Path,
     ): # TODO: Clean these functions up
         """Plot rank histogram, posterior coverage, and true-pred diagnostics based on rank statistics
@@ -102,15 +120,15 @@ class PlotRankStatistics(BaseMetric):
             labels (List[str]): list of parameter names
             output_path (Path): path where to store outputs
         """
+        super().__init__(backend, ouput_path)
         self.num_samples = num_samples
         self.labels = labels
-        self.output_path = output_path
 
     def _get_ranks(
         self,
-        posterior: NeuralPosterior,
-        x: torch.Tensor,
-        theta: torch.Tensor
+        posterior,
+        x,
+        theta
     ):
         """Samples inferred parameters from a trained posterior given observed data and calculates posterior metrics
         such as means, stdevs, and ranks.
@@ -134,7 +152,7 @@ class PlotRankStatistics(BaseMetric):
         trues = []
         for ii in tqdm.tqdm(range(x.shape[0])):
             try:
-                posterior_samples = posterior.sample((self.num_samples,),
+                posterior_samples = posterior.sample(self.num_samples,
                                                      x=x[ii],
                                                      show_progress_bars=False).detach().numpy()
             except Warning as w:
@@ -223,9 +241,9 @@ class PlotRankStatistics(BaseMetric):
 
     def __call__(
         self,
-        posterior: NeuralPosterior,
-        x: torch.Tensor,
-        theta: torch.Tensor
+        posterior,
+        x,
+        theta
     ):
         """Plot rank histogram, posterior coverage, and true-pred diagnostics based on rank statistics
         inferred from posteriors. These are derived from sbi posterior metrics originally written by Chirag Modi.

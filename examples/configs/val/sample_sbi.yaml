@@ -1,0 +1,12 @@
+backend: 'sbi'
+
+posterior_path: './toy/posterior.pkl'
+output_path: './toy'
+
+metrics:
+  single_example:
+    module: 'ili.validation.metrics'
+    class: 'PlotSinglePosterior'
+    args:
+      num_samples: 1000
+      labels: ['t1', 't2', 't3']

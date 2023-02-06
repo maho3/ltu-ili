@@ -3,26 +3,30 @@ import time
 import logging
 import importlib
 import pickle
-import torch
 from pathlib import Path
 from typing import List
-from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from ili.dataloaders import BaseLoader
 from ili.validation.metrics import BaseMetric
 from ili.utils import load_from_config
+try:
+    from sbi.inference.posteriors.base_posterior import NeuralPosterior
+except ModuleNotFoundError:
+    pass
+try:
+    from ili.inference.pydelfi_wrappers import DelfiWrapper
+except ModuleNotFoundError:
+    pass
 
 logging.basicConfig(level=logging.INFO)
 
-default_config = (
-    Path(__file__).parent.parent / "examples/configs/sample.yaml"
-)
 
 
 class ValidationRunner:
     def __init__(
         self,
-        posterior: NeuralPosterior,
+        posterior,
         metrics: List[BaseMetric],
+        backend: str,
         output_path: Path,
     ):
         """Class to measure validation metrics of posterior inference models
@@ -35,6 +39,7 @@ class ValidationRunner:
         """
         self.posterior = posterior
         self.metrics = metrics
+        self.backend = backend
         self.output_path = output_path
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
@@ -50,16 +55,23 @@ class ValidationRunner:
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
-
-        posterior = cls.load_posterior(config["posterior_path"])
+        
+        backend = config['backend']
+        if backend == 'sbi':
+            posterior = cls.load_posterior(config["posterior_path"])
+        elif backend == 'pydelfi':
+            posterior = DelfiWrapper.load_engine(config["meta_path"])
+        else:
+            raise NotImplementedError
         output_path = Path(config["output_path"])
 
         metrics = {}
         for key, value in config["metrics"].items():
+            value["args"]["backend"] = backend
             value["args"]["output_path"] = output_path
             metrics[key] = load_from_config(value)
 
-        return cls(posterior=posterior, metrics=metrics, output_path=output_path)
+        return cls(backend=backend, posterior=posterior, metrics=metrics, output_path=output_path)
 
     @classmethod
     def load_posterior(cls, path):
@@ -80,9 +92,8 @@ class ValidationRunner:
         """
         t0 = time.time()
 
-        # NOTE: sbi posteriors only accept torch.Tensor inputs
-        x_test = torch.Tensor(loader.get_all_data())
-        theta_test = torch.Tensor(loader.get_all_parameters())
+        x_test = loader.get_all_data()
+        theta_test = loader.get_all_parameters()
         # evaluate metrics
         for metric in self.metrics.values():
             metric(self.posterior, x_test, theta_test)
