@@ -8,7 +8,6 @@ Here is a quick guide for getting started with the ltu-ili framework.
 First, clone the main branch of the ltu-ili repository onto your local machine.
 ```bash
     git clone git@github.com:maho3/ltu-ili.git
-    cd ltu-ili
 ```
 Next, setup your environment to support the required dependencies for ltu-ili. ltu-ili requires a Python version >=3.7. The list of required modules is given in [requirements.txt](requirements.txt). There are two ways to install these, either using an environment manager such as [conda](https://docs.anaconda.com/) or the default Python installer pip. While we recommend the former, we give instructions for both methods.
 ### pip
@@ -23,13 +22,11 @@ Next, setup your environment to support the required dependencies for ltu-ili. l
 3. Install additional dependencies from forked repository [ili-summarizer](https://github.com/florpi/ili-summarizer).
 ```bash
    git clone git@github.com:florpi/ili-summarizer.git
-   cd ili-summarizer
-   pip install -e .
+   pip install -e ili-summarizer
 ```
-4. Finally setup the project via
+4. Finally install the project via
 ```bash
-    cd ../ltu-ili
-    pip install -e .
+  pip install -e ltu-ili
 ```
 
 ### conda
@@ -45,12 +42,11 @@ Next, setup your environment to support the required dependencies for ltu-ili. l
 5. Install additional dependencies from forked repository [ili-summarizer](https://github.com/florpi/ili-summarizer).
 ```bash
    git clone git@github.com:florpi/ili-summarizer.git
-   cd ili-summarizer
-   pip install -e .
+   pip install -e ili-summarizer
 ```
 6. Finally setup the project via
 ```bash
-    pip install -e .
+    pip install -e ltu-ili
 ```
 
 ### Verify installation
@@ -71,5 +67,5 @@ Store this data in a subfolder called `ltu-ili-data/` and run the inference usin
 ```
 In case you want to use a mixture density network as density estimator instead of a normalizing flow, then execute
 ```bash
-   python quijote_inference.py --cfginfer configs/quijote_MDN.yaml
+   python quijote_inference.py --cfginfer configs/infer/quijote_MDN.yaml
 ```
