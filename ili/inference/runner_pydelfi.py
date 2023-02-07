@@ -18,6 +18,7 @@ class DelfiRunner:
         prior: Any,
         inference_class: Any,
         neural_posteriors: List[Callable],
+        engine_kwargs: Dict,
         train_args: Dict,
         output_path: Path,
     ):
@@ -27,6 +28,7 @@ class DelfiRunner:
             prior (Independent): prior on the parameters
             inference_class (Any): pydelfi inference class used to that train neural posteriors
             neural_posteriors (List[Callable]): list of neural posteriors to train
+            engine_kwargs (Dict): dictionary of additional keywords for Delfi engine
             train_args (Dict): dictionary of hyperparameters for training
             output_path (Path): path where to store outputs
         """
@@ -36,6 +38,7 @@ class DelfiRunner:
         self.prior = prior
         self.inference_class = inference_class
         self.neural_posteriors = neural_posteriors
+        self.engine_kwargs = engine_kwargs
         self.train_args = train_args
         self.output_path = output_path
         if self.output_path is not None:
@@ -70,6 +73,7 @@ class DelfiRunner:
             n_data=n_data,
             config_ndes=config_ndes,
         )
+        engine_kwargs = config["model"]["kwargs"]
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
         return cls(
@@ -79,6 +83,7 @@ class DelfiRunner:
             prior=prior,
             inference_class=inference_class,
             neural_posteriors=neural_posteriors,
+            engine_kwargs=engine_kwargs,
             train_args=train_args,
             output_path=output_path,
         )
@@ -104,7 +109,8 @@ class DelfiRunner:
             param_names=np.arange(self.n_params).astype(str),
             graph_restore_filename="graph_checkpoint",
             restore_filename = "posterior.pkl",
-            restore=False, save=True
+            restore=False, save=True,
+            **metadata['kwargs'],
         )
         posterior.load_simulations(x, theta)
         posterior.train_ndes(**self.train_args)

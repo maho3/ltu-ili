@@ -21,6 +21,8 @@ class DelfiWrapper(Delfi):
         Other parameters are passed as input to the pydelfi.delfi.Delfi class
         """
         super().__init__(**kwargs)
+        kwargs.pop('nde')
+        self.kwargs = kwargs
         self.config_ndes = config_ndes
     
     def sample(
@@ -121,14 +123,8 @@ class DelfiWrapper(Delfi):
         metadata = {
             'n_data': self.D,
             'n_params': self.npar,
-            'data': self.data,
-            'prior': self.prior,
             'config_ndes': self.config_ndes,
-            'results_dir': self.results_dir,
-            'param_names': self.names,
-            # this hack is required because Delfi overrides these parameters
-            'graph_restore_filename': self.graph_restore_filename.split('/')[-1],
-            'restore_filename': self.restore_filename.split('/')[-1]
+            'kwargs': self.kwargs
         }
         with open(self.results_dir + meta_filename, 'wb') as f:
             pickle.dump(metadata, f)
@@ -154,9 +150,15 @@ class DelfiWrapper(Delfi):
             n_data=metadata['n_data'],
             config_ndes=metadata['config_ndes']
         )
-        metadata.pop('n_params')
-        metadata.pop('n_data')
+        # metadata.pop('n_params')
+        # metadata.pop('n_data')
+        metadata.pop('restore')
             
-        return cls(**metadata, nde=ndes, restore=True)
+        return cls(
+            **metadata['kwargs'],
+            nde=ndes,
+            config_ndes=metadata['config_ndes'],
+            restore=True
+        )
     
     

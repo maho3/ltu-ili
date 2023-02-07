@@ -12,6 +12,8 @@ prior:
 model:
   module: 'ili.inference.pydelfi_wrappers'
   class: 'DelfiWrapper'
+  kwargs:
+    n_walkers: 10
   neural_posteriors:
     - module: 'pydelfi.ndes'
       class: 'ConditionalMaskedAutoregressiveFlow'
