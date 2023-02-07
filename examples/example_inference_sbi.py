@@ -26,7 +26,7 @@ np.save("toy/x.npy", x)
 all_loader = StaticNumpyLoader.from_config("configs/data/sample.yaml")
 
 # train a model to infer x -> theta. save it as toy/posterior.pkl
-runner = SBIRunner.from_config("configs/infer/sample_ensemble.yaml")
+runner = SBIRunner.from_config("configs/infer/sample_sbi.yaml")
 runner(loader=all_loader)
 
 # use the trained posterior model to predict on a single example from the test set

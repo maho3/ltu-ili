@@ -1,6 +1,5 @@
-import numpy as np
 import os
-
+import numpy as np
 from ili.dataloaders import StaticNumpyLoader
 from ili.inference.runner_pydelfi import DelfiRunner
 from ili.validation.runner import ValidationRunner

@@ -10,10 +10,10 @@ if __name__ == '__main__':
                         default="configs/data/quijote_TPCF.yaml",
                         help="Configuration file to use for dataloaders")
     parser.add_argument("--cfginfer", type=str,
-                        default="configs/infer/quijote_MAF.yaml",
+                        default="configs/infer/quijote_sbi_MAF.yaml",
                         help="Configuration file to use for inference training")
     parser.add_argument("--cfgval", type=str,
-                        default="configs/val/quijote.yaml",
+                        default="configs/val/quijote_sbi.yaml",
                         help="Configuration file to use for inference validation")
 
     args = parser.parse_args()

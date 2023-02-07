@@ -40,10 +40,10 @@ You can verify that the installation is working by running the toy example
    cd ltu-ili/examples
    
    # sbi backend
-   python example_inference.py
+   python example_inference_sbi.py
    
    # pydelfi backend 
-   python example_inference_DELFI.py
+   python example_inference_pydelfi.py
 ```
 After the script completes, you should be able to find some metric summaries and plots in the **examples/toy** folder.
 
@@ -52,9 +52,9 @@ It's also possible to use pre-processed Quijote two point correlation function (
 Store this data in a subfolder called ili-wg/data and run the inference using
 ```bash
    cd examples
-   python quijote_inference.py 
+   python quijote_inference_sbi.py 
 ```
 In case you want to use a mixture density network as density estimator instead of a normalizing flow, then execute
 ```bash
-   python quijote_inference.py --cfgtrain configs/quijote_MDN.yaml
+   python quijote_inference_sbi.py --cfgtrain configs/quijote_sbi_MDN.yaml
 ```
