@@ -110,7 +110,7 @@ class DelfiRunner:
             graph_restore_filename="graph_checkpoint",
             restore_filename = "posterior.pkl",
             restore=False, save=True,
-            **metadata['kwargs'],
+            **self.engine_kwargs,
         )
         posterior.load_simulations(x, theta)
         posterior.train_ndes(**self.train_args)

@@ -152,7 +152,8 @@ class DelfiWrapper(Delfi):
         )
         # metadata.pop('n_params')
         # metadata.pop('n_data')
-        metadata.pop('restore')
+        if 'restore' in metadata['kwargs']:
+            metadata['kwargs'].pop('restore')
             
         return cls(
             **metadata['kwargs'],
