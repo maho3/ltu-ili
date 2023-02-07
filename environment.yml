@@ -4,13 +4,14 @@ channels:
   - defaults
 dependencies:
   - python=3.9
+  - pip
   - numpy
   - scipy
   - matplotlib
   - pandas
   - pathlib
   - pyaml
-  - torch
+  - pytorch
   - seaborn
   - pip:
     - pylians
