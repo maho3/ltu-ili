@@ -15,7 +15,7 @@ try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
 except ModuleNotFoundError:
-    from ili.inference.pydelfi_wrapper import DelfiWrapper
+    from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
 
 logging.basicConfig(level=logging.INFO)

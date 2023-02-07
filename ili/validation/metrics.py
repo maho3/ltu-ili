@@ -12,7 +12,7 @@ try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
 except ModuleNotFoundError:
-    from ili.inference.pydelfi_wrapper import DelfiWrapper
+    from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
 
 
@@ -93,7 +93,7 @@ class PlotSinglePosterior(BaseMetric):
             theta_obs = torch.Tensor(theta_obs)
 
         # sample from the posterior
-        samples = posterior.sample(self.num_samples, x=x_obs, show_progress_bars=True)
+        samples = posterior.sample((self.num_samples,), x=x_obs, show_progress_bars=True)
 
         # plot
         g = sns.pairplot(
@@ -168,7 +168,7 @@ class PlotRankStatistics(BaseMetric):
         trues = []
         for ii in tqdm.tqdm(range(x.shape[0])):
             try:
-                posterior_samples = posterior.sample(self.num_samples,
+                posterior_samples = posterior.sample((self.num_samples,),
                                                      x=x[ii],
                                                      show_progress_bars=False)
             except Warning as w:

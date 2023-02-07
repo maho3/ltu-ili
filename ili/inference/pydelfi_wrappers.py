@@ -25,7 +25,7 @@ class DelfiWrapper(Delfi):
     
     def sample(
         self,
-        sample_shape: int,
+        sample_shape: tuple,
         x: np.array,
         show_progress_bars=False,
         burn_in_chain=100
@@ -33,7 +33,7 @@ class DelfiWrapper(Delfi):
         """Modification of Delfi.emcee_sample designed to conform with the sbi.utils.posterior_ensemble sampler
 
         Args:
-            sample_shape (int): number of samples to generate with each MCMC walker, after burn-in
+            sample_shape (tuple[int]): size of samples to generate with each MCMC walker, after burn-in
             x (np.array): data vector to condition the inference on
             show_progress_bars (bool): whether to print sampling progress
             burn_in_chain (int): length of burn-in for MCMC sampling
@@ -41,6 +41,8 @@ class DelfiWrapper(Delfi):
         Returns:
             np.array: array of unique samples of shape (# of samples, # of parameters), after MCMC rejection
         """
+        num_samples = np.prod(sample_shape)
+        
         # build posterior to sample
         log_target = lambda t: self.log_posterior_stacked(t, x)
         
@@ -60,7 +62,7 @@ class DelfiWrapper(Delfi):
         sampler.reset()
 
         # Main chain
-        sampler.run_mcmc(state, sample_shape, progress=show_progress_bars)
+        sampler.run_mcmc(state, num_samples, progress=show_progress_bars)
 
         # pull out the unique samples and weights
         chain, weights = np.unique(sampler.get_chain(flat=True), axis=0, return_counts=True)
@@ -135,7 +137,7 @@ class DelfiWrapper(Delfi):
     def load_engine(
         cls,
         meta_path: str,
-    ) -> DelfiWrapper:
+    ):
         """Load a DelfiWrapper from metadata file
 
         Args:

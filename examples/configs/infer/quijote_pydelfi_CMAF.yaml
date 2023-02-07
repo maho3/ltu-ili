@@ -1,0 +1,27 @@
+
+n_params: 3
+n_data: 222
+
+prior:
+  module: 'pydelfi.priors'
+  class: 'Uniform'
+  args:
+    lower: [0.1, 0.5, 0.6]
+    upper: [0.5, 0.9, 1.0]
+
+model:
+  module: 'ili.inference.pydelfi_wrappers'
+  class: 'DelfiWrapper'
+  neural_posteriors:
+    - module: 'pydelfi.ndes'
+      class: 'ConditionalMaskedAutoregressiveFlow'
+      args: 
+        n_hiddens: [100,100]
+        n_mades: 5
+        act_fun: 'tanh'
+    
+train_args:
+  batch_size: 32
+  epochs: 100
+
+output_path: 'toy'

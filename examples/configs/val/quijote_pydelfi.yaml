@@ -1,6 +1,6 @@
-backend: 'sbi'
+backend: 'pydelfi'
 
-posterior_path: 'toy/posterior.pkl'
+meta_path: './toy/tempmeta.pkl'
 output_path: 'toy'
 
 metrics:
@@ -15,5 +15,5 @@ metrics:
     module: 'ili.validation.metrics'
     class: 'PlotRankStatistics'
     args:
-      num_samples: 200
+      num_samples: 10
       labels: [ 'Omega_m', 'h', 'sigma_8' ]
