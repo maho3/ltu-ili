@@ -1,3 +1,4 @@
+import yaml
 from abc import ABC, abstractmethod
 from typing import List
 from pathlib import Path
@@ -15,6 +16,22 @@ class BaseLoader(ABC):
         Returns:
             int: length of dataset
         """
+
+    @classmethod
+    def from_config(cls, config_path, stage=None) -> "BaseLoader":
+        """Create a data loader from a yaml config file
+
+        Args:
+            config_path (Path): path to config file. Defaults to default_config.
+            stage (str, optional): Data split to load (e.g. train, val, or test)
+        Returns:
+            BaseLoader: the sbi runner specified by the config file
+        """
+        with open(config_path, "r") as fd:
+            config = yaml.safe_load(fd)
+        if stage:
+            config['stage'] = stage
+        return cls(**config)
 
 
 class StaticNumpyLoader(BaseLoader):
@@ -35,6 +52,7 @@ class StaticNumpyLoader(BaseLoader):
 
         if len(self.x) != len(self.theta):
             raise Exception("Stored summaries and parameters are not of same length.")
+
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset

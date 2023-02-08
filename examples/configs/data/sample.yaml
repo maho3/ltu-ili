@@ -1,0 +1,4 @@
+in_dir: './toy'
+
+x_file: 'x.npy'
+theta_file: 'theta.npy'

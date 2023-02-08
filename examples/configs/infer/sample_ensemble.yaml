@@ -1,10 +1,3 @@
-loader:
-  module: 'ili.inference.loaders'
-  class: 'StaticNumpyLoader'
-  args:
-    in_dir: './toy'
-    x_file: 'x.npy'
-    theta_file: 'theta.npy'
 
 prior:
   module: 'sbi.utils'
