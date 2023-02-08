@@ -53,7 +53,7 @@ Next, setup your environment to support the required dependencies for ltu-ili. l
 
 You can verify that the installation is working by running the toy example
 ```bash
-   cd examples
+   cd ltu-ili/examples
    python example_inference.py 
 ```
 After the script completed, you should be able to find some metric summaries and plots in the **examples/toy** folder.
