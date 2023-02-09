@@ -1,8 +1,8 @@
 import os
 from typing import List, Tuple, Dict
 
-import pytorch_lightning as pl
 import torch
+import pytorch_lightning as pl
 import xarray as xr
 from fcn import FCN
 
@@ -245,9 +245,9 @@ class TpcfEmulator(pl.LightningModule):
         """
         parameters, summaries = batch
         summaries_predictions = self(parameters)
-        loss = torch.nn.functional.mse_loss(summaries_predictions, summaries)
-        self.log("train_loss", loss)
-        return loss
+        train_loss = torch.nn.functional.mse_loss(summaries_predictions, summaries)
+        self.log("train_loss", train_loss, on_epoch=True)
+        return train_loss
 
     def validation_step(self, batch: Tuple[torch.Tensor], batch_idx: int) -> torch.Tensor:
         """
@@ -262,29 +262,9 @@ class TpcfEmulator(pl.LightningModule):
         """
         parameters, summaries = batch
         summaries_predictions = self(parameters)
-        loss = torch.nn.functional.mse_loss(summaries_predictions, summaries)
-        self.log("val_loss", loss)
-        return loss
-
-    # def test_step(self, batch: Tuple[torch.Tensor], batch_idx: int) -> torch.Tensor:
-    #     """
-    #     Perform a test step for one batch of data (it is only a big forward here with an
-    #     unnormalization step so that tests can be conducted with whatever metrics afterward)
-
-    #     Args:
-    #         batch (Tuple): a tuple of (parameters, summaries)
-    #         batch_idx (int): the current batch index
-
-    #     Returns:
-    #         torch.Tensor: the computed loss for this batch
-    #     """
-    #     parameters, summaries = batch
-    #     mean_parameters, std_parameters = self.data_module.get_mean_and_std(parameters)
-    #     unnormalized_parameters = parameters * std_parameters + mean_parameters
-    #     mean_summaries, std_summaries = self.data_module.get_mean_and_std(summaries)
-    #     unnormalized_summaries = summaries * std_summaries + mean_summaries
-    #     unnormalized_summaries_predictions = self(parameters) * std_summaries + mean_summaries
-    #     return unnormalized_parameters, unnormalized_summaries, unnormalized_summaries_predictions
+        val_loss = torch.nn.functional.mse_loss(summaries_predictions, summaries)
+        self.log("val_loss", val_loss, on_epoch=True)
+        return val_loss
 
     def configure_optimizers(self) -> torch.optim.Optimizer:
         """
@@ -293,8 +273,11 @@ class TpcfEmulator(pl.LightningModule):
         Returns:
             torch.optim.Optimizer: the configured optimizer
         """
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
-        return optimizer
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
+        lr_scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode="min", patience=10, factor=0.2, verbose=True
+        )
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler, "monitor": "val_avg_loss"}
 
     def training_epoch_end(self, outputs: List[Dict]):
         """
@@ -302,22 +285,22 @@ class TpcfEmulator(pl.LightningModule):
 
         Args:
             outputs (List[Dict]): a list of dictionaries containing the outputs from each training step in the epoch
-
         """
-        batch_losses = [output["loss"] for output in outputs]
-        avg_loss = torch.stack(batch_losses).mean()
-        self.log("train_avg_loss", avg_loss)
+        train_losses = [output["loss"] for output in outputs]
+        avg_loss = torch.stack(train_losses).mean()
+        self.log("train_avg_loss", avg_loss, on_epoch=True, prog_bar=True)
 
-    # def validation_epoch_end(self, outputs):
-    #     """
-    #     Perform any necessary processing at the end of a validation epoch
+    def validation_epoch_end(self, outputs):
+        """
+        Perform any necessary processing at the end of a validation epoch
 
-    #     Args:
-    #         outputs (List[Dict]): a list of dictionaries containing the outputs from each validation step in the epoch
-    #     """
-    #     batch_losses = [output["loss"] for output in outputs]
-    #     avg_loss = torch.stack(batch_losses).mean()
-    #     self.log("val_avg_loss", avg_loss)
+        Args:
+            outputs (List[Dict]): a list of dictionaries containing the outputs from each validation step in the epoch
+        """
+        print("Outputs:", outputs)  # added line to print outputs
+        val_losses = [output for output in outputs]
+        avg_val_loss = torch.stack(val_losses).mean()
+        self.log("val_avg_loss", avg_val_loss, on_epoch=True, prog_bar=True)
 
 
 if __name__ == "__main__":
@@ -346,23 +329,39 @@ if __name__ == "__main__":
         help="Binning for the summary statistic: size of the training vector (int)",
     )
     parser.add_argument(
-        "--hiddens",
-        nargs="+",
+        "--number_hidden",
         type=int,
-        default=[100, 100, 100],
+        default=4,
         required=False,
-        help="Multi-Layer Perceptron architecture: list of the lengths of the hidden layers",
+        help="Number of hidden layers for the MLP",
+    )
+    parser.add_argument(
+        "--size_hidden",
+        type=int,
+        default=256,
+        required=False,
+        help="Lengths of the hidden layers of the MLP (constant number of nodes across hidden layers)",
     )
     args = parser.parse_args()
 
     # Tensorboard logger
     logger = pl.loggers.TensorBoardLogger(args.path_logs)
 
+    # Callbacks
+    early_stop_callback = pl.callbacks.EarlyStopping(monitor="val_avg_loss", patience=15)
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        dirpath="best_model_epoch_{epoch:02d}-val_loss_{val_loss:.2f}.ckpt",
+        save_top_k=1,
+        monitor="val_avg_loss",
+        mode="min",
+    )
+
     # Data module
     data = QuijoteData("../../data/tpcf_ili-summarizer/z_0.50/", n_summary=args.n_bins, param_names=args.cosmo_params)
 
-    # Instance of the 2PCF emulator
-    emulator = TpcfEmulator(n_input=len(args.cosmo_params), n_summary=args.n_bins, n_hidden=args.hiddens)
+    # 2PCF emulator
+    architecture = [args.size_hidden for i in range(args.number_hidden)]
+    emulator = TpcfEmulator(n_input=len(args.cosmo_params), n_summary=args.n_bins, n_hidden=architecture)
 
     # Training class instance
     if args.with_gpu and torch.cuda.is_available():
