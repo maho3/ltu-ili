@@ -5,9 +5,7 @@ from typing import OrderedDict
 
 
 class FCN(nn.Module):
-    def __init__(
-        self, n_summary: int, n_hidden: List[int], act_fn: str = "SiLU"
-    ):
+    def __init__(self, n_summary: int, n_hidden: List[int], act_fn: str = "SiLU"):
         """fully connected network to compress a summary statistsic
 
         Args:
@@ -21,11 +19,11 @@ class FCN(nn.Module):
         self.n_hidden = n_hidden
         self.n_summary = n_summary
 
-    def initalize_model(self, n_input: int):
-        """ Initialize network once the input dimensionality is known
+    def initialize_model(self, n_input: int):
+        """Initialize network once the input dimensionality is known
 
         Args:
-            n_input (int): input dimensionality 
+            n_input (int): input dimensionality
         """
         model = []
         n_left = n_input
