@@ -1,0 +1,25 @@
+
+prior:
+  module: 'sbi.utils'
+  class: 'BoxUniform'
+  args:
+    low: [-2,-2,-2]
+    high: [2,2,2]
+
+model:
+  module: 'sbi.inference'
+  class: 'SNPE_C'
+  neural_posteriors:
+    - model: 'maf'
+      hidden_features: 100 
+      num_transforms: 2
+    - model: 'mdn'
+      hidden_features: 50 
+      num_components: 4
+    
+train_args:
+  training_batch_size: 32
+  learning_rate: 0.001
+
+device: 'cpu'
+output_path: './toy'

@@ -1,11 +1,13 @@
 import yaml
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Any, List, Tuple, Optional
 from pathlib import Path
 import numpy as np
 import json
 import pandas as pd
 from summarizer.dataset import Dataset
+from sbi.inference import simulate_for_sbi
+from torch import Tensor
 
 
 class BaseLoader(ABC):
@@ -176,6 +178,67 @@ class SummarizerDatasetLoader(BaseLoader):
             self.data_dir / param_file, sep=" ", skipinitialspace=True
         ).iloc[nodes]
         return theta[param_names].values
+
+
+class SBISimulator(BaseLoader):
+    def __init__(
+            self, 
+            out_dir: str, 
+            x_file: str, 
+            theta_file: str,
+            num_simulations: int,
+            simulator: Optional[callable]=None,
+    ):
+        """Class to run simulations of summaries and parameters and save results
+        to numpy files
+
+        Args:
+            out_dir (str): path to the location where to save  data
+            x_file (str): filename to use to store summaries
+            theta_file (str): filename to use to store parameters
+            num_simulations (int): number of simulations to run at each call
+            simulator (callable): function taking the parameters as an argument and returns data
+        """
+        self.out_dir = Path(out_dir)
+        self.x_path = self.out_dir / x_file
+        self.theta_path = self.out_dir / theta_file
+        self.num_simulations = num_simulations
+        self.simulator = simulator
+
+
+    def __len__(self) -> int:
+        """Returns the total number of data points produced when called
+
+        Returns:
+            int: length of dataset
+        """
+        return self.num_simulations
+
+
+    def set_simulator(self, simulator: callable):
+        """Set the simulator to be used in the inference
+
+        Args:
+            simulator (callable): function taking the parameters as an argument and returns data
+        """
+        self.simulator = simulator
+
+
+    def simulate(self, proposal: Any) -> Tuple[Tensor, Tensor]:
+        """Run simulations give a proposal and returns ($\theta, x$) pairs obtained 
+        from sampling the proposal and simulating.
+
+        Args:
+            proposal (Any): Distribution to sample paramaters from
+
+        Returns:
+            Tuple[Tensor, Tensor]: Sampled parameters $\theta$ and simulation-outputs $x$.
+        """
+        theta, x = simulate_for_sbi(self.simulator, proposal, num_simulations=self.num_simulations)
+        np.save(self.theta_path, theta.detach().cpu().numpy())
+        np.save(self.x_path, x.detach().cpu().numpy())
+        return theta, x
+
 
 
 # TODO: Add loaders which load dynamically from many files

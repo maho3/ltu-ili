@@ -6,21 +6,28 @@ import pandas as pd
 import torch
 import tqdm
 from sbi.inference.posteriors.base_posterior import NeuralPosterior
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 
 
 class BaseMetric(ABC):
     @abstractmethod
     def __call__(
-        self, posterior: NeuralPosterior, x: torch.Tensor, theta: torch.Tensor
+        self, 
+        posterior: NeuralPosterior, 
+        x: torch.Tensor,
+        theta: torch.Tensor,
+        x_obs: Optional[torch.Tensor] = None,
+        theta_obs: Optional[torch.Tensor] = None
     ):
         """Given a posterior and test data, measure a validation metric and save to file.
 
         Args:
             posterior (NeuralPosterior): trained sbi posterior inference engine
             x (torch.Tensor): tensor of test summaries
-            y (torch.Tensor): tensor of test parameters
+            theta (torch.Tensor): tensor of test parameters
+            x_obs (torch.Tensor): tensor of observed summaries
+            theta_obs (torch.Tensor): tensor of true parameters for x_obs
         """
 
 
@@ -46,21 +53,27 @@ class PlotSinglePosterior(BaseMetric):
         self,
         posterior: NeuralPosterior,
         x: torch.Tensor,
-        theta: torch.Tensor
+        theta: torch.Tensor,
+        x_obs: Optional[torch.Tensor] = None,
+        theta_obs: Optional[torch.Tensor] = None
     ):
         """Given a posterior and test data, plot the inferred posterior of a single point and save to file.
 
         Args:
             posterior (NeuralPosterior): trained sbi posterior inference engine
             x (torch.Tensor): tensor of test summaries
-            y (torch.Tensor): tensor of test parameters
+            theta (torch.Tensor): tensor of test parameters
+            x_obs (torch.Tensor): tensor of observed summaries
+            theta_obs (torch.Tensor): tensor of true parameters for x_obs
+
         """
         ndim = theta.shape[-1]
 
-        # choose a random test datapoint
-        ind = np.random.choice(len(x))
-        x_obs = x[ind]
-        theta_obs = theta[ind]
+        # choose a random test datapoint if not supplied
+        if x_obs is None or theta_obs is None:
+            ind = np.random.choice(len(x))
+            x_obs = x[ind]
+            theta_obs = theta[ind]
 
         # sample from the posterior
         samples = posterior.sample((self.num_samples,), x=x_obs)
@@ -225,7 +238,9 @@ class PlotRankStatistics(BaseMetric):
         self,
         posterior: NeuralPosterior,
         x: torch.Tensor,
-        theta: torch.Tensor
+        theta: torch.Tensor,
+        x_obs: Optional[torch.Tensor] = None,
+        theta_obs: Optional[torch.Tensor] = None
     ):
         """Plot rank histogram, posterior coverage, and true-pred diagnostics based on rank statistics
         inferred from posteriors. These are derived from sbi posterior metrics originally written by Chirag Modi.
@@ -234,7 +249,9 @@ class PlotRankStatistics(BaseMetric):
         Args:
             posterior (NeuralPosterior): trained sbi posterior inference engine
             x (torch.Tensor): tensor of test summaries
-            y (torch.Tensor): tensor of test parameters
+            theta (torch.Tensor): tensor of test parameters
+            x_obs (torch.Tensor): tensor of observed summaries
+            theta_obs (torch.Tensor): tensor of true parameters for x_obs
         """
 
         trues, mus, stds, ranks = self._get_ranks(posterior, x, theta)

@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import sbi
 from pathlib import Path
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List, Callable, Optional
 from torch.distributions import Independent
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
@@ -115,38 +115,71 @@ class SBIRunner:
             )
         return neural_posteriors
 
-    def __call__(self, loader):
+    def __call__(self, loader,
+                num_rounds: Optional[int] = 1,
+                x_obs: Optional[torch.Tensor] = None
+        ):
         """Train your posterior and save it to file
 
         Args:
             loader (BaseLoader): data loader with stored summary-parameter pairs
+            or has ability to simulate summary-parameter pairs
+            num_rounds (int): number of rounds to perform of inference
+            x_obs (torch.Tensor): observation to focus the posterior around
+
+        Raises:
+            Exception: cannot perform multi-round inference if loader cannot simulate
         """
 
         t0 = time.time()
-        x = torch.Tensor(loader.get_all_data())
-        theta = torch.Tensor(loader.get_all_parameters())
-        posteriors, val_loss = [], []
+        if hasattr(loader, 'simulate'):
+            theta, x = loader.simulate(self.prior)
+        else:
+            x = torch.Tensor(loader.get_all_data())
+            theta = torch.Tensor(loader.get_all_parameters())
+            if num_rounds != 1:
+                raise Exception("If not simulating data you cannot have multi-round inference")
+        all_model = []
         for n, posterior in enumerate(self.neural_posteriors):
+            all_model.append(self.inference_class(
+                    prior=self.prior,
+                    #density_estimator=posterior,
+                    device=self.device,
+                ))
+        proposal = self.prior
+        for rnd in range(num_rounds):
+            t1 = time.time()
             logging.info(
-                f"Training model {n+1} out of {len(self.neural_posteriors)} ensemble models"
+                f"Running round {rnd+1} of {num_rounds}"
             )
-            model = self.inference_class(
-                prior=self.prior,
-                density_estimator=posterior,
-                device=self.device,
+            if rnd > 0:
+                theta, x = loader.simulate(proposal)
+            posteriors, val_loss = [], []
+            for n, posterior in enumerate(self.neural_posteriors):
+                logging.info(
+                    f"Training model {n+1} out of {len(self.neural_posteriors)} ensemble models"
+                )
+                if not isinstance(self.embedding_net, nn.Identity):
+                    self.embedding_net.initalize_model(n_input=x.shape[-1])
+                density_estimator = all_model[n].append_simulations(theta, x, proposal).train(
+                        **self.train_args,
+                )
+                posteriors.append(all_model[n].build_posterior(density_estimator))
+                val_loss.append(all_model[n].summary["best_validation_log_prob"][-1])
+            val_loss = torch.tensor([float(vl) for vl in val_loss])
+            val_loss = torch.exp(val_loss - val_loss.max())
+            val_loss /= val_loss.sum()
+            print('\nVAL LOSS:', val_loss, '\n')
+            posterior = NeuralPosteriorEnsemble(
+                posteriors=posteriors,
+                weights=val_loss
             )
-            model = model.append_simulations(theta, x)
-            if not isinstance(self.embedding_net, nn.Identity):
-                self.embedding_net.initalize_model(n_input=x.shape[-1])
-            density_estimator = model.train(
-                **self.train_args,
-            )
-            posteriors.append(model.build_posterior(density_estimator))
-            val_loss += model.summary["best_validation_log_prob"]
-        posterior = NeuralPosteriorEnsemble(
-            posteriors=posteriors,
-            weights=torch.tensor([float(vl) for vl in val_loss]),
-        )
+            if num_rounds > 1:
+                with open(self.output_path / f"posterior_{rnd}.pkl", "wb") as handle:
+                    pickle.dump(posterior, handle)
+                proposal = posterior.set_default_x(x_obs)
+            logging.info(f"It took {time.time() - t1} seconds to complete round {rnd+1}.")
         with open(self.output_path / "posterior.pkl", "wb") as handle:
             pickle.dump(posterior, handle)
         logging.info(f"It took {time.time() - t0} seconds to train all models.")
+

@@ -5,7 +5,8 @@ import importlib
 import pickle
 import torch
 from pathlib import Path
-from typing import List
+from typing import List, Optional
+from torch.distributions import Independent
 from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from ili.dataloaders import BaseLoader
 from ili.validation.metrics import BaseMetric
@@ -52,6 +53,7 @@ class ValidationRunner:
             config = yaml.safe_load(fd)
 
         posterior = cls.load_posterior(config["posterior_path"])
+        print("X IS", posterior._x)
         output_path = Path(config["output_path"])
 
         metrics = {}
@@ -72,19 +74,32 @@ class ValidationRunner:
         with open(path, "rb") as handle:
             return pickle.load(handle)
 
-    def __call__(self, loader):
+    def __call__(
+            self, 
+            loader, 
+            prior: Optional[Independent] = None, 
+            x_obs: Optional[torch.Tensor] = None,
+            theta_obs: Optional[torch.Tensor] = None
+    ):
         """Run your validation metrics and save them to file
 
         Args:
             loader (BaseLoader): data loader with stored summary-parameter pairs
+            or has ability to simulate summary-parameter pairs 
+            prior (Independent): prior on the parameters
+            x_obs (torch.Tensor): tensor of the observed x
+            theta_obs (torch.Tensor): tensor of the true theta
         """
         t0 = time.time()
 
         # NOTE: sbi posteriors only accept torch.Tensor inputs
-        x_test = torch.Tensor(loader.get_all_data())
-        theta_test = torch.Tensor(loader.get_all_parameters())
+        if hasattr(loader, 'simulate'):
+            theta_test, x_test = loader.simulate(prior)
+        else:
+            x_test = torch.Tensor(loader.get_all_data())
+            theta_test = torch.Tensor(loader.get_all_parameters())
         # evaluate metrics
         for metric in self.metrics.values():
-            metric(self.posterior, x_test, theta_test)
+            metric(self.posterior, x_test, theta_test, x_obs=x_obs, theta_obs=theta_obs)
 
         logging.info(f"It took {time.time() - t0} seconds to run all metrics.")
