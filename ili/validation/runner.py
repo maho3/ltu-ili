@@ -5,6 +5,10 @@ import time
 import yaml
 from pathlib import Path
 from typing import List
+from sbi.inference.posteriors.base_posterior import NeuralPosterior
+from ili.dataloaders import BaseLoader
+from ili.validation.metrics import BaseMetric
+from ili.utils import load_from_config
 
 from ili.dataloaders import BaseLoader
 from ili.utils import load_from_config
@@ -91,7 +95,6 @@ class ValidationRunner:
             loader (BaseLoader): data loader with stored summary-parameter pairs
         """
         t0 = time.time()
-
         x_test = loader.get_all_data()
         theta_test = loader.get_all_parameters()
         # evaluate metrics

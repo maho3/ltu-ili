@@ -49,12 +49,12 @@ After the script completes, you should be able to find some metric summaries and
 
 It's also possible to use pre-processed Quijote two point correlation function (TPCF) summaries and run example cosmological inference. Quijote TPCF summaries can be found in the LtU Open Storage Network data repository ([https://sdsc.osn.xsede.org/learningtheuniverse](https://sdsc.osn.xsede.org/learningtheuniverse)). See the download instructions in the #ili-wg Slack channel or ping Matt Ho if you need help getting this data. 
 
-Store this data in a subfolder called ili-wg/data and run the inference using
+Store this data in a subfolder called `ltu-ili-data/` and run the inference using
 ```bash
    cd examples
    python quijote_inference_sbi.py 
 ```
 In case you want to use a mixture density network as density estimator instead of a normalizing flow, then execute
 ```bash
-   python quijote_inference_sbi.py --cfgtrain configs/quijote_sbi_MDN.yaml
+   python quijote_inference_sbi.py --cfginfer configs/quijote_sbi_MDN.yaml
 ```

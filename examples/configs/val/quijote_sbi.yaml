@@ -1,5 +1,8 @@
+<<<<<<<< HEAD:examples/configs/val/quijote_sbi.yaml
 backend: 'sbi'
 
+========
+>>>>>>>> main:examples/configs/val/quijote.yaml
 posterior_path: 'toy/posterior.pkl'
 output_path: 'toy'
 
