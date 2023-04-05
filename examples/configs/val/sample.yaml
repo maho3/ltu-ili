@@ -9,6 +9,12 @@ metrics:
       num_samples: 1000
       labels: ['t1', 't2', 't3']
 
+  tarp:
+    module: 'ili.validation.metrics'
+    class: 'TARP'
+    args:
+      num_samples: 1000
+
   rank_stats:
     module: 'ili.validation.metrics'
     class: 'PlotRankStatistics'

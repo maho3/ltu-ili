@@ -24,21 +24,19 @@ class BaseMetric(ABC):
             y (torch.Tensor): tensor of test parameters
         """
 
+
 class TARP(BaseMetric):
     def __init__(self,
                  num_samples: int,
-                 labels: List[str],
                  output_path: Path
                  ):
         """Compute the TARP validation metric (https://arxiv.org/abs/2302.03026).
 
         Args:
             num_samples (int): number of posterior samples
-            labels (List[str]): list of parameter names
             output_path (Path): path where to store outputs
         """
         self.num_samples = num_samples
-        self.labels = labels
         self.output_path = output_path
 
     def __call__(self,
@@ -57,12 +55,24 @@ class TARP(BaseMetric):
             references (str, optional): how to select the reference points. Defaults to "random".
             metric (str, optional): which metric to use. Defaults to "euclidean".
         """
-        ndim = theta.shape[-1]
         num_samples = self.num_samples
 
+        posterior_samples = np.zeros((num_samples, x.shape[0], theta.shape[1]))
         # sample from the posterior
-        samples = posterior.sample((num_samples,), x=x)
-        alpha, ecp = tarp.get_drp_coverage(samples, theta, references=references, metric=metric)
+        for ii in tqdm.tqdm(range(x.shape[0])):
+            try:
+                posterior_samples[:, ii] = posterior.sample((self.num_samples,),
+                                                            x=x[ii],
+                                                            show_progress_bars=False).detach().numpy()
+            except Warning as w:
+                # except :
+                print("WARNING\n", w)
+                continue
+
+        alpha, ecp = tarp.get_drp_coverage(posterior_samples,
+                                           theta.detach().numpy(),
+                                           references=references,
+                                           metric=metric)
 
         # plot the TARP metric
         fig, ax = plt.subplots(1, 1, figsize=(4, 4))
