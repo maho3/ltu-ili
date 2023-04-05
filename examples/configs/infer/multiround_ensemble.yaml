@@ -20,6 +20,7 @@ model:
 train_args:
   training_batch_size: 32
   learning_rate: 0.001
+  num_round: 2
 
 device: 'cpu'
 output_path: './toy'

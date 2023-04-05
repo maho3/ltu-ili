@@ -53,7 +53,6 @@ class ValidationRunner:
             config = yaml.safe_load(fd)
 
         posterior = cls.load_posterior(config["posterior_path"])
-        print("X IS", posterior._x)
         output_path = Path(config["output_path"])
 
         metrics = {}
@@ -78,8 +77,6 @@ class ValidationRunner:
             self, 
             loader, 
             prior: Optional[Independent] = None, 
-            x_obs: Optional[torch.Tensor] = None,
-            theta_obs: Optional[torch.Tensor] = None
     ):
         """Run your validation metrics and save them to file
 
@@ -87,17 +84,21 @@ class ValidationRunner:
             loader (BaseLoader): data loader with stored summary-parameter pairs
             or has ability to simulate summary-parameter pairs 
             prior (Independent): prior on the parameters
-            x_obs (torch.Tensor): tensor of the observed x
-            theta_obs (torch.Tensor): tensor of the true theta
         """
         t0 = time.time()
 
         # NOTE: sbi posteriors only accept torch.Tensor inputs
         if hasattr(loader, 'simulate'):
+            if prior is None:
+                raise Exception
             theta_test, x_test = loader.simulate(prior)
+            x_obs = loader.get_obs_data()
+            theta_obs = loader.get_obs_parameters()
         else:
             x_test = torch.Tensor(loader.get_all_data())
             theta_test = torch.Tensor(loader.get_all_parameters())
+            x_obs = None
+            theta_obs = None
         # evaluate metrics
         for metric in self.metrics.values():
             metric(self.posterior, x_test, theta_test, x_obs=x_obs, theta_obs=theta_obs)

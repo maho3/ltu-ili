@@ -183,6 +183,9 @@ class SummarizerDatasetLoader(BaseLoader):
 class SBISimulator(BaseLoader):
     def __init__(
             self, 
+            in_dir: str,
+            xobs_file: str,
+            thetaobs_file: str,
             out_dir: str, 
             x_file: str, 
             theta_file: str,
@@ -193,18 +196,26 @@ class SBISimulator(BaseLoader):
         to numpy files
 
         Args:
+            in_dir (str): path to the location of stored data
+            xobs_file (str): filename used for `observed' x values
+            thetaobs_file (str): filename used for `observed' parameters 
             out_dir (str): path to the location where to save  data
             x_file (str): filename to use to store summaries
             theta_file (str): filename to use to store parameters
             num_simulations (int): number of simulations to run at each call
             simulator (callable): function taking the parameters as an argument and returns data
         """
+        self.in_dir = Path(in_dir)
+        self.xobs_path = self.in_dir / xobs_file
+        self.thetaobs_path = self.in_dir / thetaobs_file
         self.out_dir = Path(out_dir)
         self.x_path = self.out_dir / x_file
         self.theta_path = self.out_dir / theta_file
         self.num_simulations = num_simulations
         self.simulator = simulator
 
+        self.xobs = np.load(self.xobs_path)
+        self.thetaobs = np.load(self.thetaobs_path)
 
     def __len__(self) -> int:
         """Returns the total number of data points produced when called
@@ -238,6 +249,24 @@ class SBISimulator(BaseLoader):
         np.save(self.theta_path, theta.detach().cpu().numpy())
         np.save(self.x_path, x.detach().cpu().numpy())
         return theta, x
+
+
+    def get_obs_data(self) -> np.array:
+        """Returns the observed summaries
+
+        Returns:
+            np.array: summaries
+        """
+        return self.xobs
+
+
+    def get_obs_parameters(self):
+        """Returns the observed parameters
+
+        Returns:
+            np.array: parameters
+        """
+        return self.thetaobs
 
 
 

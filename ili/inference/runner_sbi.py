@@ -46,6 +46,11 @@ class SBIRunner:
         self.device = device
         self.embedding_net = embedding_net
         self.train_args = train_args
+        if 'num_round' in train_args:
+            self.num_rounds = train_args['num_round']
+            self.train_args.pop('num_round') 
+        else:
+            self.num_rounds = 1
         self.output_path = output_path
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
@@ -115,17 +120,12 @@ class SBIRunner:
             )
         return neural_posteriors
 
-    def __call__(self, loader,
-                num_rounds: Optional[int] = 1,
-                x_obs: Optional[torch.Tensor] = None
-        ):
+    def __call__(self, loader,):
         """Train your posterior and save it to file
 
         Args:
             loader (BaseLoader): data loader with stored summary-parameter pairs
             or has ability to simulate summary-parameter pairs
-            num_rounds (int): number of rounds to perform of inference
-            x_obs (torch.Tensor): observation to focus the posterior around
 
         Raises:
             Exception: cannot perform multi-round inference if loader cannot simulate
@@ -134,23 +134,23 @@ class SBIRunner:
         t0 = time.time()
         if hasattr(loader, 'simulate'):
             theta, x = loader.simulate(self.prior)
+            x_obs= loader.get_obs_data()
         else:
             x = torch.Tensor(loader.get_all_data())
             theta = torch.Tensor(loader.get_all_parameters())
-            if num_rounds != 1:
+            if self.num_rounds != 1:
                 raise Exception("If not simulating data you cannot have multi-round inference")
         all_model = []
         for n, posterior in enumerate(self.neural_posteriors):
             all_model.append(self.inference_class(
                     prior=self.prior,
-                    #density_estimator=posterior,
                     device=self.device,
                 ))
         proposal = self.prior
-        for rnd in range(num_rounds):
+        for rnd in range(self.num_rounds):
             t1 = time.time()
             logging.info(
-                f"Running round {rnd+1} of {num_rounds}"
+                f"Running round {rnd+1} of {self.num_rounds}"
             )
             if rnd > 0:
                 theta, x = loader.simulate(proposal)
@@ -169,12 +169,11 @@ class SBIRunner:
             val_loss = torch.tensor([float(vl) for vl in val_loss])
             val_loss = torch.exp(val_loss - val_loss.max())
             val_loss /= val_loss.sum()
-            print('\nVAL LOSS:', val_loss, '\n')
             posterior = NeuralPosteriorEnsemble(
                 posteriors=posteriors,
                 weights=val_loss
             )
-            if num_rounds > 1:
+            if self.num_rounds > 1:
                 with open(self.output_path / f"posterior_{rnd}.pkl", "wb") as handle:
                     pickle.dump(posterior, handle)
                 proposal = posterior.set_default_x(x_obs)
