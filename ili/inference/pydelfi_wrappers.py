@@ -30,7 +30,7 @@ class DelfiWrapper(Delfi):
         sample_shape: tuple,
         x: np.array,
         show_progress_bars=False,
-        burn_in_chain=100
+        burn_in_chain=1000
     ) -> np.array:
         """Modification of Delfi.emcee_sample designed to conform with the sbi.utils.posterior_ensemble sampler
 
@@ -67,10 +67,11 @@ class DelfiWrapper(Delfi):
         sampler.run_mcmc(state, num_samples, progress=show_progress_bars)
 
         # pull out the unique samples and weights
-        chain, weights = np.unique(sampler.get_chain(flat=True), axis=0, return_counts=True)
+        # chain, weights = np.unique(sampler.get_chain(flat=True), axis=0, return_counts=True)
+        chain = sampler.get_chain(flat=True)
 
         # pull out the log probabilities
-        log_prob, _ = np.unique(sampler.get_log_prob(flat=True), axis=0, return_counts=True)
+        # log_prob, _ = np.unique(sampler.get_log_prob(flat=True), axis=0, return_counts=True)
 
         return chain  # , weights, log_prob
     

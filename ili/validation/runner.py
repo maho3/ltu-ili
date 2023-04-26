@@ -5,7 +5,6 @@ import time
 import yaml
 from pathlib import Path
 from typing import List
-from sbi.inference.posteriors.base_posterior import NeuralPosterior
 from ili.dataloaders import BaseLoader
 from ili.validation.metrics import BaseMetric
 from ili.utils import load_from_config

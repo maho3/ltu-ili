@@ -16,9 +16,15 @@ model:
     nwalkers: 10
   neural_posteriors:
     - module: 'pydelfi.ndes'
+      class: 'MixtureDensityNetwork'
+      args: 
+        n_components: 2
+        n_hidden: [50,50,50]
+        activations: ['tanh','tanh','tanh']
+    - module: 'pydelfi.ndes'
       class: 'ConditionalMaskedAutoregressiveFlow'
       args: 
-        n_hiddens: [100,100]
+        n_hiddens: [50,50]
         n_mades: 5
         act_fun: 'tanh'
     

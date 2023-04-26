@@ -13,23 +13,24 @@ model:
   module: 'ili.inference.pydelfi_wrappers'
   class: 'DelfiWrapper'
   kwargs:
-    nwalkers: 10
+    nwalkers: 20
+    n_procs: 10
   neural_posteriors:
     - module: 'pydelfi.ndes'
       class: 'MixtureDensityNetwork'
       args: 
-        n_components: 2
-        n_hidden: [30,30,30]
-        activations: ['tanh','tanh','tanh']
+        n_components: 12
+        n_hidden: [64,64]
+        activations: ['tanh','tanh']
     - module: 'pydelfi.ndes'
       class: 'ConditionalMaskedAutoregressiveFlow'
       args: 
         n_hiddens: [50,50]
-        n_mades: 5
+        n_mades: 2
         act_fun: 'tanh'
     
 train_args:
   batch_size: 32
-  epochs: 2
+  epochs: 300
 
 output_path: 'toy'

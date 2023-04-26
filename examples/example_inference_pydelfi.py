@@ -13,7 +13,7 @@ def simulator(params):
     return y
 
 
-theta = np.random.rand(2000, 3)  # 2000 simulations, 3 parameters
+theta = np.random.rand(200, 3)  # 2000 simulations, 3 parameters
 x = np.array([simulator(t) for t in theta])
 
 # save them as numpy files

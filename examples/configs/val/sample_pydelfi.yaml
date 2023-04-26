@@ -10,3 +10,10 @@ metrics:
     args:
       num_samples: 100
       labels: ['t1', 't2', 't3']
+
+  rank_stats:
+    module: 'ili.validation.metrics'
+    class: 'PlotRankStatistics'
+    args:
+      num_samples: 10
+      labels: ['t1', 't2', 't3']
