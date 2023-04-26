@@ -120,7 +120,7 @@ class SBIRunner:
             )
         return neural_posteriors
 
-    def __call__(self, loader,):
+    def __call__(self, loader):
         """Train your posterior and save it to file
 
         Args:
@@ -181,4 +181,3 @@ class SBIRunner:
         with open(self.output_path / "posterior.pkl", "wb") as handle:
             pickle.dump(posterior, handle)
         logging.info(f"It took {time.time() - t0} seconds to train all models.")
-

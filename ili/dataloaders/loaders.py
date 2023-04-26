@@ -193,7 +193,7 @@ class SBISimulator(BaseLoader):
             simulator: Optional[callable]=None,
     ):
         """Class to run simulations of summaries and parameters and save results
-        to numpy files
+        to numpy files. Only works for sbi backend
 
         Args:
             in_dir (str): path to the location of stored data

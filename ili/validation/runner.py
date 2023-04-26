@@ -90,7 +90,7 @@ class ValidationRunner:
         # NOTE: sbi posteriors only accept torch.Tensor inputs
         if hasattr(loader, 'simulate'):
             if prior is None:
-                raise Exception
+                raise Exception('prior is None')
             theta_test, x_test = loader.simulate(prior)
             x_obs = loader.get_obs_data()
             theta_obs = loader.get_obs_parameters()
