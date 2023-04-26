@@ -1,26 +1,49 @@
-from abc import ABC, abstractmethod
-import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 import pandas as pd
-import torch
+import seaborn as sns
 import tqdm
-from sbi.inference.posteriors.base_posterior import NeuralPosterior
-from typing import List
+from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import List
+
+try:
+    import torch
+    from sbi.inference.posteriors.base_posterior import NeuralPosterior
+    ModelClass = NeuralPosterior
+except ModuleNotFoundError:
+    from ili.inference.pydelfi_wrappers import DelfiWrapper
+    ModelClass = DelfiWrapper
 
 
 class BaseMetric(ABC):
+    def __init__(
+        self,
+        backend: str,
+        output_path: Path
+    ):
+        """Base class for calculating validation metrics
+
+        Args:
+            backend (str): the backend for the posterior models (either 'sbi' or 'pydelfi')
+            output_path (Path): path where to store outputs
+        """
+        self.backend = backend
+        self.output_path = output_path
+
     @abstractmethod
     def __call__(
-        self, posterior: NeuralPosterior, x: torch.Tensor, theta: torch.Tensor
+        self,
+        posterior: ModelClass,
+        x: np.array,
+        theta: np.array
     ):
         """Given a posterior and test data, measure a validation metric and save to file.
 
         Args:
-            posterior (NeuralPosterior): trained sbi posterior inference engine
-            x (torch.Tensor): tensor of test summaries
-            y (torch.Tensor): tensor of test parameters
+            posterior (ModelClass): trained sbi posterior inference engine
+            x (np.array): array of test summaries
+            y (np.array): array of test parameters
         """
 
 
@@ -29,6 +52,7 @@ class PlotSinglePosterior(BaseMetric):
         self,
         num_samples: int,
         labels: List[str],
+        backend: str,
         output_path: Path,
     ):
         """Perform inference sampling on a single test point and plot the posterior in a corner plot.
@@ -36,24 +60,25 @@ class PlotSinglePosterior(BaseMetric):
         Args:
             num_samples (int): number of posterior samples
             labels (List[str]): list of parameter names
+            backend (str): the backend for the posterior models (either 'sbi' or 'pydelfi')
             output_path (Path): path where to store outputs
         """
+        super().__init__(backend, output_path)
         self.num_samples = num_samples
         self.labels = labels
-        self.output_path = output_path
 
     def __call__(
         self,
-        posterior: NeuralPosterior,
-        x: torch.Tensor,
-        theta: torch.Tensor
+        posterior: ModelClass,
+        x: np.array,
+        theta: np.array
     ):
-        """Given a posterior and test data, plot the inferred posterior of a single point and save to file.
+        """Given a posterior and test data, plot the inferred posterior of a single test point and save to file.
 
         Args:
-            posterior (NeuralPosterior): trained sbi posterior inference engine
-            x (torch.Tensor): tensor of test summaries
-            y (torch.Tensor): tensor of test parameters
+            posterior (ModelClass): trained sbi posterior inference engine
+            x (np.array): array of test summaries
+            y (np.array): array of test parameters
         """
         ndim = theta.shape[-1]
 
@@ -62,9 +87,15 @@ class PlotSinglePosterior(BaseMetric):
         x_obs = x[ind]
         theta_obs = theta[ind]
 
-        # sample from the posterior
-        samples = posterior.sample((self.num_samples,), x=x_obs)
+        # check for sbi
+        if self.backend == 'sbi':
+            x_obs = torch.Tensor(x_obs)
+            theta_obs = torch.Tensor(theta_obs)
 
+        # sample from the posterior
+        samples = posterior.sample((self.num_samples,), x=x_obs, show_progress_bars=True)
+
+        # plot
         g = sns.pairplot(
             pd.DataFrame(samples, columns=self.labels),
             kind=None,
@@ -86,13 +117,15 @@ class PlotSinglePosterior(BaseMetric):
             return g
         g.savefig(self.output_path / "plot_single_posterior.jpg")
 
+
 class PlotRankStatistics(BaseMetric):
     def __init__(
         self,
         num_samples: int,
         labels: List[str],
+        backend: str,
         output_path: Path,
-    ): # TODO: Clean these functions up
+    ):  # TODO: Clean these functions up
         """Plot rank histogram, posterior coverage, and true-pred diagnostics based on rank statistics
         inferred from posteriors. These are derived from sbi posterior metrics originally written by Chirag Modi.
         Reference: https://github.com/modichirag/contrastive_cosmology/blob/main/src/sbiplots.py
@@ -102,23 +135,23 @@ class PlotRankStatistics(BaseMetric):
             labels (List[str]): list of parameter names
             output_path (Path): path where to store outputs
         """
+        super().__init__(backend, output_path)
         self.num_samples = num_samples
         self.labels = labels
-        self.output_path = output_path
 
     def _get_ranks(
         self,
-        posterior: NeuralPosterior,
-        x: torch.Tensor,
-        theta: torch.Tensor
+        posterior: ModelClass,
+        x: np.array,
+        theta: np.array
     ):
         """Samples inferred parameters from a trained posterior given observed data and calculates posterior metrics
         such as means, stdevs, and ranks.
 
         Args:
-            posterior (NeuralPosterior): trained sbi posterior inference engine
-            x (torch.Tensor): tensor of test summaries
-            y (torch.Tensor): tensor of test parameters
+            posterior (ModelClass): trained sbi posterior inference engine
+            x (np.array): tensor of test summaries
+            y (np.array): tensor of test parameters
 
         Returns:
             trues (np.array): array of true parameter values
@@ -126,7 +159,8 @@ class PlotRankStatistics(BaseMetric):
             stds (np.array): array of posterior prediction standard deviations
             ranks (np.array): array of posterior prediction ranks
         """
-        theta = theta.numpy()
+        if self.backend == 'sbi':
+            x = torch.Tensor(x)
 
         ndim = theta.shape[1]
         ranks = []
@@ -136,11 +170,13 @@ class PlotRankStatistics(BaseMetric):
             try:
                 posterior_samples = posterior.sample((self.num_samples,),
                                                      x=x[ii],
-                                                     show_progress_bars=False).detach().numpy()
+                                                     show_progress_bars=False)
             except Warning as w:
                 # except :
                 print("WARNING\n", w)
                 continue
+            if self.backend == 'sbi':
+                posterior_samples = posterior_samples.detach().numpy()
             mu, std = posterior_samples.mean(axis=0)[:ndim], posterior_samples.std(axis=0)[:ndim]
             rank = [(posterior_samples[:, i] < theta[ii, i]).sum() for i in range(ndim)]
             mus.append(mu)
@@ -207,9 +243,9 @@ class PlotRankStatistics(BaseMetric):
         axs = axs.flatten()
         for j in range(npars):
             axs[j].errorbar(trues[:, j], mus[:, j], stds[:, j],
-                                     fmt="none", elinewidth=0.5, alpha=0.5)
+                            fmt="none", elinewidth=0.5, alpha=0.5)
 
-            axs[j].plot(*(2*[np.linspace(min(trues[:,j]), max(trues[:,j]), 10)]),
+            axs[j].plot(*(2 * [np.linspace(min(trues[:, j]), max(trues[:, j]), 10)]),
                         'k--', ms=0.2, lw=0.5)
             axs[j].grid(which='both', lw=0.5)
             axs[j].set(adjustable='box', aspect='equal')
@@ -218,29 +254,25 @@ class PlotRankStatistics(BaseMetric):
             axs[j].set_xlabel('True')
             axs[j].set_ylabel('Predicted')
 
-
-        plt.savefig(self.output_path /  'predictions.png', bbox_inches='tight')
+        plt.savefig(self.output_path / 'predictions.png', bbox_inches='tight')
 
     def __call__(
         self,
-        posterior: NeuralPosterior,
-        x: torch.Tensor,
-        theta: torch.Tensor
+        posterior: ModelClass,
+        x: np.array,
+        theta: np.array
     ):
         """Plot rank histogram, posterior coverage, and true-pred diagnostics based on rank statistics
         inferred from posteriors. These are derived from sbi posterior metrics originally written by Chirag Modi.
         Reference: https://github.com/modichirag/contrastive_cosmology/blob/main/src/sbiplots.py
 
         Args:
-            posterior (NeuralPosterior): trained sbi posterior inference engine
-            x (torch.Tensor): tensor of test summaries
-            y (torch.Tensor): tensor of test parameters
+            posterior (ModelClass): trained sbi posterior inference engine
+            x (np.array): tensor of test summaries
+            y (np.array): tensor of test parameters
         """
 
         trues, mus, stds, ranks = self._get_ranks(posterior, x, theta)
         self._plot_ranks_histogram(ranks)
         self._plot_coverage(ranks)
-        self._plot_predictions(trues,mus,stds)
-
-
-
+        self._plot_predictions(trues, mus, stds)

@@ -1,0 +1,22 @@
+<<<<<<<< HEAD:examples/configs/val/sample_sbi.yaml
+backend: 'sbi'
+
+========
+>>>>>>>> main:examples/configs/val/sample.yaml
+posterior_path: './toy/posterior.pkl'
+output_path: './toy'
+
+metrics:
+  single_example:
+    module: 'ili.validation.metrics'
+    class: 'PlotSinglePosterior'
+    args:
+      num_samples: 1000
+      labels: ['t1', 't2', 't3']
+
+  rank_stats:
+    module: 'ili.validation.metrics'
+    class: 'PlotRankStatistics'
+    args:
+      num_samples: 1000
+      labels: ['t1', 't2', 't3']
