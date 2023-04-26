@@ -8,6 +8,8 @@ import pandas as pd
 from summarizer.dataset import Dataset
 from sbi.inference import simulate_for_sbi
 from torch import Tensor
+from npy_append_array import NpyAppendArray
+import os
 
 
 class BaseLoader(ABC):
@@ -214,6 +216,10 @@ class SBISimulator(BaseLoader):
         self.num_simulations = num_simulations
         self.simulator = simulator
 
+        for filename in [self.theta_path, self.x_path]:
+            if os.path.exists(filename):
+                os.remove(filename)
+
         self.xobs = np.load(self.xobs_path)
         self.thetaobs = np.load(self.thetaobs_path)
 
@@ -246,8 +252,10 @@ class SBISimulator(BaseLoader):
             Tuple[Tensor, Tensor]: Sampled parameters $\theta$ and simulation-outputs $x$.
         """
         theta, x = simulate_for_sbi(self.simulator, proposal, num_simulations=self.num_simulations)
-        np.save(self.theta_path, theta.detach().cpu().numpy())
-        np.save(self.x_path, x.detach().cpu().numpy())
+        with NpyAppendArray(self.theta_path) as npaa:
+            npaa.append(theta.detach().cpu().numpy())
+        with NpyAppendArray(self.x_path) as npaa:
+            npaa.append(x.detach().cpu().numpy())
         return theta, x
 
 
