@@ -5,6 +5,7 @@ import seaborn as sns
 import tqdm
 from abc import ABC, abstractmethod
 from pathlib import Path
+import tarp
 from typing import List
 
 try:
@@ -47,6 +48,66 @@ class BaseMetric(ABC):
         """
 
 
+class TARP(BaseMetric):
+    def __init__(self,
+                 num_samples: int,
+                 output_path: Path
+                 ):
+        """Compute the TARP validation metric (https://arxiv.org/abs/2302.03026).
+
+        Args:
+            num_samples (int): number of posterior samples
+            output_path (Path): path where to store outputs
+        """
+        self.num_samples = num_samples
+        self.output_path = output_path
+
+    def __call__(self,
+                 posterior: NeuralPosterior,
+                 x: torch.Tensor,
+                 theta: torch.Tensor,
+                 references: str = "random",
+                 metric: str = "euclidean"
+                 ):
+        """Given a posterior and test data, compute the TARP metric and save to file.
+        Reference: https://arxiv.org/abs/2302.03026
+        
+        Args:
+            posterior (NeuralPosterior): trained sbi posterior inference engine
+            x (torch.Tensor): tensor of test summaries
+            theta (torch.Tensor): tensor of test parameters
+            references (str, optional): how to select the reference points. Defaults to "random".
+            metric (str, optional): which metric to use. Defaults to "euclidean".
+        """
+        num_samples = self.num_samples
+
+        posterior_samples = np.zeros((num_samples, x.shape[0], theta.shape[1]))
+        # sample from the posterior
+        for ii in tqdm.tqdm(range(x.shape[0])):
+            try:
+                posterior_samples[:, ii] = posterior.sample((self.num_samples,),
+                                                            x=x[ii],
+                                                            show_progress_bars=False).detach().numpy()
+            except Warning as w:
+                # except :
+                print("WARNING\n", w)
+                continue
+
+        alpha, ecp = tarp.get_drp_coverage(posterior_samples,
+                                           theta.detach().numpy(),
+                                           references=references,
+                                           metric=metric)
+
+        # plot the TARP metric
+        fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+        ax.plot([0, 1], [0, 1], ls='--', color='k')
+        ax.plot(alpha, ecp, label='DRP')
+        ax.legend()
+        ax.set_ylabel("Expected Coverage")
+        ax.set_xlabel("Credibility Level")
+        plt.savefig(self.output_path / "plot_tarp.jpg", dpi=300, bbox_inches='tight')
+
+
 class PlotSinglePosterior(BaseMetric):
     def __init__(
         self,
@@ -76,9 +137,9 @@ class PlotSinglePosterior(BaseMetric):
         """Given a posterior and test data, plot the inferred posterior of a single test point and save to file.
 
         Args:
-            posterior (ModelClass): trained sbi posterior inference engine
-            x (np.array): array of test summaries
-            y (np.array): array of test parameters
+            posterior (NeuralPosterior): trained sbi posterior inference engine
+            x (torch.Tensor): tensor of test summaries
+            theta (torch.Tensor): tensor of test parameters
         """
         ndim = theta.shape[-1]
 
@@ -115,7 +176,7 @@ class PlotSinglePosterior(BaseMetric):
 
         if self.output_path is None:
             return g
-        g.savefig(self.output_path / "plot_single_posterior.jpg")
+        g.savefig(self.output_path / "plot_single_posterior.jpg", dpi=200, bbox_inches='tight')
 
 
 class PlotRankStatistics(BaseMetric):
@@ -206,7 +267,7 @@ class PlotRankStatistics(BaseMetric):
             axis.axhline(ncounts - ncounts ** 0.5, color='k', ls="--")
             axis.axhline(ncounts + ncounts ** 0.5, color='k', ls="--")
 
-        plt.savefig(self.output_path / 'rankplot.png', bbox_inches='tight')
+        plt.savefig(self.output_path / 'rankplot.jpg', dpi=300, bbox_inches='tight')
 
     def _plot_coverage(self, ranks, plotscatter=True):
         ncounts = ranks.shape[0]
@@ -233,7 +294,7 @@ class PlotRankStatistics(BaseMetric):
         for axis in ax:
             axis.grid(visible=True)
 
-        plt.savefig(self.output_path / 'coverage.png', bbox_inches='tight')
+        plt.savefig(self.output_path / 'coverage.jpg', dpi=300, bbox_inches='tight')
 
     def _plot_predictions(self, trues, mus, stds):
         npars = trues.shape[-1]
@@ -254,7 +315,8 @@ class PlotRankStatistics(BaseMetric):
             axs[j].set_xlabel('True')
             axs[j].set_ylabel('Predicted')
 
-        plt.savefig(self.output_path / 'predictions.png', bbox_inches='tight')
+
+        plt.savefig(self.output_path /  'predictions.jpg', dpi=300, bbox_inches='tight')
 
     def __call__(
         self,

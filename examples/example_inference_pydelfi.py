@@ -8,8 +8,8 @@ from ili.validation.runner import ValidationRunner
 # create toy 'simulations'
 def simulator(params):
     x = np.arange(10)
-    y = params[0] * np.sin(x) + params[1] * x ** 2 - 3 * params[2] * x
-    y += np.random.normal(len(x))
+    y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+    y += np.random.randn(len(x))
     return y
 
 

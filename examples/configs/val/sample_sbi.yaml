@@ -1,8 +1,5 @@
-<<<<<<<< HEAD:examples/configs/val/sample_sbi.yaml
 backend: 'sbi'
 
-========
->>>>>>>> main:examples/configs/val/sample.yaml
 posterior_path: './toy/posterior.pkl'
 output_path: './toy'
 
@@ -14,9 +11,15 @@ metrics:
       num_samples: 1000
       labels: ['t1', 't2', 't3']
 
+  tarp:
+    module: 'ili.validation.metrics'
+    class: 'TARP'
+    args:
+      num_samples: 100
+
   rank_stats:
     module: 'ili.validation.metrics'
     class: 'PlotRankStatistics'
     args:
-      num_samples: 1000
+      num_samples: 100
       labels: ['t1', 't2', 't3']
