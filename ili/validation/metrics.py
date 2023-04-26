@@ -51,6 +51,7 @@ class BaseMetric(ABC):
 class TARP(BaseMetric):
     def __init__(self,
                  num_samples: int,
+                 backend: str,
                  output_path: Path
                  ):
         """Compute the TARP validation metric (https://arxiv.org/abs/2302.03026).
@@ -59,13 +60,13 @@ class TARP(BaseMetric):
             num_samples (int): number of posterior samples
             output_path (Path): path where to store outputs
         """
+        super().__init__(backend, output_path)
         self.num_samples = num_samples
-        self.output_path = output_path
 
     def __call__(self,
                  posterior: NeuralPosterior,
-                 x: torch.Tensor,
-                 theta: torch.Tensor,
+                 x: np.array,
+                 theta: np.array,
                  references: str = "random",
                  metric: str = "euclidean"
                  ):
@@ -79,22 +80,26 @@ class TARP(BaseMetric):
             references (str, optional): how to select the reference points. Defaults to "random".
             metric (str, optional): which metric to use. Defaults to "euclidean".
         """
-        num_samples = self.num_samples
 
-        posterior_samples = np.zeros((num_samples, x.shape[0], theta.shape[1]))
+        posterior_samples = np.zeros((self.num_samples, x.shape[0], theta.shape[1]))
         # sample from the posterior
+        if self.backend == 'sbi':
+            x = torch.Tensor(x)
         for ii in tqdm.tqdm(range(x.shape[0])):
             try:
-                posterior_samples[:, ii] = posterior.sample((self.num_samples,),
-                                                            x=x[ii],
-                                                            show_progress_bars=False).detach().numpy()
+                samp_i = posterior.sample((self.num_samples,),
+                                          x=x[ii],
+                                          show_progress_bars=False)
+                if self.backend == 'sbi':
+                    samp_i = samp_i.detach().numpy()
+                posterior_samples[:, ii] = samp_i
             except Warning as w:
                 # except :
                 print("WARNING\n", w)
                 continue
 
         alpha, ecp = tarp.get_drp_coverage(posterior_samples,
-                                           theta.detach().numpy(),
+                                           theta,
                                            references=references,
                                            metric=metric)
 
