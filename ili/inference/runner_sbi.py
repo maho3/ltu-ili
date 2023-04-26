@@ -179,6 +179,7 @@ class SBIRunnerSequential(SBIRunner):
         for n, posterior in enumerate(self.neural_posteriors):
             all_model.append(self.inference_class(
                     prior=self.prior,
+                    density_estimator=posterior,
                     device=self.device,
                 ))
         proposal = self.prior
