@@ -14,7 +14,6 @@ model:
   class: 'DelfiWrapper'
   kwargs:
     nwalkers: 20
-    n_procs: 10
   neural_posteriors:
     - module: 'pydelfi.ndes'
       class: 'MixtureDensityNetwork'
