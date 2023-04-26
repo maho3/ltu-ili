@@ -1,3 +1,8 @@
+<<<<<<<< HEAD:examples/configs/val/sample_sbi.yaml
+backend: 'sbi'
+
+========
+>>>>>>>> main:examples/configs/val/sample.yaml
 posterior_path: './toy/posterior.pkl'
 output_path: './toy'
 
