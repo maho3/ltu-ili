@@ -47,7 +47,8 @@ class TARP(BaseMetric):
                  metric: str = "euclidean"
                  ):
         """Given a posterior and test data, compute the TARP metric and save to file.
-
+        Reference: https://arxiv.org/abs/2302.03026
+        
         Args:
             posterior (NeuralPosterior): trained sbi posterior inference engine
             x (torch.Tensor): tensor of test summaries
@@ -81,7 +82,7 @@ class TARP(BaseMetric):
         ax.legend()
         ax.set_ylabel("Expected Coverage")
         ax.set_xlabel("Credibility Level")
-        plt.savefig(self.output_path / "plot_tarp.jpg")
+        plt.savefig(self.output_path / "plot_tarp.jpg", dpi=300, bbox_inches='tight')
 
 
 class PlotSinglePosterior(BaseMetric):
@@ -144,7 +145,7 @@ class PlotSinglePosterior(BaseMetric):
 
         if self.output_path is None:
             return g
-        g.savefig(self.output_path / "plot_single_posterior.jpg")
+        g.savefig(self.output_path / "plot_single_posterior.jpg", dpi=200, bbox_inches='tight')
 
 class PlotRankStatistics(BaseMetric):
     def __init__(
@@ -230,7 +231,7 @@ class PlotRankStatistics(BaseMetric):
             axis.axhline(ncounts - ncounts ** 0.5, color='k', ls="--")
             axis.axhline(ncounts + ncounts ** 0.5, color='k', ls="--")
 
-        plt.savefig(self.output_path / 'rankplot.png', bbox_inches='tight')
+        plt.savefig(self.output_path / 'rankplot.jpg', dpi=300, bbox_inches='tight')
 
     def _plot_coverage(self, ranks, plotscatter=True):
         ncounts = ranks.shape[0]
@@ -257,7 +258,7 @@ class PlotRankStatistics(BaseMetric):
         for axis in ax:
             axis.grid(visible=True)
 
-        plt.savefig(self.output_path / 'coverage.png', bbox_inches='tight')
+        plt.savefig(self.output_path / 'coverage.jpg', dpi=300, bbox_inches='tight')
 
     def _plot_predictions(self, trues, mus, stds):
         npars = trues.shape[-1]
@@ -279,7 +280,7 @@ class PlotRankStatistics(BaseMetric):
             axs[j].set_ylabel('Predicted')
 
 
-        plt.savefig(self.output_path /  'predictions.png', bbox_inches='tight')
+        plt.savefig(self.output_path /  'predictions.jpg', dpi=300, bbox_inches='tight')
 
     def __call__(
         self,
