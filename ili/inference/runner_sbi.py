@@ -191,8 +191,8 @@ class SBIRunnerSequential(SBIRunner):
             )
             if rnd > 0:
                 theta, x = loader.simulate(proposal)
+            theta, x = torch.Tensor(theta), torch.Tensor(x)
             posteriors, val_loss = [], []
-
             for n in range(len(self.neural_posteriors)):
                 logging.info(
                     f"Training model {n+1} out of {len(self.neural_posteriors)} ensemble models"

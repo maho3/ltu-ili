@@ -8,8 +8,6 @@ import pandas as pd
 from summarizer.dataset import Dataset
 from sbi.inference import simulate_for_sbi
 from torch import Tensor
-from npy_append_array import NpyAppendArray
-import os
 
 
 class BaseLoader(ABC):
@@ -216,12 +214,11 @@ class SBISimulator(BaseLoader):
         self.num_simulations = num_simulations
         self.simulator = simulator
 
-        for filename in [self.theta_path, self.x_path]:
-            if os.path.exists(filename):
-                os.remove(filename)
-
         self.xobs = np.load(self.xobs_path)
         self.thetaobs = np.load(self.thetaobs_path)
+
+        self.theta = None
+        self.x = None
 
     def __len__(self) -> int:
         """Returns the total number of data points produced when called
@@ -231,7 +228,6 @@ class SBISimulator(BaseLoader):
         """
         return self.num_simulations
 
-
     def set_simulator(self, simulator: callable):
         """Set the simulator to be used in the inference
 
@@ -239,7 +235,6 @@ class SBISimulator(BaseLoader):
             simulator (callable): function taking the parameters as an argument and returns data
         """
         self.simulator = simulator
-
 
     def simulate(self, proposal: Any) -> Tuple[Tensor, Tensor]:
         """Run simulations give a proposal and returns ($\theta, x$) pairs obtained 
@@ -252,12 +247,15 @@ class SBISimulator(BaseLoader):
             Tuple[Tensor, Tensor]: Sampled parameters $\theta$ and simulation-outputs $x$.
         """
         theta, x = simulate_for_sbi(self.simulator, proposal, num_simulations=self.num_simulations)
-        with NpyAppendArray(self.theta_path) as npaa:
-            npaa.append(theta.detach().cpu().numpy())
-        with NpyAppendArray(self.x_path) as npaa:
-            npaa.append(x.detach().cpu().numpy())
-        return theta, x
-
+        theta, x = theta.detach().cpu().numpy(), x.detach().cpu().numpy()
+        if self.theta is None or self.x is None:
+            self.theta, self.x = theta, x
+        else:
+            self.theta = np.concatenate((self.theta, theta))
+            self.x = np.concatenate((self.x, x))
+        np.save(self.theta_path, self.theta)
+        np.save(self.x_path, self.x)
+        return Tensor(theta), Tensor(x)
 
     def get_obs_data(self) -> np.array:
         """Returns the observed summaries
@@ -267,7 +265,6 @@ class SBISimulator(BaseLoader):
         """
         return self.xobs
 
-
     def get_obs_parameters(self):
         """Returns the observed parameters
 
@@ -275,6 +272,22 @@ class SBISimulator(BaseLoader):
             np.array: parameters
         """
         return self.thetaobs
+
+    def get_all_data(self) -> np.array:
+        """Returns all the loaded summaries
+
+        Returns:
+            np.array: summaries
+        """
+        return self.x
+
+    def get_all_parameters(self):
+        """Returns all the loaded parameters
+
+        Returns:
+            np.array: parameters
+        """
+        return self.theta
 
 
 

@@ -258,6 +258,3 @@ class PlotRankStatistics(BaseMetric):
         self._plot_ranks_histogram(ranks)
         self._plot_coverage(ranks)
         self._plot_predictions(trues,mus,stds)
-
-
-

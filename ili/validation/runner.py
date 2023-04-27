@@ -88,17 +88,13 @@ class ValidationRunner:
         t0 = time.time()
 
         # NOTE: sbi posteriors only accept torch.Tensor inputs
+        x_test = torch.Tensor(loader.get_all_data())
+        theta_test = torch.Tensor(loader.get_all_parameters())
         if hasattr(loader, 'simulate'):
-            if prior is None:
-                raise Exception('prior is None')
-            theta_test, x_test = loader.simulate(prior)
             x_obs = loader.get_obs_data()
             theta_obs = loader.get_obs_parameters()
         else:
-            x_test = torch.Tensor(loader.get_all_data())
-            theta_test = torch.Tensor(loader.get_all_parameters())
-            x_obs = None
-            theta_obs = None
+            theta_obs, x_obs = None, None
         # evaluate metrics
         for metric in self.metrics.values():
             metric(self.posterior, x_test, theta_test, x_obs=x_obs, theta_obs=theta_obs)
