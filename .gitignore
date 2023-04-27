@@ -140,3 +140,6 @@ dmypy.json
 # examples
 *toy
 *ltu-ili-data
+
+# swp
+*.swp

@@ -1,0 +1,9 @@
+in_dir: './toy'
+out_dir: './toy'
+
+xobs_file: 'xobs.npy'
+thetaobs_file: 'thetaobs.npy'
+
+x_file: 'x.npy'
+theta_file: 'theta.npy'
+num_simulations: 400

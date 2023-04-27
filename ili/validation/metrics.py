@@ -3,15 +3,16 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import tqdm
+from typing import List, Optional
 from abc import ABC, abstractmethod
 from pathlib import Path
-import tarp
 from typing import List
 
 try:
     import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
+    import tarp  # doesn't yet work with pydelfi/python 3.6
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
@@ -34,10 +35,12 @@ class BaseMetric(ABC):
 
     @abstractmethod
     def __call__(
-        self,
-        posterior: ModelClass,
+        self, 
+        posterior: ModelClass, 
         x: np.array,
-        theta: np.array
+        theta: np.array,
+        x_obs: Optional[np.array] = None,
+        theta_obs: Optional[np.array] = None
     ):
         """Given a posterior and test data, measure a validation metric and save to file.
 
@@ -45,15 +48,18 @@ class BaseMetric(ABC):
             posterior (ModelClass): trained sbi posterior inference engine
             x (np.array): array of test summaries
             y (np.array): array of test parameters
+            x_obs (np.array): tensor of observed summaries
+            theta_obs (np.array): tensor of true parameters for x_obs
         """
 
 
 class TARP(BaseMetric):
-    def __init__(self,
-                 num_samples: int,
-                 backend: str,
-                 output_path: Path
-                 ):
+    def __init__(
+        self,
+        num_samples: int,
+        backend: str,
+        output_path: Path
+    ):
         """Compute the TARP validation metric (https://arxiv.org/abs/2302.03026).
 
         Args:
@@ -63,20 +69,25 @@ class TARP(BaseMetric):
         super().__init__(backend, output_path)
         self.num_samples = num_samples
 
-    def __call__(self,
-                 posterior: NeuralPosterior,
-                 x: np.array,
-                 theta: np.array,
-                 references: str = "random",
-                 metric: str = "euclidean"
-                 ):
+    def __call__(
+        self,
+        posterior: ModelClass,
+        x: np.array,
+        theta: np.array,
+        x_obs: Optional[np.array] = None,
+        theta_obs: Optional[np.array] = None,
+        references: str = "random",
+        metric: str = "euclidean"
+    ):
         """Given a posterior and test data, compute the TARP metric and save to file.
         Reference: https://arxiv.org/abs/2302.03026
         
         Args:
-            posterior (NeuralPosterior): trained sbi posterior inference engine
-            x (torch.Tensor): tensor of test summaries
-            theta (torch.Tensor): tensor of test parameters
+            posterior (ModelClass): trained sbi posterior inference engine
+            x (np.array): tensor of test summaries
+            theta (np.array): tensor of test parameters
+            x_obs (np.array, optional): Not used
+            theta_obs (np.array, optional): Not used
             references (str, optional): how to select the reference points. Defaults to "random".
             metric (str, optional): which metric to use. Defaults to "euclidean".
         """
@@ -137,21 +148,26 @@ class PlotSinglePosterior(BaseMetric):
         self,
         posterior: ModelClass,
         x: np.array,
-        theta: np.array
+        theta: np.array,
+        x_obs: Optional[np.array] = None,
+        theta_obs: Optional[np.array] = None
     ):
         """Given a posterior and test data, plot the inferred posterior of a single test point and save to file.
 
         Args:
-            posterior (NeuralPosterior): trained sbi posterior inference engine
-            x (torch.Tensor): tensor of test summaries
-            theta (torch.Tensor): tensor of test parameters
+            posterior (ModelClass): trained sbi posterior inference engine
+            x (np.array): tensor of test summaries
+            theta (np.array): tensor of test parameters
+            x_obs (np.array, optional): tensor of observed summaries
+            theta_obs (np.array, optional): tensor of true parameters for x_obs
         """
         ndim = theta.shape[-1]
 
-        # choose a random test datapoint
-        ind = np.random.choice(len(x))
-        x_obs = x[ind]
-        theta_obs = theta[ind]
+        # choose a random test datapoint if not supplied
+        if x_obs is None or theta_obs is None:
+            ind = np.random.choice(len(x))
+            x_obs = x[ind]
+            theta_obs = theta[ind]
 
         # check for sbi
         if self.backend == 'sbi':
@@ -327,7 +343,9 @@ class PlotRankStatistics(BaseMetric):
         self,
         posterior: ModelClass,
         x: np.array,
-        theta: np.array
+        theta: np.array,
+        x_obs: Optional[np.array] = None,
+        theta_obs: Optional[np.array] = None
     ):
         """Plot rank histogram, posterior coverage, and true-pred diagnostics based on rank statistics
         inferred from posteriors. These are derived from sbi posterior metrics originally written by Chirag Modi.
@@ -337,6 +355,8 @@ class PlotRankStatistics(BaseMetric):
             posterior (ModelClass): trained sbi posterior inference engine
             x (np.array): tensor of test summaries
             y (np.array): tensor of test parameters
+            x_obs (None, optional): Not used
+            theta_obs (None, optional): Not used
         """
 
         trues, mus, stds, ranks = self._get_ranks(posterior, x, theta)

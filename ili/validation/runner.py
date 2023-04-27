@@ -4,7 +4,7 @@ import pickle
 import time
 import yaml
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from ili.dataloaders import BaseLoader
 from ili.validation.metrics import BaseMetric
 from ili.utils import load_from_config
@@ -14,7 +14,6 @@ from ili.utils import load_from_config
 from ili.validation.metrics import BaseMetric
 
 try:
-    import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
 except ModuleNotFoundError:
@@ -82,22 +81,32 @@ class ValidationRunner:
         Args:
             path (Path): path to stored .pkl of trained sbi posterior
         Returns:
-            posterior (NeuralPosterior): the posterior of interest
+            posterior (ModelClass): the posterior of interest
         """
         with open(path, "rb") as handle:
             return pickle.load(handle)
 
-    def __call__(self, loader):
+    def __call__(
+            self, 
+            loader
+    ):
         """Run your validation metrics and save them to file
 
         Args:
             loader (BaseLoader): data loader with stored summary-parameter pairs
+            or has ability to simulate summary-parameter pairs 
         """
         t0 = time.time()
+
         x_test = loader.get_all_data()
         theta_test = loader.get_all_parameters()
+        if hasattr(loader, 'simulate'):
+            x_obs = loader.get_obs_data()
+            theta_obs = loader.get_obs_parameters()
+        else:
+            theta_obs, x_obs = None, None
         # evaluate metrics
         for metric in self.metrics.values():
-            metric(self.posterior, x_test, theta_test)
+            metric(self.posterior, x_test, theta_test, x_obs=x_obs, theta_obs=theta_obs)
 
         logging.info(f"It took {time.time() - t0} seconds to run all metrics.")
