@@ -7,17 +7,21 @@ from ili.validation.runner import ValidationRunner
 
 _ = torch.manual_seed(0)
 
-def my_fun(theta):
-    return theta + 1.0 + torch.randn_like(theta) * 0.1
+# create toy 'simulations'
+def simulator(params):
+    x = np.arange(10)
+    y = params @ np.array([np.sin(x), x ** 2, x])
+    y += np.random.randn(len(params),len(x))
+    return y
 
-theta0 = torch.zeros(3,)
-x0 = my_fun(theta0)
-np.save('toy/thetaobs.npy', theta0)
-np.save('toy/xobs.npy', x0)
+theta0 = np.zeros((1,3))+0.5
+x0 = simulator(theta0)
+np.save('toy/thetaobs.npy', theta0[0])
+np.save('toy/xobs.npy', x0[0])
 
 # setup a dataloader which can simulate
 all_loader = SBISimulator.from_config("configs/data/multiround.yaml")
-all_loader.set_simulator(my_fun)
+all_loader.set_simulator(simulator)
 
 # train a model to infer x -> theta. save it as toy/posterior.pkl
 runner = SBIRunnerSequential.from_config("configs/infer/multiround_ensemble.yaml")

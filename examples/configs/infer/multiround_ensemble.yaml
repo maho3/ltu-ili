@@ -3,8 +3,8 @@ prior:
   module: 'sbi.utils'
   class: 'BoxUniform'
   args:
-    low: [-2,-2,-2]
-    high: [2,2,2]
+    low: [0,0,0]
+    high: [1,1,1]
 
 model:
   module: 'sbi.inference'

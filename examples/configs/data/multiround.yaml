@@ -6,4 +6,4 @@ thetaobs_file: 'thetaobs.npy'
 
 x_file: 'x.npy'
 theta_file: 'theta.npy'
-num_simulations: 500
+num_simulations: 400

@@ -172,7 +172,6 @@ class SBIRunnerSequential(SBIRunner):
         """
 
         t0 = time.time()
-        theta, x = loader.simulate(self.prior)
         x_obs= loader.get_obs_data()
         
         all_model = []
@@ -189,26 +188,26 @@ class SBIRunnerSequential(SBIRunner):
             logging.info(
                 f"Running round {rnd+1} of {self.num_rounds}"
             )
-            if rnd > 0:
-                theta, x = loader.simulate(proposal)
+            theta, x = loader.simulate(proposal)
             theta, x = torch.Tensor(theta), torch.Tensor(x)
             posteriors, val_loss = [], []
-            for n in range(len(self.neural_posteriors)):
+            for i in range(len(self.neural_posteriors)):
                 logging.info(
                     f"Training model {n+1} out of {len(self.neural_posteriors)} ensemble models"
                 )
                 if not isinstance(self.embedding_net, nn.Identity):
                     self.embedding_net.initalize_model(n_input=x.shape[-1])
-                density_estimator = all_model[n].append_simulations(theta, x, proposal).train(
+                density_estimator = all_model[i].append_simulations(theta, x, proposal).train(
                         **self.train_args,
                 )
-                posteriors.append(all_model[n].build_posterior(density_estimator))
-                val_loss.append(all_model[n].summary["best_validation_log_prob"][-1])
+                posteriors.append(all_model[i].build_posterior(density_estimator))
+                val_loss.append(all_model[i].summary["best_validation_log_prob"][-1])
             
             val_loss = torch.tensor([float(vl) for vl in val_loss])
             # Subtract maximum loss to improve numerical stability of exp (cancels in next line)
             val_loss = torch.exp(val_loss - val_loss.max())
             val_loss /= val_loss.sum()
+            
             posterior = NeuralPosteriorEnsemble(
                 posteriors=posteriors,
                 weights=val_loss
