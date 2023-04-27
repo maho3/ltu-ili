@@ -15,7 +15,7 @@ from ili.utils import load_class, load_from_config
 logging.basicConfig(level=logging.INFO)
 
 default_config = (
-    Path(__file__).parent.parent / "examples/configs/sample_ensemble.yaml"
+    Path(__file__).parent.parent / "examples/configs/sample_sbi.yaml"
 )
 
 

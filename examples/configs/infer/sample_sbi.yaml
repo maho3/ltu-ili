@@ -11,11 +11,11 @@ model:
   class: 'SNPE_C'
   neural_posteriors:
     - model: 'maf'
-      hidden_features: 100 
-      num_transforms: 2
+      hidden_features: 50 
+      num_transforms: 5
     - model: 'mdn'
       hidden_features: 50 
-      num_components: 4
+      num_components: 2
     
 train_args:
   training_batch_size: 32

@@ -1,3 +1,8 @@
+<<<<<<<< HEAD:examples/configs/val/quijote_sbi.yaml
+backend: 'sbi'
+
+========
+>>>>>>>> main:examples/configs/val/quijote.yaml
 posterior_path: 'toy/posterior.pkl'
 output_path: 'toy'
 
@@ -13,5 +18,5 @@ metrics:
     module: 'ili.validation.metrics'
     class: 'PlotRankStatistics'
     args:
-      num_samples: 1000
+      num_samples: 200
       labels: [ 'Omega_m', 'h', 'sigma_8' ]
