@@ -6,9 +6,12 @@ import numpy as np
 import json
 import pandas as pd
 from summarizer.dataset import Dataset
-from sbi.inference import simulate_for_sbi
-from torch import Tensor
 
+try:
+    from torch import Tensor
+    from sbi.inference import simulate_for_sbi
+except ModuleNotFoundError:
+    pass
 
 class BaseLoader(ABC):
     @abstractmethod
@@ -236,7 +239,7 @@ class SBISimulator(BaseLoader):
         """
         self.simulator = simulator
 
-    def simulate(self, proposal: Any) -> Tuple[Tensor, Tensor]:
+    def simulate(self, proposal: Any) -> Tuple[np.array, np.array]:
         """Run simulations give a proposal and returns ($\theta, x$) pairs obtained 
         from sampling the proposal and simulating.
 
@@ -244,7 +247,7 @@ class SBISimulator(BaseLoader):
             proposal (Any): Distribution to sample paramaters from
 
         Returns:
-            Tuple[Tensor, Tensor]: Sampled parameters $\theta$ and simulation-outputs $x$.
+            Tuple[np.array, np.array]: Sampled parameters $\theta$ and simulation-outputs $x$.
         """
         theta, x = simulate_for_sbi(self.simulator, proposal, num_simulations=self.num_simulations)
         theta, x = theta.detach().cpu().numpy(), x.detach().cpu().numpy()
@@ -255,7 +258,7 @@ class SBISimulator(BaseLoader):
             self.x = np.concatenate((self.x, x))
         np.save(self.theta_path, self.theta)
         np.save(self.x_path, self.x)
-        return Tensor(theta), Tensor(x)
+        return theta, x
 
     def get_obs_data(self) -> np.array:
         """Returns the observed summaries

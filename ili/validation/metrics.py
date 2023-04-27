@@ -6,13 +6,13 @@ import tqdm
 from typing import List, Optional
 from abc import ABC, abstractmethod
 from pathlib import Path
-import tarp
 from typing import List
 
 try:
     import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
+    import tarp  # doesn't yet work with pydelfi/python 3.6
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper

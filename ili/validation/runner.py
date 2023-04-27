@@ -14,8 +14,6 @@ from ili.utils import load_from_config
 from ili.validation.metrics import BaseMetric
 
 try:
-    import torch
-    from torch.distributions import Independent
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
 except ModuleNotFoundError:
@@ -83,22 +81,20 @@ class ValidationRunner:
         Args:
             path (Path): path to stored .pkl of trained sbi posterior
         Returns:
-            posterior (NeuralPosterior): the posterior of interest
+            posterior (ModelClass): the posterior of interest
         """
         with open(path, "rb") as handle:
             return pickle.load(handle)
 
     def __call__(
             self, 
-            loader, 
-            prior: Optional[Independent] = None, 
+            loader
     ):
         """Run your validation metrics and save them to file
 
         Args:
             loader (BaseLoader): data loader with stored summary-parameter pairs
             or has ability to simulate summary-parameter pairs 
-            prior (Independent): prior on the parameters
         """
         t0 = time.time()
 
