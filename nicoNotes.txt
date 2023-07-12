@@ -16,6 +16,6 @@ The correct one is the second one. Note that nbodykit in ili-summarizer dependen
 3) from ili.dataloaders import ... : did not work initially because almost all subdirectories in ltu-ili that are intended to be packages lack a proper __init__py file, including the parent ltu-ili/ili.
 As a side note, even if the "parent of parent" ltu-ili is not intended to be imported, we should avoid dashes in names.
 
-After some modifications, I was able to run example_inference_sbi.py.
+After some modifications, I was able to run example_inference_sbi.py and example_inference_sbi_multiround.py on the fly.
 
 4) In my current __init__ in ili/inference, I ignore the delfi related files. This should be handled for the future (eg __init__.py with conditions based on option sbi/delfi?)
