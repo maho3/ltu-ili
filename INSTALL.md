@@ -35,26 +35,28 @@ Here is a quick guide for getting started with the ltu-ili framework.
 After this, ltu-ili and all its required dependencies should be correctly set up in your virtual environment.
 ## Verify installation
 
+### Toy example
 You can verify that the installation is working by running the toy example
 ```bash
    cd ltu-ili/examples
    
    # sbi backend
-   python example_inference_sbi.py
+   python toy_sbi.py
    
    # pydelfi backend 
-   python example_inference_pydelfi.py
+   python toy_pydelfi.py
 ```
 After the script completes, you should be able to find some metric summaries and plots in the **examples/toy** folder.
 
+### Quijote example
 It's also possible to use pre-processed Quijote two point correlation function (TPCF) summaries and run example cosmological inference. Quijote TPCF summaries can be found in the LtU Open Storage Network data repository ([https://sdsc.osn.xsede.org/learningtheuniverse](https://sdsc.osn.xsede.org/learningtheuniverse)). See the download instructions in the #ili-wg Slack channel or ping Matt Ho if you need help getting this data. 
 
 Store this data in a subfolder called `ltu-ili-data/` and run the inference using
 ```bash
    cd examples
-   python quijote_inference_sbi.py 
+   python quijote_sbi.py 
 ```
 In case you want to use a mixture density network as density estimator instead of a normalizing flow, then execute
 ```bash
-   python quijote_inference_sbi.py --cfginfer configs/quijote_sbi_MDN.yaml
+   python quijote_sbi.py --cfginfer configs/quijote_sbi_MDN.yaml
 ```
