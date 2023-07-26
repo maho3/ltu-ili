@@ -18,7 +18,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    train_loader = SummarizerDatasetLoader.from_config(args.cfgdata, stage='train')
+    train_loader = SummarizerDatasetLoader.from_config(
+        args.cfgdata, stage='train')
     val_loader = SummarizerDatasetLoader.from_config(args.cfgdata, stage='val')
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl

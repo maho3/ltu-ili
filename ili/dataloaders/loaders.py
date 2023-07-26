@@ -8,10 +8,10 @@ import pandas as pd
 from summarizer.dataset import Dataset
 
 try:
-    from torch import Tensor
     from sbi.inference import simulate_for_sbi
 except ModuleNotFoundError:
     pass
+
 
 class BaseLoader(ABC):
     @abstractmethod
@@ -23,12 +23,12 @@ class BaseLoader(ABC):
         """
 
     @classmethod
-    def from_config(cls, config_path, stage=None) -> "BaseLoader":
+    def from_config(cls, config_path: Path, stage: str = None) -> "BaseLoader":
         """Create a data loader from a yaml config file
 
         Args:
-            config_path (Path): path to config file. Defaults to default_config.
-            stage (str, optional): Data split to load (e.g. train, val, or test)
+            config_path (Path): path to config file.
+            stage (str, optional): Data split to load (train, val, or test)
         Returns:
             BaseLoader: the sbi runner specified by the config file
         """
@@ -56,8 +56,8 @@ class StaticNumpyLoader(BaseLoader):
         self.theta = np.load(self.theta_path)
 
         if len(self.x) != len(self.theta):
-            raise Exception("Stored summaries and parameters are not of same length.")
-
+            raise Exception(
+                "Stored summaries and parameters are not of same length.")
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -95,7 +95,8 @@ class SummarizerDatasetLoader(BaseLoader):
         param_names: List[str],
     ):
         """Class to load netCF files of summaries and a csv of parameters
-        Basically a wrapper for ili-summarizer's Dataset, with added parameter loading
+        Basically a wrapper for ili-summarizer's Dataset, with added
+        functionality for loading parameters
 
 
         Args:
@@ -103,11 +104,13 @@ class SummarizerDatasetLoader(BaseLoader):
             data_dir (str): path to data directory
             summary_root_file (str): root of summary files
             param_file (str): parameter file name
-            train_test_split_file (str): file name where train, test, val split idx are stored
+            train_test_split_file (str): file name where train, test, val
+                split idx are stored
             param_names (List[str]): parameters to fit
 
         Raises:
-            Exception: won't work when summaries and parameters don't have same length
+            Exception: won't work when summaries and parameters don't have
+                same length
         """
         self.data_dir = Path(data_dir)
         self.nodes = self.get_nodes_for_stage(
@@ -124,7 +127,8 @@ class SummarizerDatasetLoader(BaseLoader):
             param_names=param_names,
         )
         if len(self.data) != len(self.theta):
-            raise Exception("Stored summaries and parameters are not of same length.")
+            raise Exception(
+                "Stored summaries and parameters are not of same length.")
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -150,12 +154,15 @@ class SummarizerDatasetLoader(BaseLoader):
         """
         return self.theta
 
-    def get_nodes_for_stage(self, stage: str, train_test_split_file: str) -> List[int]:
+    def get_nodes_for_stage(
+            self, stage: str,
+            train_test_split_file: str) -> List[int]:
         """Get nodes for a given stage (train, test or val)
 
         Args:
             stage (str): either train, test or val
-            train_test_split_file (str): file where node idx for each stage are stored
+            train_test_split_file (str): file where node idx for each stage
+                are stored
 
         Returns:
             List[int]: list of idx for stage
@@ -185,28 +192,29 @@ class SummarizerDatasetLoader(BaseLoader):
 
 class SBISimulator(BaseLoader):
     def __init__(
-            self, 
+            self,
             in_dir: str,
             xobs_file: str,
             thetaobs_file: str,
-            out_dir: str, 
-            x_file: str, 
+            out_dir: str,
+            x_file: str,
             theta_file: str,
             num_simulations: int,
-            simulator: Optional[callable]=None,
+            simulator: Optional[callable] = None,
     ):
-        """Class to run simulations of summaries and parameters and save results
-        to numpy files. Only works for sbi backend
+        """Class to run simulations of summaries and parameters and save
+        results to numpy files. Only works for sbi backend
 
         Args:
             in_dir (str): path to the location of stored data
             xobs_file (str): filename used for `observed' x values
-            thetaobs_file (str): filename used for `observed' parameters 
+            thetaobs_file (str): filename used for `observed' parameters
             out_dir (str): path to the location where to save  data
             x_file (str): filename to use to store summaries
             theta_file (str): filename to use to store parameters
             num_simulations (int): number of simulations to run at each call
-            simulator (callable): function taking the parameters as an argument and returns data
+            simulator (callable): function taking the parameters as an
+                argument and returns data
         """
         self.in_dir = Path(in_dir)
         self.xobs_path = self.in_dir / xobs_file
@@ -235,21 +243,24 @@ class SBISimulator(BaseLoader):
         """Set the simulator to be used in the inference
 
         Args:
-            simulator (callable): function taking the parameters as an argument and returns data
+            simulator (callable): function taking the parameters as an
+                argument and returns data
         """
         self.simulator = simulator
 
     def simulate(self, proposal: Any) -> Tuple[np.array, np.array]:
-        """Run simulations give a proposal and returns ($\theta, x$) pairs obtained 
-        from sampling the proposal and simulating.
+        """Run simulations give a proposal and returns ($\theta, x$) pairs
+        obtained from sampling the proposal and simulating.
 
         Args:
             proposal (Any): Distribution to sample paramaters from
 
         Returns:
-            Tuple[np.array, np.array]: Sampled parameters $\theta$ and simulation-outputs $x$.
+            Tuple[np.array, np.array]: Sampled parameters $\theta$ and
+                simulation-outputs $x$.
         """
-        theta, x = simulate_for_sbi(self.simulator, proposal, num_simulations=self.num_simulations)
+        theta, x = simulate_for_sbi(
+            self.simulator, proposal, num_simulations=self.num_simulations)
         theta, x = theta.detach().cpu().numpy(), x.detach().cpu().numpy()
         if self.theta is None or self.x is None:
             self.theta, self.x = theta, x
@@ -293,5 +304,7 @@ class SBISimulator(BaseLoader):
         return self.theta
 
 
+# TODO: Add loaders which load dynamically from many files, so
+# that everything doesn't need to be stored in memory
 
-# TODO: Add loaders which load dynamically from many files
+# TODO: Add loaders which load from initialization

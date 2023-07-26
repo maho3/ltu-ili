@@ -55,7 +55,7 @@ class DelfiRunner:
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
-        
+
         # currently, all arguments of pyDELFI priors must be np.arrays
         for k, v in config["prior"]["args"].items():
             config["prior"]["args"][k] = np.array(v)
@@ -64,7 +64,7 @@ class DelfiRunner:
             module_name=config["model"]["module"],
             class_name=config["model"]["class"],
         )
-        
+
         n_params = config['n_params']
         n_data = config['n_data']
         config_ndes = config["model"]["neural_posteriors"]
@@ -88,7 +88,6 @@ class DelfiRunner:
             output_path=output_path,
         )
 
-    
     def __call__(self, loader):
         """Train your posterior and save it to file
 
@@ -99,23 +98,24 @@ class DelfiRunner:
         t0 = time.time()
         x = loader.get_all_data()
         theta = loader.get_all_parameters()
-        
+
         posterior = self.inference_class(
             config_ndes=self.config_ndes,
-            data=x[0], 
-            prior=self.prior, 
+            data=x[0],
+            prior=self.prior,
             nde=self.neural_posteriors,
             results_dir=str(self.output_path)+'/',
             param_names=np.arange(self.n_params).astype(str),
             graph_restore_filename="graph_checkpoint",
-            restore_filename = "posterior.pkl",
+            restore_filename="posterior.pkl",
             restore=False, save=True,
             **self.engine_kwargs,
         )
         posterior.load_simulations(x, theta)
         posterior.train_ndes(**self.train_args)
-        
+
         posterior.save_engine('tempmeta.pkl')
         tf.reset_default_graph()
-        
-        logging.info(f"It took {time.time() - t0} seconds to train all models.")
+
+        logging.info(
+            f"It took {time.time() - t0} seconds to train all models.")

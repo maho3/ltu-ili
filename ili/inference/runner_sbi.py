@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import sbi
 from pathlib import Path
-from typing import Dict, Any, List, Callable, Optional
+from typing import Dict, List, Callable
 from torch.distributions import Independent
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
@@ -34,9 +34,11 @@ class SBIRunner:
 
         Args:
             prior (Independent): prior on the parameters
-            inference_class (NeuralInference): sbi inference class used to that train neural posteriors
-            neural_posteriors (List[Callable]): list of neural posteriors to train
-            embedding_net (nn.Module): neural network to compress high dimensional data into lower dimensionality
+            inference_class (NeuralInference): sbi inference class used to
+                train neural posteriors
+            neural_posteriors (List[Callable]): list of neural posteriors
+            embedding_net (nn.Module): neural network to compress high
+                dimensional data into lower dimensionality
             train_args (Dict): dictionary of hyperparameters for training
             output_path (Path): path where to store outputs
         """
@@ -48,7 +50,7 @@ class SBIRunner:
         self.train_args = train_args
         if 'num_round' in train_args:
             self.num_rounds = train_args['num_round']
-            self.train_args.pop('num_round') 
+            self.train_args.pop('num_round')
         else:
             self.num_rounds = 1
         self.output_path = output_path
@@ -56,11 +58,11 @@ class SBIRunner:
             self.output_path.mkdir(parents=True, exist_ok=True)
 
     @classmethod
-    def from_config(cls, config_path) -> "SBIRunner":
+    def from_config(cls, config_path: Path) -> "SBIRunner":
         """Create an sbi runner from a yaml config file
 
         Args:
-            config_path (Path, optional): path to config file. Defaults to default_config.
+            config_path (Path, optional): path to config file
         Returns:
             SBIRunner: the sbi runner specified by the config file
         """
@@ -93,7 +95,6 @@ class SBIRunner:
             output_path=output_path,
         )
 
-
     @classmethod
     def load_neural_posteriors(
         cls,
@@ -103,12 +104,14 @@ class SBIRunner:
         """Load the inference model
 
         Args:
-            embedding_net (nn.Module): neural network to compress high dimensional data
-            posterior_config(List[Dict]): list with configurations for each neural posterior
+            embedding_net (nn.Module): neural network to compress data
+            posterior_config(List[Dict]): list with configurations for each
+                neural posterior
             model in the ensemble
 
         Returns:
-            List[Callable]: list of neural posterior models with forward methods
+            List[Callable]: list of neural posterior models with forward
+                methods
         """
         neural_posteriors = []
         for model_args in posteriors_config:
@@ -120,12 +123,11 @@ class SBIRunner:
             )
         return neural_posteriors
 
-
     def __call__(self, loader):
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): data loader with stored summary-parameter pairs
+            loader (BaseLoader): dataloader with stored summary-parameter pairs
         """
 
         t0 = time.time()
@@ -134,7 +136,8 @@ class SBIRunner:
         posteriors, val_loss = [], []
         for n, posterior in enumerate(self.neural_posteriors):
             logging.info(
-                f"Training model {n+1} out of {len(self.neural_posteriors)} ensemble models"
+                f"Training model {n+1} out of {len(self.neural_posteriors)}"
+                "ensemble models"
             )
             model = self.inference_class(
                 prior=self.prior,
@@ -155,32 +158,35 @@ class SBIRunner:
         )
         with open(self.output_path / "posterior.pkl", "wb") as handle:
             pickle.dump(posterior, handle)
-        logging.info(f"It took {time.time() - t0} seconds to train all models.")
+        logging.info(
+            f"It took {time.time() - t0} seconds to train all models.")
 
 
 class SBIRunnerSequential(SBIRunner):
     """
-    Class to train posterior inference models using the sbi package with multiple rounds
+    Class to train posterior inference models using the sbi package with
+    multiple rounds
     """
 
     def __call__(self, loader):
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): data loader with ability to simulate summary-parameter pairs
+            loader (BaseLoader): data loader with ability to simulate 
+                summary-parameter pairs
 
         """
 
         t0 = time.time()
-        x_obs= loader.get_obs_data()
-        
+        x_obs = loader.get_obs_data()
+
         all_model = []
         for n, posterior in enumerate(self.neural_posteriors):
             all_model.append(self.inference_class(
-                    prior=self.prior,
-                    density_estimator=posterior,
-                    device=self.device,
-                ))
+                prior=self.prior,
+                density_estimator=posterior,
+                device=self.device,
+            ))
         proposal = self.prior
 
         for rnd in range(self.num_rounds):
@@ -193,32 +199,38 @@ class SBIRunnerSequential(SBIRunner):
             posteriors, val_loss = [], []
             for i in range(len(self.neural_posteriors)):
                 logging.info(
-                    f"Training model {n+1} out of {len(self.neural_posteriors)} ensemble models"
+                    f"Training model {n+1} out of "
+                    f"{len(self.neural_posteriors)} ensemble models"
                 )
                 if not isinstance(self.embedding_net, nn.Identity):
                     self.embedding_net.initalize_model(n_input=x.shape[-1])
-                density_estimator = all_model[i].append_simulations(theta, x, proposal).train(
+                density_estimator = \
+                    all_model[i].append_simulations(theta, x, proposal).train(
                         **self.train_args,
-                )
-                posteriors.append(all_model[i].build_posterior(density_estimator))
-                val_loss.append(all_model[i].summary["best_validation_log_prob"][-1])
-            
+                    )
+                posteriors.append(
+                    all_model[i].build_posterior(density_estimator))
+                val_loss.append(
+                    all_model[i].summary["best_validation_log_prob"][-1])
+
             val_loss = torch.tensor([float(vl) for vl in val_loss])
-            # Subtract maximum loss to improve numerical stability of exp (cancels in next line)
+            # Subtract maximum loss to improve numerical stability of exp
+            # (cancels in next line)
             val_loss = torch.exp(val_loss - val_loss.max())
             val_loss /= val_loss.sum()
-            
+
             posterior = NeuralPosteriorEnsemble(
                 posteriors=posteriors,
                 weights=val_loss
             )
-            
-            with open(self.output_path / f"posterior_{rnd}.pkl", "wb") as handle:
-                pickle.dump(posterior, handle)
+
+            with open(self.output_path / f"posterior_{rnd}.pkl", "wb") as f:
+                pickle.dump(posterior, f)
             proposal = posterior.set_default_x(x_obs)
-            logging.info(f"It took {time.time() - t1} seconds to complete round {rnd+1}.")
+            logging.info(
+                f"It took {time.time()-t1} seconds to complete round {rnd+1}.")
 
-        with open(self.output_path / "posterior.pkl", "wb") as handle:
-            pickle.dump(posterior, handle)
-        logging.info(f"It took {time.time() - t0} seconds to train all models.")
-
+        with open(self.output_path / "posterior.pkl", "wb") as f:
+            pickle.dump(posterior, f)
+        logging.info(
+            f"It took {time.time() - t0} seconds to train all models.")

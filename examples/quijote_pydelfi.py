@@ -12,17 +12,18 @@ if __name__ == '__main__':
         description="Run pyDELFI inference for quijote test data.")
     parser.add_argument("--cfgdata", type=str,
                         default="configs/data/quijote_TPCF.yaml",
-                        help="Configuration file to use for dataloaders")
+                        help="Configuration file for dataloaders")
     parser.add_argument("--cfginfer", type=str,
                         default="configs/infer/quijote_pydelfi_CMAF.yaml",
-                        help="Configuration file to use for inference training")
+                        help="Configuration file for inference training")
     parser.add_argument("--cfgval", type=str,
                         default="configs/val/quijote_pydelfi.yaml",
-                        help="Configuration file to use for inference validation")
+                        help="Configuration file for inference validation")
 
     args = parser.parse_args()
 
-    train_loader = SummarizerDatasetLoader.from_config(args.cfgdata, stage='train')
+    train_loader = SummarizerDatasetLoader.from_config(
+        args.cfgdata, stage='train')
     val_loader = SummarizerDatasetLoader.from_config(args.cfgdata, stage='val')
     print(train_loader.get_all_data()[0].shape)
 
@@ -30,6 +31,7 @@ if __name__ == '__main__':
     runner = DelfiRunner.from_config(args.cfginfer)
     runner(loader=train_loader)
 
-    # use the trained posterior model to predict on a single example from the test set
+    # use the trained posterior model to predict on a single example from
+    # the test set
     val_runner = ValidationRunner.from_config(args.cfgval)
     val_runner(loader=val_loader)

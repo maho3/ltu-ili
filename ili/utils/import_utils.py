@@ -21,10 +21,12 @@ def load_class(
 
 
 def load_from_config(config: Dict) -> Any:
-    """General tool to load and initialize any class from any module with given configuration.
+    """General tool to load and initialize any class from any module with
+    given configuration.
 
     Args:
-        config (Dict): dictionary with the configuration for the object of the form
+        config (Dict): dictionary with the configuration for the object of the
+            form:
             {'module': Module name,
              'class': Class name,
              'args': Dictionary of initialization arguments}
@@ -32,5 +34,3 @@ def load_from_config(config: Dict) -> Any:
         object (Any): the object of choice
     """
     return load_class(config['module'], config['class'])(**config["args"])
-
-

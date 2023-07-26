@@ -1,17 +1,11 @@
-import importlib
 import logging
 import pickle
 import time
 import yaml
 from pathlib import Path
-from typing import List, Optional
-from ili.dataloaders import BaseLoader
+from typing import List
 from ili.validation.metrics import BaseMetric
 from ili.utils import load_from_config
-
-from ili.dataloaders import BaseLoader
-from ili.utils import load_from_config
-from ili.validation.metrics import BaseMetric
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
@@ -35,8 +29,10 @@ class ValidationRunner:
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
-            metrics (List[BaseMetric]): list of metric objects to measure on the test set
-            backend (str): the backend for the posterior models (either 'sbi' or 'pydelfi')
+            metrics (List[BaseMetric]): list of metric objects to measure on
+                the test set
+            backend (str): the backend for the posterior models
+                ('sbi' or 'pydelfi')
             output_path (Path): path where to store outputs
         """
         self.posterior = posterior
@@ -51,9 +47,11 @@ class ValidationRunner:
         """Create a validation runner from a yaml config file
 
         Args:
-            config_path (Path, optional): path to config file. Defaults to default_config.
+            config_path (Path, optional): path to config file.
+                Defaults to default_config.
         Returns:
-            ValidationRunner: the validation runner specified by the config file
+            ValidationRunner: the validation runner specified by the config
+                file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
@@ -73,7 +71,12 @@ class ValidationRunner:
             value["args"]["output_path"] = output_path
             metrics[key] = load_from_config(value)
 
-        return cls(backend=backend, posterior=posterior, metrics=metrics, output_path=output_path)
+        return cls(
+            backend=backend,
+            posterior=posterior,
+            metrics=metrics,
+            output_path=output_path
+        )
 
     @classmethod
     def load_posterior_sbi(cls, path):
@@ -87,14 +90,14 @@ class ValidationRunner:
             return pickle.load(handle)
 
     def __call__(
-            self, 
+            self,
             loader
     ):
         """Run your validation metrics and save them to file
 
         Args:
-            loader (BaseLoader): data loader with stored summary-parameter pairs
-            or has ability to simulate summary-parameter pairs 
+            loader (BaseLoader): data loader with stored summary-parameter
+                pairs or has ability to simulate summary-parameter pairs
         """
         t0 = time.time()
 
@@ -107,6 +110,7 @@ class ValidationRunner:
             theta_obs, x_obs = None, None
         # evaluate metrics
         for metric in self.metrics.values():
-            metric(self.posterior, x_test, theta_test, x_obs=x_obs, theta_obs=theta_obs)
+            metric(self.posterior, x_test, theta_test,
+                   x_obs=x_obs, theta_obs=theta_obs)
 
         logging.info(f"It took {time.time() - t0} seconds to run all metrics.")

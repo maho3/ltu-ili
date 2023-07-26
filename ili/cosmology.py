@@ -1,7 +1,8 @@
 """
 Cosmology module for the ILI project.
 
-This version is based on CAMB. Eventually, we could add support for other Boltzmann solvers such as CLASS
+This version is based on CAMB. Eventually, we could add support for other
+Boltzmann solvers such as CLASS
 """
 
 import camb

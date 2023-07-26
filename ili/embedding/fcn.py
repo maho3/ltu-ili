@@ -25,12 +25,13 @@ class FCN(nn.Module):
         """ Initialize network once the input dimensionality is known
 
         Args:
-            n_input (int): input dimensionality 
+            n_input (int): input dimensionality
         """
         model = []
         n_left = n_input
         for layer in range(self.n_layers):
-            model.append((f"mlp{layer}", nn.Linear(n_left, self.n_hidden[layer])))
+            model.append((f"mlp{layer}", nn.Linear(
+                n_left, self.n_hidden[layer])))
             model.append((f"act{layer}", self.act_fn))
             n_left = self.n_hidden[layer]
         model.append((f"mlp{layer+1}", nn.Linear(n_left, self.n_summary)))
