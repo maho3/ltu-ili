@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl
     runner = SBIRunnerSequential.from_config(
-        "configs/infer/toy_multiround.yaml")
+        "configs/infer/toy_sbi_multiround.yaml")
     runner(loader=all_loader)
 
     # use the trained posterior model to predict on a single example from

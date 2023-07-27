@@ -17,14 +17,14 @@ Here is a quick guide for getting started with the ltu-ili framework.
     # install with sbi backend
     conda create -n ili-sbi python=3.10
     conda activate ili-sbi
-    pip install -e ltu-ili[sbi]
+    pip install -e "ltu-ili[sbi]"
     ```
     and below is the equivalent for the pydelfi backend:
     ```bash
     # install with pydelfi backend
     conda create -n ili-pydelfi python=3.6
     conda activate ili-pydelfi
-    pip install -e ltu-ili[pydelfi]
+    pip install -e "ltu-ili[pydelfi]"
     ```
 
 3. Next, manually install the [ili-summarizer](https://github.com/florpi/ili-summarizer) dependency into the same environment with:

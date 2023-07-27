@@ -137,7 +137,7 @@ class SBIRunner:
         for n, posterior in enumerate(self.neural_posteriors):
             logging.info(
                 f"Training model {n+1} out of {len(self.neural_posteriors)}"
-                "ensemble models"
+                " ensemble models"
             )
             model = self.inference_class(
                 prior=self.prior,
