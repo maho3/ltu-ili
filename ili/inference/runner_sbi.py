@@ -81,6 +81,7 @@ class SBIRunner:
         )
         neural_posteriors = cls.load_neural_posteriors(
             embedding_net=embedding_net,
+            class_name=config["model"]["class"],
             posteriors_config=config["model"]["neural_posteriors"],
         )
         train_args = config["train_args"]
@@ -99,12 +100,14 @@ class SBIRunner:
     def load_neural_posteriors(
         cls,
         embedding_net: nn.Module,
+        class_name: str,
         posteriors_config: List[Dict],
     ) -> List[Callable]:
         """Load the inference model
 
         Args:
             embedding_net (nn.Module): neural network to compress data
+            class_name (str): name of the inference class
             posterior_config(List[Dict]): list with configurations for each
                 neural posterior
             model in the ensemble
@@ -113,10 +116,19 @@ class SBIRunner:
             List[Callable]: list of neural posterior models with forward
                 methods
         """
+        # determine the correct model type
+        if "SNPE" in class_name:
+            nn = sbi.utils.posterior_nn
+        elif "SNLE" in class_name:
+            nn = sbi.utils.likelihood_nn
+        elif "SNRE" in class_name:
+            nn = sbi.utils.classifier_nn
+
+        # initialize neural posteriors
         neural_posteriors = []
         for model_args in posteriors_config:
             neural_posteriors.append(
-                sbi.utils.posterior_nn(
+                nn(
                     embedding_net=embedding_net,
                     **model_args,
                 )
