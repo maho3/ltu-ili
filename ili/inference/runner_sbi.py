@@ -105,9 +105,7 @@ class SBIRunner:
 
         Args:
             embedding_net (nn.Module): neural network to compress data
-            posterior_config(List[Dict]): list with configurations for each
-                neural posterior
-            model in the ensemble
+            posterior_config(List[Dict]): list with configurations for each neural posterior model in the ensemble
 
         Returns:
             List[Callable]: list of neural posterior models with forward

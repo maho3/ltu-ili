@@ -37,8 +37,7 @@ class DelfiWrapper(Delfi):
         sbi.utils.posterior_ensemble sampler
 
         Args:
-            sample_shape (tuple[int]): size of samples to generate with each
-                MCMC walker, after burn-in
+            sample_shape (tuple[int]): size of samples to generate with each MCMC walker, after burn-in
             x (np.array): data vector to condition the inference on
             show_progress_bars (bool): whether to print sampling progress
             burn_in_chain (int): length of burn-in for MCMC sampling
@@ -87,8 +86,7 @@ class DelfiWrapper(Delfi):
         """Load the inference model
 
         Args:
-            config_ndes(List[Dict]): list with configurations for each neural
-                posterior model in the ensemble
+            config_ndes(List[Dict]): list with configurations for each neural posterior model in the ensemble
             n_params (int): dimensionality of each parameter vector
             n_data (int): dimensionality of each datapoint
 

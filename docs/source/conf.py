@@ -11,7 +11,13 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../ili/'))
+
+autodoc_mock_imports = ["torch", "pydelfi", "tensorflow", "sbi", "camb"]
+
+sys.path.insert(0, os.path.dirname(os.getcwd()))
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(1, os.path.abspath('../../'))
+sys.path.insert(0, os.path.abspath('../../ili/'))
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -24,12 +30,20 @@ author = 'Simons Collaboration on Learning the Universe'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    "myst_parser",
+    'myst_parser',
+    'sphinx.ext.autodoc',
+    'sphinx.ext.doctest',
+    'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.ifconfig',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.githubpages',
+    'sphinx.ext.imgconverter',
     "sphinx.ext.duration",
     "sphinx.ext.doctest",
-    "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.intersphinx",
 ]
 
 ntersphinx_mapping = {
@@ -40,6 +54,8 @@ ntersphinx_mapping = {
 intersphinx_disabled_domains = ["std"]
 
 templates_path = ["_templates"]
+#source_suffix = '.md'
+master_doc='index'
 
 # -- Options for EPUB output
 epub_show_urls = "footnote"
@@ -59,4 +75,4 @@ html_theme = "sphinx_rtd_theme"
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+#html_static_path = ["_static"]

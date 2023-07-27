@@ -161,8 +161,7 @@ class SummarizerDatasetLoader(BaseLoader):
 
         Args:
             stage (str): either train, test or val
-            train_test_split_file (str): file where node idx for each stage
-                are stored
+            train_test_split_file (str): file where node idx for each stage are stored
 
         Returns:
             List[int]: list of idx for stage

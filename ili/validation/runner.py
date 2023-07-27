@@ -81,6 +81,7 @@ class ValidationRunner:
     @classmethod
     def load_posterior_sbi(cls, path):
         """Load a pretrained sbi posterior from file
+
         Args:
             path (Path): path to stored .pkl of trained sbi posterior
         Returns:
