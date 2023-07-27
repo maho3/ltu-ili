@@ -1,1 +1,14 @@
+numpy
+scipy
+matplotlib
+pandas
+pathlib
+pyaml
+seaborn
+emcee
+camb
+sphinx>=5.0
 myst-parser
+sphinx-rtd-theme
+tqdm
+sphinx_mdinclude
