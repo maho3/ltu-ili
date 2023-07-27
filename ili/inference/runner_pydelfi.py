@@ -1,7 +1,6 @@
 import yaml
 import time
 import logging
-import pickle
 import numpy as np
 import tensorflow as tf
 from pathlib import Path
@@ -26,9 +25,12 @@ class DelfiRunner:
 
         Args:
             prior (Independent): prior on the parameters
-            inference_class (Any): pydelfi inference class used to that train neural posteriors
-            neural_posteriors (List[Callable]): list of neural posteriors to train
-            engine_kwargs (Dict): dictionary of additional keywords for Delfi engine
+            inference_class (Any): pydelfi inference class used to that train
+                neural posteriors
+            neural_posteriors (List[Callable]): list of neural posteriors to
+                train
+            engine_kwargs (Dict): dictionary of additional keywords for Delfi
+                engine
             train_args (Dict): dictionary of hyperparameters for training
             output_path (Path): path where to store outputs
         """
@@ -49,7 +51,8 @@ class DelfiRunner:
         """Create an sbi runner from a yaml config file
 
         Args:
-            config_path (Path, optional): path to config file. Defaults to default_config.
+            config_path (Path, optional): path to config file.
+                Defaults to default_config.
         Returns:
             DelfiRunner: the pyDELFI runner specified by the config file
         """
@@ -92,7 +95,7 @@ class DelfiRunner:
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): data loader with stored summary-parameter pairs
+            loader (BaseLoader): dataloader with stored summary-parameter pairs
         """
 
         t0 = time.time()
