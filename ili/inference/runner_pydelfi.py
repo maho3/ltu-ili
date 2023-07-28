@@ -1,3 +1,7 @@
+"""
+Module to train posterior inference models using the pyDELFI package
+"""
+
 import yaml
 import time
 import logging
@@ -9,6 +13,20 @@ from ili.utils import load_class, load_from_config
 
 
 class DelfiRunner:
+    """Class to train posterior inference models using the pyDELFI package
+
+    Args:
+        prior (Independent): prior on the parameters
+        inference_class (Any): pydelfi inference class used to that train
+            neural posteriors
+        neural_posteriors (List[Callable]): list of neural posteriors to
+            train
+        engine_kwargs (Dict): dictionary of additional keywords for Delfi
+            engine
+        train_args (Dict): dictionary of hyperparameters for training
+        output_path (Path): path where to store outputs
+    """
+
     def __init__(
         self,
         n_params: int,
@@ -21,19 +39,6 @@ class DelfiRunner:
         train_args: Dict,
         output_path: Path,
     ):
-        """Class to train posterior inference models using the pyDELFI package
-
-        Args:
-            prior (Independent): prior on the parameters
-            inference_class (Any): pydelfi inference class used to that train
-                neural posteriors
-            neural_posteriors (List[Callable]): list of neural posteriors to
-                train
-            engine_kwargs (Dict): dictionary of additional keywords for Delfi
-                engine
-            train_args (Dict): dictionary of hyperparameters for training
-            output_path (Path): path where to store outputs
-        """
         self.n_params = n_params
         self.n_data = n_data
         self.config_ndes = config_ndes

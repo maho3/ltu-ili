@@ -1,3 +1,7 @@
+"""
+Metrics for evaluating the performance of inference engines.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -18,18 +22,20 @@ except ModuleNotFoundError:
 
 
 class BaseMetric(ABC):
+    """Base class for calculating validation metrics.
+
+    Args:
+        backend (str): the backend for the posterior models
+            ('sbi' or 'pydelfi')
+        output_path (Path): path where to store outputs
+    """
+
     def __init__(
         self,
         backend: str,
         output_path: Path
     ):
-        """Base class for calculating validation metrics
-
-        Args:
-            backend (str): the backend for the posterior models
-                ('sbi' or 'pydelfi')
-            output_path (Path): path where to store outputs
-        """
+        """Construct the base metric."""
         self.backend = backend
         self.output_path = output_path
 
@@ -43,7 +49,7 @@ class BaseMetric(ABC):
         theta_obs: Optional[np.array] = None
     ):
         """Given a posterior and test data, measure a validation metric and
-        save to file.
+        save a plot to file.
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
@@ -52,22 +58,26 @@ class BaseMetric(ABC):
             x_obs (np.array): tensor of observed summaries
             theta_obs (np.array): tensor of true parameters for x_obs
         """
+        pass
 
 
 class TARP(BaseMetric):
+    """Compute the TARP validation metric.
+
+    Reference: https://arxiv.org/abs/2302.03026.
+
+    Args:
+        num_samples (int): number of posterior samples
+        output_path (Path): path where to store outputs
+    """
+
     def __init__(
         self,
         num_samples: int,
         backend: str,
         output_path: Path
     ):
-        """Compute the TARP validation metric
-        Reference: https://arxiv.org/abs/2302.03026.
-
-        Args:
-            num_samples (int): number of posterior samples
-            output_path (Path): path where to store outputs
-        """
+        """Construct the TARP metric."""
         super().__init__(backend, output_path)
         self.num_samples = num_samples
 
@@ -82,7 +92,7 @@ class TARP(BaseMetric):
         metric: str = "euclidean"
     ):
         """Given a posterior and test data, compute the TARP metric and save
-        to file.
+        a plot to file.
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
@@ -95,7 +105,6 @@ class TARP(BaseMetric):
             metric (str, optional): which metric to use.
                 Defaults to "euclidean".
         """
-
         posterior_samples = np.zeros(
             (self.num_samples, x.shape[0], theta.shape[1]))
         # sample from the posterior
@@ -131,6 +140,17 @@ class TARP(BaseMetric):
 
 
 class PlotSinglePosterior(BaseMetric):
+    """Perform inference sampling on a single test point and plot the
+    posterior in a corner plot.
+
+    Args:
+        num_samples (int): number of posterior samples
+        labels (List[str]): list of parameter names
+        backend (str): the backend for the posterior models
+            ('sbi' or 'pydelfi')
+        output_path (Path): path where to store outputs
+    """
+
     def __init__(
         self,
         num_samples: int,
@@ -138,16 +158,7 @@ class PlotSinglePosterior(BaseMetric):
         backend: str,
         output_path: Path,
     ):
-        """Perform inference sampling on a single test point and plot the
-        posterior in a corner plot.
-
-        Args:
-            num_samples (int): number of posterior samples
-            labels (List[str]): list of parameter names
-            backend (str): the backend for the posterior models
-                ('sbi' or 'pydelfi')
-            output_path (Path): path where to store outputs
-        """
+        """Construct the plot posterior metric."""
         super().__init__(backend, output_path)
         self.num_samples = num_samples
         self.labels = labels
@@ -212,6 +223,18 @@ class PlotSinglePosterior(BaseMetric):
 
 
 class PlotRankStatistics(BaseMetric):
+    """Plot rank histogram, posterior coverage, and true-pred diagnostics
+    based on rank statistics inferred from posteriors. These are derived
+    from sbi posterior metrics originally written by Chirag Modi.
+
+    Reference: https://github.com/modichirag/contrastive_cosmology/blob/main/src/sbiplots.py
+
+    Args:
+        num_samples (int): number of posterior samples
+        labels (List[str]): list of parameter names
+        output_path (Path): path where to store outputs
+    """
+
     def __init__(
         self,
         num_samples: int,
@@ -219,16 +242,6 @@ class PlotRankStatistics(BaseMetric):
         backend: str,
         output_path: Path,
     ):  # TODO: Clean these functions up
-        """Plot rank histogram, posterior coverage, and true-pred diagnostics
-        based on rank statistics inferred from posteriors. These are derived
-        from sbi posterior metrics originally written by Chirag Modi.
-        Reference: https://github.com/modichirag/contrastive_cosmology/blob/main/src/sbiplots.py
-
-        Args:
-            num_samples (int): number of posterior samples
-            labels (List[str]): list of parameter names
-            output_path (Path): path where to store outputs
-        """
         super().__init__(backend, output_path)
         self.num_samples = num_samples
         self.labels = labels
@@ -364,10 +377,8 @@ class PlotRankStatistics(BaseMetric):
         x_obs: Optional[np.array] = None,
         theta_obs: Optional[np.array] = None
     ):
-        """Plot rank histogram, posterior coverage, and true-pred diagnostics
-        based on rank statistics inferred from posteriors. These are derived
-        from sbi posterior metrics originally written by Chirag Modi.
-        Reference: https://github.com/modichirag/contrastive_cosmology/blob/main/src/sbiplots.py
+        """Given a posterior and test data, plot the rank statistics evaluated
+        on the test set and save to file.
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine

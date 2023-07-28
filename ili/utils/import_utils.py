@@ -1,3 +1,6 @@
+"""
+Module with tools for importing classes from modules and initializing them
+"""
 
 import importlib
 from typing import Dict, Any
@@ -21,10 +24,13 @@ def load_class(
 
 
 def load_from_config(config: Dict) -> Any:
-    """General tool to load and initialize any class from any module with given configuration.
+    """General tool to load and initialize any class from any module with
+    given configuration.
 
     Args:
-        config (Dict): dictionary with the configuration for the object of the form: {'module': Module name, 'class': Class name, 'args': Dictionary of initialization arguments}
+        config (Dict): dictionary with the configuration for the object of the
+            form: {'module': Module name, 'class': Class name,
+            'args': Dictionary of initialization arguments}
 
     Returns:
         object (Any): the object of choice

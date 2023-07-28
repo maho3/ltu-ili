@@ -1,3 +1,7 @@
+"""
+Module to run validation metrics on posterior inference models
+"""
+
 import logging
 import pickle
 import time
@@ -18,6 +22,17 @@ logging.basicConfig(level=logging.INFO)
 
 
 class ValidationRunner:
+    """Class to measure validation metrics of posterior inference models
+
+    Args:
+        posterior (ModelClass): trained sbi posterior inference engine
+        metrics (List[BaseMetric]): list of metric objects to measure on
+            the test set
+        backend (str): the backend for the posterior models
+            ('sbi' or 'pydelfi')
+        output_path (Path): path where to store outputs
+    """
+
     def __init__(
         self,
         posterior: ModelClass,
@@ -25,16 +40,6 @@ class ValidationRunner:
         backend: str,
         output_path: Path,
     ):
-        """Class to measure validation metrics of posterior inference models
-
-        Args:
-            posterior (ModelClass): trained sbi posterior inference engine
-            metrics (List[BaseMetric]): list of metric objects to measure on
-                the test set
-            backend (str): the backend for the posterior models
-                ('sbi' or 'pydelfi')
-            output_path (Path): path where to store outputs
-        """
         self.posterior = posterior
         self.metrics = metrics
         self.backend = backend
@@ -48,7 +53,6 @@ class ValidationRunner:
 
         Args:
             config_path (Path, optional): path to config file.
-                Defaults to default_config.
         Returns:
             ValidationRunner: the validation runner specified by the config
                 file

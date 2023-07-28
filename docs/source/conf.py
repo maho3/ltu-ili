@@ -43,7 +43,8 @@ extensions = [
     'sphinx.ext.imgconverter',
     "sphinx.ext.duration",
     "sphinx.ext.doctest",
-    "sphinx.ext.autosummary",
+    #     "sphinx.ext.autosummary"
+    "sphinx.ext.napoleon",
 ]
 
 ntersphinx_mapping = {

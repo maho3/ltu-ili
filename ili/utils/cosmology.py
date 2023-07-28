@@ -6,32 +6,38 @@ Boltzmann solvers such as CLASS
 """
 
 import camb
+from typing import Tuple
+import numpy as np
 
 
 class Cosmology(object):
+    """Cosmology object to provide CAMB cosmology object and matter power
+    spectrum.
+
+    Args:
+        h (float): Hubble constant.
+        ombh2 (float): Baryon density.
+        omch2 (float): CDM density.
+        omk (float): Curvature density.
+        tau (float): Optical depth.
+        ns (float): Scalar spectral index.
+        As (float): Scalar amplitude.
+        w (float): Dark energy equation of state.
+        wa (float): Dark energy equation of state time derivative.
+    """
+
     def __init__(
         self,
-        h=0.67,
-        ombh2=0.022,
-        omch2=0.12,
-        omk=0.0,
-        tau=0.06,
-        ns=0.96,
-        As=2.1e-9,
-        w=-1.0,
-        wa=0.0,
-    ):
-        """
-        :param h: Hubble constant
-        :param ombh2: Baryon density
-        :param omch2: CDM density
-        :param omk: Curvature density
-        :param tau: Optical depth
-        :param ns: Scalar spectral index
-        :param As: Scalar amplitude
-        :param w: Dark energy equation of state
-        :param wa: Dark energy equation of state time derivative
-        """
+        h: float = 0.67,
+        ombh2: float = 0.022,
+        omch2: float = 0.12,
+        omk: float = 0.0,
+        tau: float = 0.06,
+        ns: float = 0.96,
+        As: float = 2.1e-9,
+        w: float = -1.0,
+        wa: float = 0.0,
+    ) -> None:
         self.h = h
         self.ombh2 = ombh2
         self.omch2 = omch2
@@ -60,12 +66,23 @@ class Cosmology(object):
         results = camb.get_results(pars)
         return results
 
-    def get_matter_power_spectrum(self, minkh=1e-4, maxkh=1, npoints=200):
+    def get_matter_power_spectrum(
+        self,
+        minkh: float = 1e-4,
+        maxkh: float = 1,
+        npoints: int = 200
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
-        :param minkh: Minimum k
-        :param maxkh: Maximum k
-        :param npoints: Number of points
-        :return: k, z and Matter power spectrum
+        Get the matter power spectrum.
+
+        Args:
+            minkh (float): Minimum k.
+            maxkh (float): Maximum k.
+            npoints (int): Number of points.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray, np.ndarray]: k, z and Matter power
+                spectrum.
         """
         results = self.get_cosmology()
         kh, z, pk = results.get_matter_power_spectrum(

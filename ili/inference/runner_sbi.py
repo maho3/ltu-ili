@@ -1,3 +1,8 @@
+"""
+Module to train posterior inference models using the sbi package
+"""
+
+
 import yaml
 import time
 import logging
@@ -20,6 +25,19 @@ default_config = (
 
 
 class SBIRunner:
+    """Class to train posterior inference models using the sbi package
+
+    Args:
+        prior (Independent): prior on the parameters
+        inference_class (NeuralInference): sbi inference class used to
+            train neural posteriors
+        neural_posteriors (List[Callable]): list of neural posteriors
+        embedding_net (nn.Module): neural network to compress high
+            dimensional data into lower dimensionality
+        train_args (Dict): dictionary of hyperparameters for training
+        output_path (Path): path where to store outputs
+    """
+
     def __init__(
         self,
         prior: Independent,
@@ -30,18 +48,6 @@ class SBIRunner:
         train_args: Dict,
         output_path: Path,
     ):
-        """Class to train posterior inference models using the sbi package
-
-        Args:
-            prior (Independent): prior on the parameters
-            inference_class (NeuralInference): sbi inference class used to
-                train neural posteriors
-            neural_posteriors (List[Callable]): list of neural posteriors
-            embedding_net (nn.Module): neural network to compress high
-                dimensional data into lower dimensionality
-            train_args (Dict): dictionary of hyperparameters for training
-            output_path (Path): path where to store outputs
-        """
         self.prior = prior
         self.inference_class = inference_class
         self.neural_posteriors = neural_posteriors
@@ -170,11 +176,9 @@ class SBIRunnerSequential(SBIRunner):
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): data loader with ability to simulate 
+            loader (BaseLoader): data loader with ability to simulate
                 summary-parameter pairs
-
         """
-
         t0 = time.time()
         x_obs = loader.get_obs_data()
 

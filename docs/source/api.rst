@@ -1,5 +1,5 @@
 .. toctree::
-    :maxdepth: 6
+    :maxdepth: 3
 
 API
 ===
@@ -11,6 +11,7 @@ Dataloaders
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __call__
 
 
 Embedding
@@ -20,6 +21,7 @@ Embedding
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __call__
 
 
 Inference
@@ -32,6 +34,7 @@ pydelfi_wrappers
    :members:
    :undoc-members:
    :show-inheritance:
+   :special-members: __call__
 
 
 runner_pydelfi
@@ -40,7 +43,7 @@ runner_pydelfi
 .. automodule:: inference.runner_pydelfi
    :members:
    :undoc-members:
-   :show-inheritance:
+   :special-members: __call__
 
 
 runner_sbi
@@ -49,7 +52,7 @@ runner_sbi
 .. automodule:: inference.runner_sbi
    :members:
    :undoc-members:
-   :show-inheritance:
+   :special-members: __call__
 
 
 Utils
@@ -58,13 +61,13 @@ Utils
 .. automodule:: utils.cosmology
    :members:
    :undoc-members:
-   :show-inheritance:
+   :special-members: __call__
 
 
 .. automodule:: utils.import_utils
    :members:
    :undoc-members:
-   :show-inheritance:
+   :special-members: __call__
 
 
 Validation
@@ -73,12 +76,12 @@ Validation
 .. automodule:: validation.metrics
    :members:
    :undoc-members:
-   :show-inheritance:
+   :special-members: __call__
 
 
 .. automodule:: validation.runner
    :members:
    :undoc-members:
-   :show-inheritance:
+   :special-members: __call__
 
 
