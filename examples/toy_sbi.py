@@ -28,7 +28,7 @@ if __name__ == '__main__':
     all_loader = StaticNumpyLoader.from_config("configs/data/toy.yaml")
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl
-    runner = SBIRunner.from_config("configs/infer/toy_sbi.yaml")
+    runner = SBIRunner.from_config("configs/infer/toy_sbi_SNLE.yaml")
     runner(loader=all_loader)
 
     # use the trained posterior model to predict on a single example from

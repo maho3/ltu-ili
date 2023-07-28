@@ -29,6 +29,7 @@ class SBIRunner:
         embedding_net: nn.Module,
         train_args: Dict,
         output_path: Path,
+        posterior_args: Dict = {},
     ):
         """Class to train posterior inference models using the sbi package
 
@@ -41,6 +42,8 @@ class SBIRunner:
                 dimensional data into lower dimensionality
             train_args (Dict): dictionary of hyperparameters for training
             output_path (Path): path where to store outputs
+            posterior_args (Dict, optional): dictionary of hyperparameters for
+                posterior inference. Defaults to {}.
         """
         self.prior = prior
         self.inference_class = inference_class
@@ -56,6 +59,7 @@ class SBIRunner:
         self.output_path = output_path
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
+        self.posterior_args = posterior_args
 
     @classmethod
     def from_config(cls, config_path: Path) -> "SBIRunner":
@@ -86,6 +90,10 @@ class SBIRunner:
         )
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
+        if "posterior_args" in config:
+            posterior_args = config["posterior_args"]
+        else:
+            posterior_args = {}
         return cls(
             prior=prior,
             inference_class=inference_class,
@@ -94,6 +102,7 @@ class SBIRunner:
             embedding_net=embedding_net,
             train_args=train_args,
             output_path=output_path,
+            posterior_args=posterior_args,
         )
 
     @classmethod
@@ -159,10 +168,10 @@ class SBIRunner:
             model = model.append_simulations(theta, x)
             if not isinstance(self.embedding_net, nn.Identity):
                 self.embedding_net.initalize_model(n_input=x.shape[-1])
-            density_estimator = model.train(
+            _ = model.train(
                 **self.train_args,
             )
-            posteriors.append(model.build_posterior(density_estimator))
+            posteriors.append(model.build_posterior(**self.posterior_args))
             val_loss += model.summary["best_validation_log_prob"]
         posterior = NeuralPosteriorEnsemble(
             posteriors=posteriors,

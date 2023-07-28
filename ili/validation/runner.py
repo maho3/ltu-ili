@@ -110,6 +110,7 @@ class ValidationRunner:
             theta_obs, x_obs = None, None
         # evaluate metrics
         for metric in self.metrics.values():
+            logging.info(f"Running metric {metric.__class__.__name__}.")
             metric(self.posterior, x_test, theta_test,
                    x_obs=x_obs, theta_obs=theta_obs)
 
