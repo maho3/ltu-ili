@@ -12,3 +12,4 @@ myst-parser
 sphinx-rtd-theme
 tqdm
 sphinx_mdinclude
+git+https://github.com/florpi/ili-summarizer

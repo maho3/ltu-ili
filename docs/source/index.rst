@@ -7,7 +7,7 @@ Welcome to LtU ILI's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    Home <self>
@@ -15,7 +15,7 @@ Welcome to LtU ILI's documentation!
    contribute
    api
 
-.. include:: README.md
+.. include:: ../../README.md
    :parser: myst_parser.sphinx_
 
 
