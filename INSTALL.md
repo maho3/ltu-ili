@@ -1,4 +1,5 @@
-# Installation Instructions
+Installation
+============
 
 There are two backends to ltu-ili which provide access to different inference engines, namely [sbi](https://github.com/mackelab/sbi) and [pydelfi](https://github.com/justinalsing/pydelfi). This codebase provides simultaneous support for both of these backends, but they cannot (yet!) be installed at the same time due to dependency issues. As a result, we recommend you install them separately in two distinct virtual environments.
 

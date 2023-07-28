@@ -357,8 +357,9 @@ class PlotRankStatistics(BaseMetric):
             axs[j].errorbar(trues[:, j], mus[:, j], stds[:, j],
                             fmt="none", elinewidth=0.5, alpha=0.5)
 
-            axs[j].plot(*(2 * [np.linspace(min(trues[:, j]), max(trues[:, j]), 10)]),
-                        'k--', ms=0.2, lw=0.5)
+            axs[j].plot(
+                *(2 * [np.linspace(min(trues[:, j]), max(trues[:, j]), 10)]),
+                'k--', ms=0.2, lw=0.5)
             axs[j].grid(which='both', lw=0.5)
             axs[j].set(adjustable='box', aspect='equal')
             axs[j].set_title(self.labels[j], fontsize=12)
