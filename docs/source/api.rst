@@ -16,14 +16,13 @@ Dataloaders
 Inference
 ---------
 
-pydelfi_wrappers
-~~~~~~~~~~~~~~~~
+runner_sbi
+~~~~~~~~~~
 
-.. automodule:: inference.pydelfi_wrappers 
+.. automodule:: inference.runner_sbi
    :members:
    :undoc-members:
    :special-members: __call__
-
 
 runner_pydelfi
 ~~~~~~~~~~~~~~
@@ -33,11 +32,10 @@ runner_pydelfi
    :undoc-members:
    :special-members: __call__
 
+pydelfi_wrappers
+~~~~~~~~~~~~~~~~
 
-runner_sbi
-~~~~~~~~~~
-
-.. automodule:: inference.runner_sbi
+.. automodule:: inference.pydelfi_wrappers 
    :members:
    :undoc-members:
    :special-members: __call__
