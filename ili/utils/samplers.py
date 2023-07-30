@@ -34,9 +34,9 @@ class EmceeSampler(BaseSampler):
                           for i in range(self.num_chains)])
 
         def log_target(t, x):
-            return self.posterior.potential(
+            return np.array(self.posterior.potential(
                 t.astype(np.float32), x.astype(np.float32)
-            )
+            ))
         self.sampler = emcee.EnsembleSampler(
             self.num_chains,
             theta0.shape[-1],
