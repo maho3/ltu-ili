@@ -21,10 +21,5 @@ train_args:
   training_batch_size: 32
   learning_rate: 0.001
 
-posterior_args:
-  mcmc_method: 'slice_np_vectorized'
-  mcmc_parameters:
-    num_chains: 8
-
 device: 'cpu'
 output_path: './toy'

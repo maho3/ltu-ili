@@ -69,6 +69,7 @@ class ValidationRunner:
         for key, value in config["metrics"].items():
             value["args"]["backend"] = backend
             value["args"]["output_path"] = output_path
+            value["args"]["labels"] = config["labels"]
             metrics[key] = load_from_config(value)
 
         return cls(
