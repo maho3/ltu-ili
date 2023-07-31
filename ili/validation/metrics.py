@@ -130,7 +130,7 @@ class PlotSinglePosterior(BaseMetric):
         num_samples: int,
         labels: List[str],
         backend: str,
-        output_path: Path,
+        output_path: Path
     ):
         """Perform inference sampling on a single test point and plot the posterior in a corner plot.
 

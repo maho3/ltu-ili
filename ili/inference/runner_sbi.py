@@ -29,11 +29,17 @@ class SBIRunner:
         embedding_net: nn.Module,
         train_args: Dict,
         output_path: Path,
+        proposal: Independent = None
     ):
         """Class to train posterior inference models using the sbi package
 
         Args:
             prior (Independent): prior on the parameters
+            proposal (Independent): proposal distribution from which existing simulations were
+            run, for single round inference only. By default, sbi will set proposal = prior unless a proposal is specified. 
+            While it is possible to choose a prior on parameters different than the proposal for SNPE, 
+            we advise to leave proposal to None unless for test purposes.
+            
             inference_class (NeuralInference): sbi inference class used to that train neural posteriors
             neural_posteriors (List[Callable]): list of neural posteriors to train
             embedding_net (nn.Module): neural network to compress high dimensional data into lower dimensionality
@@ -41,6 +47,7 @@ class SBIRunner:
             output_path (Path): path where to store outputs
         """
         self.prior = prior
+        self.proposal = proposal
         self.inference_class = inference_class
         self.neural_posteriors = neural_posteriors
         self.device = device
@@ -67,6 +74,10 @@ class SBIRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
         prior = load_from_config(config["prior"])
+        if "proposal" in config:
+            proposal = load_from_config(config["proposal"])
+        else:
+            proposal = None
         if "embedding_net" in config:
             embedding_net = load_from_config(
                 config=config["embedding_net"],
@@ -85,6 +96,7 @@ class SBIRunner:
         output_path = Path(config["output_path"])
         return cls(
             prior=prior,
+            proposal = proposal,
             inference_class=inference_class,
             neural_posteriors=neural_posteriors,
             device=config["device"],
@@ -121,7 +133,7 @@ class SBIRunner:
         return neural_posteriors
 
 
-    def __call__(self, loader):
+    def __call__(self, loader, seed = None):
         """Train your posterior and save it to file
 
         Args:
@@ -133,6 +145,8 @@ class SBIRunner:
         theta = torch.Tensor(loader.get_all_parameters())
         posteriors, val_loss = [], []
         for n, posterior in enumerate(self.neural_posteriors):
+            if seed is not None:
+                torch.manual_seed(seed)
             logging.info(
                 f"Training model {n+1} out of {len(self.neural_posteriors)} ensemble models"
             )
@@ -141,7 +155,7 @@ class SBIRunner:
                 density_estimator=posterior,
                 device=self.device,
             )
-            model = model.append_simulations(theta, x)
+            model = model.append_simulations(theta, x, proposal = self.proposal)
             if not isinstance(self.embedding_net, nn.Identity):
                 self.embedding_net.initalize_model(n_input=x.shape[-1])
             density_estimator = model.train(
