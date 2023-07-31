@@ -133,7 +133,7 @@ class SBIRunner:
         return neural_posteriors
 
 
-    def __call__(self, loader):
+    def __call__(self, loader, seed = None):
         """Train your posterior and save it to file
 
         Args:
@@ -145,6 +145,8 @@ class SBIRunner:
         theta = torch.Tensor(loader.get_all_parameters())
         posteriors, val_loss = [], []
         for n, posterior in enumerate(self.neural_posteriors):
+            if seed is not None:
+                torch.manual_seed(seed)
             logging.info(
                 f"Training model {n+1} out of {len(self.neural_posteriors)} ensemble models"
             )
