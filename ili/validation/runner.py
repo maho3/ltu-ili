@@ -111,6 +111,7 @@ class ValidationRunner:
         if hasattr(loader, 'simulate'):
             x_obs = loader.get_obs_data()
             theta_obs = loader.get_obs_parameters()
+
         # evaluate metrics
         for metric in self.metrics.values():
             metric(self.posterior, x_test, theta_test,
