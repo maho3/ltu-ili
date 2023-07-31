@@ -156,7 +156,7 @@ class PlotSinglePosterior(BaseMetric):
         num_samples: int,
         labels: List[str],
         backend: str,
-        output_path: Path,
+        output_path: Path
     ):
         """Construct the plot posterior metric."""
         super().__init__(backend, output_path)
