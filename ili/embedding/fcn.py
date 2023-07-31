@@ -5,7 +5,10 @@ Module providing compression networks for summary statistics.
 from typing import List
 import torch
 import torch.nn as nn
-from typing import OrderedDict
+try:
+    from typing import OrderedDict
+except:
+    pass
 
 
 class FCN(nn.Module):
