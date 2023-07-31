@@ -43,7 +43,6 @@ class SBIRunner:
             than the proposal for SNPE, we advise to leave proposal to None
             unless for test purposes.
     """
-
     def __init__(
         self,
         prior: Independent,
@@ -53,7 +52,7 @@ class SBIRunner:
         embedding_net: nn.Module,
         train_args: Dict,
         output_path: Path,
-        proposal: Independent = None
+        proposal: Independent = None,
     ):
         self.prior = prior
         self.proposal = proposal
@@ -62,9 +61,9 @@ class SBIRunner:
         self.device = device
         self.embedding_net = embedding_net
         self.train_args = train_args
-        if 'num_round' in train_args:
-            self.num_rounds = train_args['num_round']
-            self.train_args.pop('num_round')
+        if "num_round" in train_args:
+            self.num_rounds = train_args["num_round"]
+            self.train_args.pop("num_round")
         else:
             self.num_rounds = 1
         self.output_path = output_path
@@ -83,6 +82,10 @@ class SBIRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
         prior = load_from_config(config["prior"])
+        if "proposal" in config:
+            proposal = load_from_config(config["proposal"])
+        else:
+            proposal = None
         if "proposal" in config:
             proposal = load_from_config(config["proposal"])
         else:
@@ -154,6 +157,8 @@ class SBIRunner:
         theta = torch.Tensor(loader.get_all_parameters())
         posteriors, val_loss = [], []
         for n, posterior in enumerate(self.neural_posteriors):
+            if seed is not None:
+                torch.manual_seed(seed)
             if seed is not None:
                 torch.manual_seed(seed)
             logging.info(

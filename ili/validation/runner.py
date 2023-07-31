@@ -95,8 +95,10 @@ class ValidationRunner:
             return pickle.load(handle)
 
     def __call__(
-            self,
-            loader
+            self, 
+            loader,
+            x_obs = None,
+            theta_obs = None
     ):
         """Run your validation metrics and save them to file
 
@@ -111,9 +113,7 @@ class ValidationRunner:
         if hasattr(loader, 'simulate'):
             x_obs = loader.get_obs_data()
             theta_obs = loader.get_obs_parameters()
-        else:
-            theta_obs, x_obs = None, None
-
+        
         # evaluate metrics
         for metric in self.metrics.values():
             metric(self.posterior, x_test, theta_test,
