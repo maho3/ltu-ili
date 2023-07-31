@@ -1,6 +1,9 @@
-from .cosmology import Cosmology
 from .dataloaders import *
-from .embedding import *
 from .inference import *
 from .utils import *
 from .validation import *
+
+try:
+    from .embedding import *
+except ModuleNotFoundError:
+    pass

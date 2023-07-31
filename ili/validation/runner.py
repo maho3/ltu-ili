@@ -105,9 +105,9 @@ class ValidationRunner:
         if hasattr(loader, 'simulate'):
             x_obs = loader.get_obs_data()
             theta_obs = loader.get_obs_parameters()
-        #elif x_obs is not None and theta_obs is not None:
-        #else:
-        #    theta_obs, x_obs = None, None
+:
+:x
+:x
         # evaluate metrics
         for metric in self.metrics.values():
             metric(self.posterior, x_test, theta_test, x_obs=x_obs, theta_obs=theta_obs)
