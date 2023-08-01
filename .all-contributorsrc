@@ -66,6 +66,16 @@
         "code",
         "example"
       ]
+    },
+    {
+      "login": "Pablo-Lemos",
+      "name": "Pablo Lemos",
+      "avatar_url": "https://avatars.githubusercontent.com/u/38078898?v=4",
+      "profile": "https://pablo-lemos.github.io",
+      "contributions": [
+        "design",
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
