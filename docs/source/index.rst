@@ -6,18 +6,18 @@
 Welcome to LtU ILI's documentation!
 ===================================
 
-.. include:: README.md
-   :parser: myst_parser.sphinx_
-
-.. include:: INSTALL.md
-   :parser: myst_parser.sphinx_
-
-.. include:: CONTRIBUTING.md
-   :parser: myst_parser.sphinx_
-
 .. toctree::
+   :maxdepth: 1
+   :caption: Contents:
+
    Home <self>
+   install
+   contribute
+   data
    api
+
+.. include:: ../../README.md
+   :parser: myst_parser.sphinx_
 
 
 Indices and tables

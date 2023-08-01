@@ -24,8 +24,8 @@ def get_split(
     n_val = int(np.floor(percent_val * n_nodes))
     n_test = int(np.floor(percent_test * n_nodes))
     val_idx = idx[:n_val]
-    test_idx = idx[n_val : n_val + n_test]
-    train_idx = list(idx[n_val + n_test :])
+    test_idx = idx[n_val: n_val + n_test]
+    train_idx = list(idx[n_val + n_test:])
     return {
         "train": train_idx,
         "val": val_idx,
@@ -35,7 +35,8 @@ def get_split(
 
 if __name__ == "__main__":
     random.seed(10)
-    filename = "/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/ili_summaries/summaries/quijote_train_test_val.json"
+    filename = ("/n/holystore01/LABS/itc_lab/Users/ccuestalazaro/ili_summaries"
+                "/summaries/quijote_train_test_val.json")
     n_nodes = 2000
     percent_test = 0.1
     percent_val = 0.1

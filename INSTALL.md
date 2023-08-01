@@ -1,4 +1,5 @@
-# Installation Instructions
+Installation
+============
 
 There are two backends to ltu-ili which provide access to different inference engines, namely [sbi](https://github.com/mackelab/sbi) and [pydelfi](https://github.com/justinalsing/pydelfi). This codebase provides simultaneous support for both of these backends, but they cannot (yet!) be installed at the same time due to dependency issues. As a result, we recommend you install them separately in two distinct virtual environments.
 
@@ -17,14 +18,14 @@ Here is a quick guide for getting started with the ltu-ili framework.
     # install with sbi backend
     conda create -n ili-sbi python=3.10
     conda activate ili-sbi
-    pip install -e ltu-ili[sbi]
+    pip install -e "ltu-ili[sbi]"
     ```
     and below is the equivalent for the pydelfi backend:
     ```bash
     # install with pydelfi backend
     conda create -n ili-pydelfi python=3.6
     conda activate ili-pydelfi
-    pip install -e ltu-ili[pydelfi]
+    pip install -e "ltu-ili[pydelfi]"
     ```
 
 3. Next, manually install the [ili-summarizer](https://github.com/florpi/ili-summarizer) dependency into the same environment with:
@@ -35,26 +36,33 @@ Here is a quick guide for getting started with the ltu-ili framework.
 After this, ltu-ili and all its required dependencies should be correctly set up in your virtual environment.
 ## Verify installation
 
+### Toy example
 You can verify that the installation is working by running the toy example
 ```bash
    cd ltu-ili/examples
    
    # sbi backend
-   python example_inference_sbi.py
+   python toy_sbi.py
    
    # pydelfi backend 
-   python example_inference_pydelfi.py
+   python toy_pydelfi.py
 ```
 After the script completes, you should be able to find some metric summaries and plots in the **examples/toy** folder.
 
-It's also possible to use pre-processed Quijote two point correlation function (TPCF) summaries and run example cosmological inference. Quijote TPCF summaries can be found in the LtU Open Storage Network data repository ([https://sdsc.osn.xsede.org/learningtheuniverse](https://sdsc.osn.xsede.org/learningtheuniverse)). See the download instructions in the #ili-wg Slack channel or ping Matt Ho if you need help getting this data. 
+### Quijote example
+It's also possible to use pre-processed Quijote two point correlation function (TPCF) summaries and run example cosmological inference. Quijote TPCF summaries can be found in the LtU Open Storage Network data repository ([https://sdsc.osn.xsede.org/learningtheuniverse](https://sdsc.osn.xsede.org/learningtheuniverse)). See the data access instructions in [DATA.md](DATA.md) for more details.
 
 Store this data in a subfolder called `ltu-ili-data/` and run the inference using
 ```bash
    cd examples
-   python quijote_inference_sbi.py 
+   
+   # sbi backend
+   python quijote_sbi.py 
+
+   # pydelfi backend
+   python3 quijote_pydelfi.py
 ```
 In case you want to use a mixture density network as density estimator instead of a normalizing flow, then execute
 ```bash
-   python quijote_inference_sbi.py --cfginfer configs/quijote_sbi_MDN.yaml
+   python quijote_sbi.py --cfginfer configs/infer/quijote_sbi_MDN.yaml
 ```

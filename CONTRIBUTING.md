@@ -1,4 +1,5 @@
-# Contributing to LtU-ILI
+Contributing
+============
 
 This is a brief guide to contributing to the LtU-ILI code. 
 
