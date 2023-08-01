@@ -45,6 +45,17 @@
         "doc",
         "review"
       ]
+    },
+    {
+      "login": "CompiledAtBirth",
+      "name": "Nicolas Chartier",
+      "avatar_url": "https://avatars.githubusercontent.com/u/47000650?v=4",
+      "profile": "https://github.com/CompiledAtBirth",
+      "contributions": [
+        "example",
+        "doc",
+        "research"
+      ]
     }
   ],
   "contributorsPerLine": 7,

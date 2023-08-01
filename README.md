@@ -1,6 +1,6 @@
 ltu-ili
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-3-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-4-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 =======
 
@@ -31,6 +31,7 @@ If you have comments, questions, or feedback, please [write us an issue](https:/
       <td align="center" valign="top" width="14.28%"><a href="https://maho3.github.io/"><img src="https://avatars.githubusercontent.com/u/11132524?v=4?s=100" width="100px;" alt="Matt Ho"/><br /><sub><b>Matt Ho</b></sub></a><br /><a href="https://github.com/maho3/ltu-ili/commits?author=maho3" title="Code">💻</a> <a href="#design-maho3" title="Design">🎨</a> <a href="#example-maho3" title="Examples">💡</a> <a href="https://github.com/maho3/ltu-ili/commits?author=maho3" title="Documentation">📖</a> <a href="https://github.com/maho3/ltu-ili/pulls?q=is%3Apr+reviewed-by%3Amaho3" title="Reviewed Pull Requests">👀</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/florpi"><img src="https://avatars.githubusercontent.com/u/15879020?v=4?s=100" width="100px;" alt="Carolina Cuesta"/><br /><sub><b>Carolina Cuesta</b></sub></a><br /><a href="https://github.com/maho3/ltu-ili/commits?author=florpi" title="Code">💻</a> <a href="#design-florpi" title="Design">🎨</a> <a href="#example-florpi" title="Examples">💡</a> <a href="https://github.com/maho3/ltu-ili/commits?author=florpi" title="Documentation">📖</a> <a href="https://github.com/maho3/ltu-ili/pulls?q=is%3Apr+reviewed-by%3Aflorpi" title="Reviewed Pull Requests">👀</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://deaglanbartlett.github.io/"><img src="https://avatars.githubusercontent.com/u/47668431?v=4?s=100" width="100px;" alt="Deaglan Bartlett"/><br /><sub><b>Deaglan Bartlett</b></sub></a><br /><a href="https://github.com/maho3/ltu-ili/commits?author=DeaglanBartlett" title="Code">💻</a> <a href="#design-DeaglanBartlett" title="Design">🎨</a> <a href="#example-DeaglanBartlett" title="Examples">💡</a> <a href="https://github.com/maho3/ltu-ili/commits?author=DeaglanBartlett" title="Documentation">📖</a> <a href="https://github.com/maho3/ltu-ili/pulls?q=is%3Apr+reviewed-by%3ADeaglanBartlett" title="Reviewed Pull Requests">👀</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/CompiledAtBirth"><img src="https://avatars.githubusercontent.com/u/47000650?v=4?s=100" width="100px;" alt="Nicolas Chartier"/><br /><sub><b>Nicolas Chartier</b></sub></a><br /><a href="#example-CompiledAtBirth" title="Examples">💡</a> <a href="https://github.com/maho3/ltu-ili/commits?author=CompiledAtBirth" title="Documentation">📖</a> <a href="#research-CompiledAtBirth" title="Research">🔬</a></td>
     </tr>
   </tbody>
 </table>
