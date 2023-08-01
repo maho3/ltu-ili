@@ -55,9 +55,14 @@ It's also possible to use pre-processed Quijote two point correlation function (
 Store this data in a subfolder called `ltu-ili-data/` and run the inference using
 ```bash
    cd examples
+   
+   # sbi backend
    python quijote_sbi.py 
+
+  # pydelfi backend
+  python3 quijote_pydelfi.py
 ```
 In case you want to use a mixture density network as density estimator instead of a normalizing flow, then execute
 ```bash
-   python quijote_sbi.py --cfginfer configs/quijote_sbi_MDN.yaml
+   python quijote_sbi.py --cfginfer configs/infer/quijote_sbi_MDN.yaml
 ```
