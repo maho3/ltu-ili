@@ -1,0 +1,27 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitType": "docs",
+  "commitConvention": "angular",
+  "contributors": [
+    {
+      "login": "DeaglanBartlett",
+      "name": "Deaglan Bartlett",
+      "avatar_url": "https://avatars.githubusercontent.com/u/47668431?v=4",
+      "profile": "https://deaglanbartlett.github.io/",
+      "contributions": [
+        "design",
+        "doc"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "skipCi": true,
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "projectName": "ltu-ili",
+  "projectOwner": "maho3"
+}
