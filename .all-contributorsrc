@@ -76,6 +76,16 @@
         "design",
         "code"
       ]
+    },
+    {
+      "login": "modichirag",
+      "name": "Chirag Modi",
+      "avatar_url": "https://avatars.githubusercontent.com/u/13356766?v=4",
+      "profile": "https://modichirag.github.io/",
+      "contributions": [
+        "design",
+        "code"
+      ]
     }
   ],
   "contributorsPerLine": 7,
