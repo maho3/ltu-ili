@@ -1,3 +1,8 @@
+"""
+Module providing wrappers for the pydelfi package to conform with the sbi
+interface.
+"""
+
 import pickle
 import emcee
 import numpy as np
@@ -7,20 +12,21 @@ from ili.utils import load_class, load_from_config
 
 
 class DelfiWrapper(Delfi):
+    """Wrapper for pydelfi.delfi.Delfi which adds some necessary
+    functionality and interface.
+
+    Args:
+        config_ndes (List[Dict]): list with configurations for each neural
+        posterior model in the ensemble
+
+    Other parameters are passed as input to the pydelfi.delfi.Delfi class
+    """
+
     def __init__(
         self,
         config_ndes: List[Dict],
         **kwargs
     ):
-        """Wrapper for pydelfi.delfi.Delfi which adds some necessary
-        functionality and interface.
-
-        Args:
-            config_ndes (List[Dict]): list with configurations for each neural
-            posterior model in the ensemble
-
-        Other parameters are passed as input to the pydelfi.delfi.Delfi class
-        """
         super().__init__(**kwargs)
         kwargs.pop('nde')
         self.kwargs = kwargs

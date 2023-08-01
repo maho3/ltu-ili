@@ -1,3 +1,7 @@
+"""
+Module to run validation metrics on posterior inference models
+"""
+
 import logging
 import pickle
 import time
@@ -18,6 +22,17 @@ logging.basicConfig(level=logging.INFO)
 
 
 class ValidationRunner:
+    """Class to measure validation metrics of posterior inference models
+
+    Args:
+        posterior (ModelClass): trained sbi posterior inference engine
+        metrics (List[BaseMetric]): list of metric objects to measure on
+            the test set
+        backend (str): the backend for the posterior models
+            ('sbi' or 'pydelfi')
+        output_path (Path): path where to store outputs
+    """
+
     def __init__(
         self,
         posterior: ModelClass,
@@ -25,16 +40,6 @@ class ValidationRunner:
         backend: str,
         output_path: Path,
     ):
-        """Class to measure validation metrics of posterior inference models
-
-        Args:
-            posterior (ModelClass): trained sbi posterior inference engine
-            metrics (List[BaseMetric]): list of metric objects to measure on
-                the test set
-            backend (str): the backend for the posterior models
-                ('sbi' or 'pydelfi')
-            output_path (Path): path where to store outputs
-        """
         self.posterior = posterior
         self.metrics = metrics
         self.backend = backend
@@ -48,7 +53,6 @@ class ValidationRunner:
 
         Args:
             config_path (Path, optional): path to config file.
-                Defaults to default_config.
         Returns:
             ValidationRunner: the validation runner specified by the config
                 file
@@ -82,6 +86,7 @@ class ValidationRunner:
     @classmethod
     def load_posterior_sbi(cls, path):
         """Load a pretrained sbi posterior from file
+
         Args:
             path (Path): path to stored .pkl of trained sbi posterior
         Returns:
@@ -91,8 +96,10 @@ class ValidationRunner:
             return pickle.load(handle)
 
     def __call__(
-            self,
-            loader
+            self, 
+            loader,
+            x_obs = None,
+            theta_obs = None
     ):
         """Run your validation metrics and save them to file
 
@@ -107,8 +114,7 @@ class ValidationRunner:
         if hasattr(loader, 'simulate'):
             x_obs = loader.get_obs_data()
             theta_obs = loader.get_obs_parameters()
-        else:
-            theta_obs, x_obs = None, None
+        
         # evaluate metrics
         for metric in self.metrics.values():
             logging.info(f"Running metric {metric.__class__.__name__}.")

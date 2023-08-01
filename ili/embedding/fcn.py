@@ -1,20 +1,28 @@
+"""
+Module providing compression networks for summary statistics.
+"""
+
 from typing import List
 import torch
 import torch.nn as nn
-from typing import OrderedDict
+try:
+    from typing import OrderedDict
+except:
+    pass
 
 
 class FCN(nn.Module):
+    """Fully connected network to compress a summary statistsic.
+
+    Args:
+        n_summary (int): dimensionality of the summary
+        n_hidden (List[int]): number of hidden units per layer
+        act_fn (str):  activation function to use
+    """
+
     def __init__(
         self, n_summary: int, n_hidden: List[int], act_fn: str = "SiLU"
     ):
-        """fully connected network to compress a summary statistsic
-
-        Args:
-            n_summary (int): dimensionality of the summary
-            n_hidden (List[int]): number of hidden units per layer
-            act_fn (str):  activation function to use
-        """
         super().__init__()
         self.act_fn = getattr(nn, act_fn)()
         self.n_layers = len(n_hidden)
@@ -22,7 +30,7 @@ class FCN(nn.Module):
         self.n_summary = n_summary
 
     def initalize_model(self, n_input: int):
-        """ Initialize network once the input dimensionality is known
+        """Initialize network once the input dimensionality is known.
 
         Args:
             n_input (int): input dimensionality
@@ -38,7 +46,7 @@ class FCN(nn.Module):
         self.mlp = nn.Sequential(OrderedDict(model))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """forward pass of the neural network, returns the summary
+        """Forward pass of the neural network, returns the compressed summary.
 
         Args:
             x (torch.Tensor): input

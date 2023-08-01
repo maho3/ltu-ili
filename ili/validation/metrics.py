@@ -1,3 +1,7 @@
+"""
+Metrics for evaluating the performance of inference engines.
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -21,19 +25,21 @@ except ModuleNotFoundError:
 
 
 class BaseMetric(ABC):
+    """Base class for calculating validation metrics.
+
+    Args:
+        backend (str): the backend for the posterior models
+            ('sbi' or 'pydelfi')
+        output_path (Path): path where to store outputs
+    """
+
     def __init__(
         self,
         backend: str,
         output_path: Path,
         labels: Optional[List[str]] = None,
     ):
-        """Base class for calculating validation metrics
-
-        Args:
-            backend (str): the backend for the posterior models
-                ('sbi' or 'pydelfi')
-            output_path (Path): path where to store outputs
-        """
+        """Construct the base metric."""
         self.backend = backend
         self.output_path = output_path
         self.labels = labels
@@ -261,8 +267,9 @@ class PlotRankStatistics(SampleBasedMetric):
             axs[j].errorbar(trues[:, j], mus[:, j], stds[:, j],
                             fmt="none", elinewidth=0.5, alpha=0.5)
 
-            axs[j].plot(*(2 * [np.linspace(min(trues[:, j]), max(trues[:, j]), 10)]),
-                        'k--', ms=0.2, lw=0.5)
+            axs[j].plot(
+                *(2 * [np.linspace(min(trues[:, j]), max(trues[:, j]), 10)]),
+                'k--', ms=0.2, lw=0.5)
             axs[j].grid(which='both', lw=0.5)
             axs[j].set(adjustable='box', aspect='equal')
             axs[j].set_title(self.labels[j], fontsize=12)
@@ -281,10 +288,8 @@ class PlotRankStatistics(SampleBasedMetric):
         x_obs: Optional[np.array] = None,
         theta_obs: Optional[np.array] = None
     ):
-        """Plot rank histogram, posterior coverage, and true-pred diagnostics
-        based on rank statistics inferred from posteriors. These are derived
-        from sbi posterior metrics originally written by Chirag Modi.
-        Reference: https://github.com/modichirag/contrastive_cosmology/blob/main/src/sbiplots.py
+        """Given a posterior and test data, plot the rank statistics evaluated
+        on the test set and save to file.
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine

@@ -1,0 +1,97 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitType": "docs",
+  "commitConvention": "angular",
+  "contributors": [
+    {
+      "login": "maho3",
+      "name": "Matt Ho",
+      "avatar_url": "https://avatars.githubusercontent.com/u/11132524?v=4",
+      "profile": "https://maho3.github.io/",
+      "contributions": [
+        "code",
+        "design",
+        "example",
+        "doc",
+        "review"
+      ]
+    },
+    {
+      "login": "florpi",
+      "name": "Carolina Cuesta",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15879020?v=4",
+      "profile": "https://github.com/florpi",
+      "contributions": [
+        "code",
+        "design",
+        "example",
+        "doc",
+        "review"
+      ]
+    },
+    {
+      "login": "DeaglanBartlett",
+      "name": "Deaglan Bartlett",
+      "avatar_url": "https://avatars.githubusercontent.com/u/47668431?v=4",
+      "profile": "https://deaglanbartlett.github.io/",
+      "contributions": [
+        "code",
+        "design",
+        "example",
+        "doc",
+        "review"
+      ]
+    },
+    {
+      "login": "CompiledAtBirth",
+      "name": "Nicolas Chartier",
+      "avatar_url": "https://avatars.githubusercontent.com/u/47000650?v=4",
+      "profile": "https://github.com/CompiledAtBirth",
+      "contributions": [
+        "example",
+        "doc",
+        "research"
+      ]
+    },
+    {
+      "login": "AsianTaco",
+      "name": "Simon",
+      "avatar_url": "https://avatars.githubusercontent.com/u/42298902?v=4",
+      "profile": "https://github.com/AsianTaco",
+      "contributions": [
+        "code",
+        "example"
+      ]
+    },
+    {
+      "login": "Pablo-Lemos",
+      "name": "Pablo Lemos",
+      "avatar_url": "https://avatars.githubusercontent.com/u/38078898?v=4",
+      "profile": "https://pablo-lemos.github.io",
+      "contributions": [
+        "design",
+        "code"
+      ]
+    },
+    {
+      "login": "modichirag",
+      "name": "Chirag Modi",
+      "avatar_url": "https://avatars.githubusercontent.com/u/13356766?v=4",
+      "profile": "https://modichirag.github.io/",
+      "contributions": [
+        "design",
+        "code"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "skipCi": true,
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "projectName": "ltu-ili",
+  "projectOwner": "maho3"
+}

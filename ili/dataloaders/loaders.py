@@ -1,3 +1,7 @@
+"""
+Module for loading data into the ltu-ili pipeline.
+"""
+
 import yaml
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple, Optional
@@ -40,14 +44,15 @@ class BaseLoader(ABC):
 
 
 class StaticNumpyLoader(BaseLoader):
-    def __init__(self, in_dir: str, x_file: str, theta_file: str):
-        """Class to load single numpy files of summaries and parameters
+    """Class to load single numpy files of summaries and parameters
 
-        Args:
-            in_dir (str): path to the location of stored data
-            x_file (str): filename of the stored summaries
-            theta_file (str): filename of the stored parameters
-        """
+    Args:
+        in_dir (str): path to the location of stored data
+        x_file (str): filename of the stored summaries
+        theta_file (str): filename of the stored parameters
+    """
+
+    def __init__(self, in_dir: str, x_file: str, theta_file: str):
         self.in_dir = Path(in_dir)
         self.x_path = self.in_dir / x_file
         self.theta_path = self.in_dir / theta_file
@@ -85,6 +90,25 @@ class StaticNumpyLoader(BaseLoader):
 
 
 class SummarizerDatasetLoader(BaseLoader):
+    """Class to load netCF files of summaries and a csv of parameters
+    Basically a wrapper for ili-summarizer's Dataset, with added
+    functionality for loading parameters
+
+
+    Args:
+        stage (str): whether to load train, test or val data
+        data_dir (str): path to data directory
+        summary_root_file (str): root of summary files
+        param_file (str): parameter file name
+        train_test_split_file (str): file name where train, test, val
+            split idx are stored
+        param_names (List[str]): parameters to fit
+
+    Raises:
+        Exception: won't work when summaries and parameters don't have
+            same length
+    """
+
     def __init__(
         self,
         stage: str,
@@ -94,24 +118,6 @@ class SummarizerDatasetLoader(BaseLoader):
         train_test_split_file: str,
         param_names: List[str],
     ):
-        """Class to load netCF files of summaries and a csv of parameters
-        Basically a wrapper for ili-summarizer's Dataset, with added
-        functionality for loading parameters
-
-
-        Args:
-            stage (str): whether to load train, test or val data
-            data_dir (str): path to data directory
-            summary_root_file (str): root of summary files
-            param_file (str): parameter file name
-            train_test_split_file (str): file name where train, test, val
-                split idx are stored
-            param_names (List[str]): parameters to fit
-
-        Raises:
-            Exception: won't work when summaries and parameters don't have
-                same length
-        """
         self.data_dir = Path(data_dir)
         self.nodes = self.get_nodes_for_stage(
             stage=stage, train_test_split_file=train_test_split_file
@@ -191,6 +197,22 @@ class SummarizerDatasetLoader(BaseLoader):
 
 
 class SBISimulator(BaseLoader):
+    """
+    Class to run simulations of summaries and parameters and save
+    results to numpy files. Only works for sbi backend.
+
+    Args:
+        in_dir (str): path to the location of stored data
+        xobs_file (str): filename used for observed x values
+        thetaobs_file (str): filename used for observed parameters
+        out_dir (str): path to the location where to save  data
+        x_file (str): filename to use to store summaries
+        theta_file (str): filename to use to store parameters
+        num_simulations (int): number of simulations to run at each call
+        simulator (callable): function taking the parameters as an
+            argument and returns data
+    """
+
     def __init__(
             self,
             in_dir: str,
@@ -202,20 +224,6 @@ class SBISimulator(BaseLoader):
             num_simulations: int,
             simulator: Optional[callable] = None,
     ):
-        """Class to run simulations of summaries and parameters and save
-        results to numpy files. Only works for sbi backend
-
-        Args:
-            in_dir (str): path to the location of stored data
-            xobs_file (str): filename used for `observed' x values
-            thetaobs_file (str): filename used for `observed' parameters
-            out_dir (str): path to the location where to save  data
-            x_file (str): filename to use to store summaries
-            theta_file (str): filename to use to store parameters
-            num_simulations (int): number of simulations to run at each call
-            simulator (callable): function taking the parameters as an
-                argument and returns data
-        """
         self.in_dir = Path(in_dir)
         self.xobs_path = self.in_dir / xobs_file
         self.thetaobs_path = self.in_dir / thetaobs_file

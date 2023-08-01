@@ -16,24 +16,3 @@ metrics:
         burn_in: 100
         thin: 10
 
-  rank_stats:
-    module: 'ili.validation.metrics'
-    class: 'PlotRankStatistics'
-    args:
-      num_samples: 100
-      sample_method: 'emcee'
-      sample_params:
-        num_chains: 10
-        burn_in: 100
-        thin: 1
-
-  tarp:
-    module: 'ili.validation.metrics'
-    class: 'TARP'
-    args:
-      num_samples: 10
-      sample_method: 'emcee'
-      sample_params:
-        num_chains: 10
-        burn_in: 100
-        thin: 1

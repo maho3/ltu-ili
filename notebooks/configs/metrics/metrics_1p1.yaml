@@ -1,0 +1,18 @@
+backend: 'sbi'
+
+posterior_path: './Results/1p1/posterior.pkl'
+output_path: './Results/1p1'
+
+metrics:
+  single_example:
+    module: 'ili.validation.metrics'
+    class: 'PlotSinglePosterior'
+    args:
+      num_samples: 10000
+      labels: [r"$\Omega_m$", r"$h$",r"$\sigma_8$"]
+
+  tarp:
+    module: 'ili.validation.metrics'
+    class: 'TARP'
+    args:
+      num_samples: 10000

@@ -1,3 +1,8 @@
+"""
+Module to train posterior inference models using the sbi package
+"""
+
+
 import yaml
 import time
 import logging
@@ -20,6 +25,25 @@ default_config = (
 
 
 class SBIRunner:
+    """Class to train posterior inference models using the sbi package
+
+    Args:
+        prior (Independent): prior on the parameters
+        inference_class (NeuralInference): sbi inference class used to
+            train neural posteriors
+        neural_posteriors (List[Callable]): list of neural posteriors
+        embedding_net (nn.Module): neural network to compress high
+            dimensional data into lower dimensionality
+        train_args (Dict): dictionary of hyperparameters for training
+        output_path (Path): path where to store outputs
+        proposal (Independent): proposal distribution from which existing 
+            simulations were run, for single round inference only. By default,
+            sbi will set proposal = prior unless a proposal is specified. 
+            While it is possible to choose a prior on parameters different
+            than the proposal for SNPE, we advise to leave proposal to None
+            unless for test purposes.
+    """
+
     def __init__(
         self,
         prior: Independent,
@@ -28,29 +52,19 @@ class SBIRunner:
         device: str,
         embedding_net: nn.Module,
         train_args: Dict,
-        output_path: Path
+        output_path: Path,
+        proposal: Independent = None,
     ):
-        """Class to train posterior inference models using the sbi package
-
-        Args:
-            prior (Independent): prior on the parameters
-            inference_class (NeuralInference): sbi inference class used to
-                train neural posteriors
-            neural_posteriors (List[Callable]): list of neural posteriors
-            embedding_net (nn.Module): neural network to compress high
-                dimensional data into lower dimensionality
-            train_args (Dict): dictionary of hyperparameters for training
-            output_path (Path): path where to store outputs
-        """
         self.prior = prior
+        self.proposal = proposal
         self.inference_class = inference_class
         self.neural_posteriors = neural_posteriors
         self.device = device
         self.embedding_net = embedding_net
         self.train_args = train_args
-        if 'num_round' in train_args:
-            self.num_rounds = train_args['num_round']
-            self.train_args.pop('num_round')
+        if "num_round" in train_args:
+            self.num_rounds = train_args["num_round"]
+            self.train_args.pop("num_round")
         else:
             self.num_rounds = 1
         self.output_path = output_path
@@ -69,6 +83,14 @@ class SBIRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
         prior = load_from_config(config["prior"])
+        if "proposal" in config:
+            proposal = load_from_config(config["proposal"])
+        else:
+            proposal = None
+        if "proposal" in config:
+            proposal = load_from_config(config["proposal"])
+        else:
+            proposal = None
         if "embedding_net" in config:
             embedding_net = load_from_config(
                 config=config["embedding_net"],
@@ -88,6 +110,7 @@ class SBIRunner:
         output_path = Path(config["output_path"])
         return cls(
             prior=prior,
+            proposal=proposal,
             inference_class=inference_class,
             neural_posteriors=neural_posteriors,
             device=config["device"],
@@ -109,8 +132,7 @@ class SBIRunner:
             embedding_net (nn.Module): neural network to compress data
             class_name (str): name of the inference class
             posterior_config(List[Dict]): list with configurations for each
-                neural posterior
-            model in the ensemble
+                neural posterior model in the ensemble
 
         Returns:
             List[Callable]: list of neural posterior models with forward
@@ -135,11 +157,12 @@ class SBIRunner:
             )
         return neural_posteriors
 
-    def __call__(self, loader):
+    def __call__(self, loader, seed=None):
         """Train your posterior and save it to file
 
         Args:
             loader (BaseLoader): dataloader with stored summary-parameter pairs
+            seed (int): torch seed for reproducibility
         """
 
         t0 = time.time()
@@ -147,6 +170,10 @@ class SBIRunner:
         theta = torch.Tensor(loader.get_all_parameters())
         posteriors, val_loss = [], []
         for n, posterior in enumerate(self.neural_posteriors):
+            if seed is not None:
+                torch.manual_seed(seed)
+            if seed is not None:
+                torch.manual_seed(seed)
             logging.info(
                 f"Training model {n+1} out of {len(self.neural_posteriors)}"
                 " ensemble models"
@@ -156,7 +183,7 @@ class SBIRunner:
                 density_estimator=posterior,
                 device=self.device,
             )
-            model = model.append_simulations(theta, x)
+            model = model.append_simulations(theta, x, proposal=self.proposal)
             if not isinstance(self.embedding_net, nn.Identity):
                 self.embedding_net.initalize_model(n_input=x.shape[-1])
             _ = model.train(
@@ -184,11 +211,9 @@ class SBIRunnerSequential(SBIRunner):
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): data loader with ability to simulate 
+            loader (BaseLoader): data loader with ability to simulate
                 summary-parameter pairs
-
         """
-
         t0 = time.time()
         x_obs = loader.get_obs_data()
 
