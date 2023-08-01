@@ -32,6 +32,19 @@
         "doc",
         "review"
       ]
+    },
+    {
+      "login": "DeaglanBartlett",
+      "name": "Deaglan Bartlett",
+      "avatar_url": "https://avatars.githubusercontent.com/u/47668431?v=4",
+      "profile": "https://deaglanbartlett.github.io/",
+      "contributions": [
+        "code",
+        "design",
+        "example",
+        "doc",
+        "review"
+      ]
     }
   ],
   "contributorsPerLine": 7,
