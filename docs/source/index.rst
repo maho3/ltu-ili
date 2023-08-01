@@ -13,6 +13,7 @@ Welcome to LtU ILI's documentation!
    Home <self>
    install
    contribute
+   data
    api
 
 .. include:: ../../README.md
