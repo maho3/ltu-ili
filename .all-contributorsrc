@@ -1,0 +1,30 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitType": "docs",
+  "commitConvention": "angular",
+  "contributors": [
+    {
+      "login": "florpi",
+      "name": "Carolina Cuesta",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15879020?v=4",
+      "profile": "https://github.com/florpi",
+      "contributions": [
+        "code",
+        "design",
+        "example",
+        "doc",
+        "review"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "skipCi": true,
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "projectName": "ltu-ili",
+  "projectOwner": "maho3"
+}
