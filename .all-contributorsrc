@@ -19,6 +19,19 @@
         "doc",
         "review"
       ]
+    },
+    {
+      "login": "florpi",
+      "name": "Carolina Cuesta",
+      "avatar_url": "https://avatars.githubusercontent.com/u/15879020?v=4",
+      "profile": "https://github.com/florpi",
+      "contributions": [
+        "code",
+        "design",
+        "example",
+        "doc",
+        "review"
+      ]
     }
   ],
   "contributorsPerLine": 7,
