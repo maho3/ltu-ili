@@ -1,0 +1,30 @@
+{
+  "files": [
+    "README.md"
+  ],
+  "imageSize": 100,
+  "commit": false,
+  "commitType": "docs",
+  "commitConvention": "angular",
+  "contributors": [
+    {
+      "login": "maho3",
+      "name": "Matt Ho",
+      "avatar_url": "https://avatars.githubusercontent.com/u/11132524?v=4",
+      "profile": "https://maho3.github.io/",
+      "contributions": [
+        "code",
+        "design",
+        "example",
+        "doc",
+        "review"
+      ]
+    }
+  ],
+  "contributorsPerLine": 7,
+  "skipCi": true,
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "projectName": "ltu-ili",
+  "projectOwner": "maho3"
+}
