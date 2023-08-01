@@ -56,6 +56,16 @@
         "doc",
         "research"
       ]
+    },
+    {
+      "login": "AsianTaco",
+      "name": "Simon",
+      "avatar_url": "https://avatars.githubusercontent.com/u/42298902?v=4",
+      "profile": "https://github.com/AsianTaco",
+      "contributions": [
+        "code",
+        "example"
+      ]
     }
   ],
   "contributorsPerLine": 7,
