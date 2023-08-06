@@ -1,7 +1,13 @@
+"""
+Custom samplers for sampling posteriors for Likelihood Estimation and
+Ratio Estimation models. Currently supports emcee samplers for both sbi
+and pydelfi backends, and pyro samplers only for the sbi backend.
+"""
+
 import os
 import numpy as np
 import emcee
-from abc import ABC, abstractmethod
+from abc import ABC
 
 try:
     import torch
@@ -9,7 +15,19 @@ except ModuleNotFoundError:
     pass
 
 
-class BaseSampler(ABC):
+class _BaseSampler(ABC):
+    """Base sampler class demonstrating the sampler functionality
+
+    Args:
+        posterior (Posterior): posterior object to sample from, must have
+            a .potential method specifiying the log posterior
+        num_chains (int, optional): number of chains to sample from. Defaults
+            to os.cpu_count()-1
+        thin (int, optional): thinning factor for the chains. Defaults to 10
+        burn_in (int, optional): number of steps to discard as burn-in.
+            Defaults to 100
+    """
+
     def __init__(
             self,
             posterior,
@@ -23,13 +41,30 @@ class BaseSampler(ABC):
         self.thin = thin
         self.burn_in = burn_in
 
-    @abstractmethod
-    def sample(self, sample_shape):
-        pass
 
+class EmceeSampler(_BaseSampler):
+    """Sampler class for emcee's EnsembleSampler
 
-class EmceeSampler(BaseSampler):
-    def sample(self, nsteps, x, progress=False):
+    Args:
+        posterior (Posterior): posterior object to sample from, must have
+            a .potential method specifiying the log posterior
+        num_chains (int, optional): number of chains to sample from. Defaults
+            to os.cpu_count()-1
+        thin (int, optional): thinning factor for the chains. Defaults to 10
+        burn_in (int, optional): number of steps to discard as burn-in.
+            Defaults to 100
+    """
+
+    def sample(self, nsteps, x, progress=False) -> np.ndarray:
+        """
+        Sample nsteps samples from the posterior, evaluated at data x.
+
+        Args:
+            nsteps (int): number of samples to draw
+            x (np.ndarray): data to evaluate the posterior at
+            progress (bool, optional): whether to show progress bar.
+                Defaults to False.
+        """
         theta0 = np.stack([self.posterior.prior.sample()
                           for i in range(self.num_chains)])
 
@@ -53,13 +88,37 @@ class EmceeSampler(BaseSampler):
         return self.sampler.get_chain(discard=self.burn_in, flat=True)
 
 
-class PyroSampler(BaseSampler):
+class PyroSampler(_BaseSampler):
+    """Sampler class for pyro's samplers. Integrates with pyro through the sbi
+    backend
+
+    Args:
+        posterior (Posterior): posterior object to sample from, must have
+            a .potential method specifiying the log posterior
+        num_chains (int, optional): number of chains to sample from. Defaults
+            to os.cpu_count()-1
+        thin (int, optional): thinning factor for the chains. Defaults to 10
+        burn_in (int, optional): number of steps to discard as burn-in.
+            Defaults to 100
+        method (str, optional): method to use for sampling. Defaults to
+            'slice_np_vectorize'. See sbi documentation for more details.
+    """
+
     def __init__(self, posterior, num_chains, thin, burn_in,
                  method='slice_np_vectorize') -> None:
         super().__init__(posterior, num_chains, thin, burn_in)
         self.method = method
 
-    def sample(self, nsteps, x, progress=False):
+    def sample(self, nsteps, x, progress=False) -> np.ndarray:
+        """
+        Sample nsteps samples from the posterior, evaluated at data x.
+
+        Args:
+            nsteps (int): number of samples to draw
+            x (np.ndarray): data to evaluate the posterior at
+            progress (bool, optional): whether to show progress bar.
+                Defaults to False.
+        """
         return self.posterior.sample(
             (nsteps,),
             x=torch.Tensor(x),
@@ -72,8 +131,25 @@ class PyroSampler(BaseSampler):
 
 
 class DirectSampler(ABC):
+    """Sampler class for posteriors with a direct sampling method, i.e.
+    amortized posterior inference models.
+
+    Args:
+        posterior (Posterior): posterior object to sample from, must have
+            a .sample method allowing for direct sampling.
+    """
+
     def __init__(self, posterior):
         self.posterior = posterior
 
-    def sample(self, nsteps, x, progress=False):
+    def sample(self, nsteps, x, progress=False) -> np.ndarray:
+        """
+        Sample nsteps samples from the posterior, evaluated at data x.
+
+        Args:
+            nsteps (int): number of samples to draw
+            x (np.ndarray): data to evaluate the posterior at
+            progress (bool, optional): whether to show progress bar.
+                Defaults to False.
+        """
         return self.posterior.sample((nsteps,), x=x, progress_bar=progress)

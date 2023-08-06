@@ -11,7 +11,8 @@ from typing import List, Optional
 from abc import ABC
 from pathlib import Path
 import warnings
-from ..utils.samplers import EmceeSampler, PyroSampler, DirectSampler
+from ili.utils.samplers import (_BaseSampler, EmceeSampler, PyroSampler,
+                                DirectSampler)
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
@@ -24,7 +25,7 @@ except ModuleNotFoundError:
     ModelClass = DelfiWrapper
 
 
-class BaseMetric(ABC):
+class _BaseMetric(ABC):
     """Base class for calculating validation metrics.
 
     Args:
@@ -45,7 +46,7 @@ class BaseMetric(ABC):
         self.labels = labels
 
 
-class SampleBasedMetric(BaseMetric):
+class _SampleBasedMetric(_BaseMetric):
     def __init__(
         self,
         backend: str,
@@ -60,7 +61,7 @@ class SampleBasedMetric(BaseMetric):
         self.sample_method = sample_method
         self.sample_params = sample_params
 
-    def _build_sampler(self, posterior):
+    def _build_sampler(self, posterior) -> _BaseSampler:
         if self.sample_method == 'emcee':
             return EmceeSampler(posterior, **self.sample_params)
         else:
@@ -79,7 +80,7 @@ class SampleBasedMetric(BaseMetric):
                                **self.sample_params)
 
 
-class PlotSinglePosterior(SampleBasedMetric):
+class PlotSinglePosterior(_SampleBasedMetric):
     """Perform inference sampling on a single test point and plot the
     posterior in a corner plot.
 
@@ -145,7 +146,7 @@ class PlotSinglePosterior(SampleBasedMetric):
                   dpi=200, bbox_inches='tight')
 
 
-class PlotRankStatistics(SampleBasedMetric):
+class PlotRankStatistics(_SampleBasedMetric):
     """Plot rank histogram, posterior coverage, and true-pred diagnostics
     based on rank statistics inferred from posteriors. These are derived
     from sbi posterior metrics originally written by Chirag Modi.
@@ -305,7 +306,7 @@ class PlotRankStatistics(SampleBasedMetric):
         self._plot_predictions(trues, mus, stds)
 
 
-class TARP(SampleBasedMetric):
+class TARP(_SampleBasedMetric):
     """Compute the TARP validation metric
     Reference: https://arxiv.org/abs/2302.03026.
 

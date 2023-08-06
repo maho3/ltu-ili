@@ -17,7 +17,7 @@ except ModuleNotFoundError:
     pass
 
 
-class BaseLoader(ABC):
+class _BaseLoader(ABC):
     @abstractmethod
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -27,7 +27,8 @@ class BaseLoader(ABC):
         """
 
     @classmethod
-    def from_config(cls, config_path: Path, stage: str = None) -> "BaseLoader":
+    def from_config(
+            cls, config_path: Path, stage: str = None) -> "_BaseLoader":
         """Create a data loader from a yaml config file
 
         Args:
@@ -43,7 +44,7 @@ class BaseLoader(ABC):
         return cls(**config)
 
 
-class StaticNumpyLoader(BaseLoader):
+class StaticNumpyLoader(_BaseLoader):
     """Class to load single numpy files of summaries and parameters
 
     Args:
@@ -89,7 +90,7 @@ class StaticNumpyLoader(BaseLoader):
         return self.theta
 
 
-class SummarizerDatasetLoader(BaseLoader):
+class SummarizerDatasetLoader(_BaseLoader):
     """Class to load netCF files of summaries and a csv of parameters
     Basically a wrapper for ili-summarizer's Dataset, with added
     functionality for loading parameters
@@ -196,7 +197,7 @@ class SummarizerDatasetLoader(BaseLoader):
         return theta[param_names].values
 
 
-class SBISimulator(BaseLoader):
+class SBISimulator(_BaseLoader):
     """
     Class to run simulations of summaries and parameters and save
     results to numpy files. Only works for sbi backend.
