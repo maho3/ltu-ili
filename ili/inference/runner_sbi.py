@@ -137,7 +137,7 @@ class SBIRunner:
                 neural posterior model in the ensemble
 
         Returns:
-            List[Callable]: list of neural posterior models with forward
+            List[Callable]: list of pytorch neural network models with forward
                 methods
         """
         # determine the correct model type

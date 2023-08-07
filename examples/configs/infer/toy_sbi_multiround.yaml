@@ -9,7 +9,7 @@ prior:
 model:
   module: 'sbi.inference'
   class: 'SNPE_C'
-  neural_posteriors:
+  nets:
     - model: 'maf'
       hidden_features: 100 
       num_transforms: 2
