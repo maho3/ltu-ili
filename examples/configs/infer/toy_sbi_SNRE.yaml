@@ -10,8 +10,11 @@ model:
   module: 'sbi.inference'
   class: 'SNRE'
   neural_posteriors:
-    - model: 'linear'
+    - model: 'resnet'
+      hidden_features: 50
+      num_blocks: 3
     - model: 'mlp'
+      hidden_features: 50
     
 train_args:
   training_batch_size: 32

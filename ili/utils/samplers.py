@@ -152,4 +152,5 @@ class DirectSampler(ABC):
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
         """
-        return self.posterior.sample((nsteps,), x=x, progress_bar=progress)
+        return self.posterior.sample(
+            (nsteps,), x=x, show_progress_bars=progress)
