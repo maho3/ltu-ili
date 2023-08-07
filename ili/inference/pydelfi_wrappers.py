@@ -116,7 +116,7 @@ class DelfiWrapper(Delfi):
             List[Callable]: list of neural posterior models with forward
                 methods
         """
-        neural_posteriors = []
+        nets = []
         for i, model_args in enumerate(config_ndes):
             model_args['args']['index'] = i
             model_args['args']['n_parameters'] = n_params
@@ -132,10 +132,10 @@ class DelfiWrapper(Delfi):
                      if isinstance(x, str) else x
                      for x in model_args['args']['activations']]
 
-            neural_posteriors.append(
+            nets.append(
                 load_from_config(model_args)
             )
-        return neural_posteriors
+        return nets
 
     def save_engine(
         self,

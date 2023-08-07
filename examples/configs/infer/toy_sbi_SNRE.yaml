@@ -9,7 +9,7 @@ prior:
 model:
   module: 'sbi.inference'
   class: 'SNRE'
-  neural_posteriors:
+  nets:
     - model: 'resnet'
       hidden_features: 50
       num_blocks: 3
