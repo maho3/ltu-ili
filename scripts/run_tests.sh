@@ -1,4 +1,3 @@
-A
 #!/bin/bash
 set -o verbose
 set -e
