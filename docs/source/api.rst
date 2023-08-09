@@ -72,6 +72,14 @@ Embedding
 Utils
 -----
 
+Samplers
+~~~~~~~~
+.. automodule:: utils.samplers
+   :members:
+   :undoc-members:
+   :special-members: __call__
+
+
 Cosmology
 ~~~~~~~~~
 .. automodule:: utils.cosmology

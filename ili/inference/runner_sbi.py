@@ -31,23 +31,25 @@ class SBIRunner:
         prior (Independent): prior on the parameters
         inference_class (NeuralInference): sbi inference class used to
             train neural posteriors
-        neural_posteriors (List[Callable]): list of neural posteriors
+        nets (List[Callable]): list of neural nets for amortized posteriors,
+            likelihood models, or ratio classifiers
         embedding_net (nn.Module): neural network to compress high
             dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
         output_path (Path): path where to store outputs
-        proposal (Independent): proposal distribution from which existing 
+        proposal (Independent): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
-            sbi will set proposal = prior unless a proposal is specified. 
+            sbi will set proposal = prior unless a proposal is specified.
             While it is possible to choose a prior on parameters different
             than the proposal for SNPE, we advise to leave proposal to None
             unless for test purposes.
     """
+
     def __init__(
         self,
         prior: Independent,
         inference_class: NeuralInference,
-        neural_posteriors: List[Callable],
+        nets: List[Callable],
         device: str,
         embedding_net: nn.Module,
         train_args: Dict,
@@ -57,7 +59,8 @@ class SBIRunner:
         self.prior = prior
         self.proposal = proposal
         self.inference_class = inference_class
-        self.neural_posteriors = neural_posteriors
+        self.class_name = inference_class.__name__
+        self.nets = nets
         self.device = device
         self.embedding_net = embedding_net
         self.train_args = train_args
@@ -100,9 +103,10 @@ class SBIRunner:
             module_name=config["model"]["module"],
             class_name=config["model"]["class"],
         )
-        neural_posteriors = cls.load_neural_posteriors(
+        nets = cls.load_nets(
             embedding_net=embedding_net,
-            posteriors_config=config["model"]["neural_posteriors"],
+            class_name=config["model"]["class"],
+            posteriors_config=config["model"]["nets"],
         )
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
@@ -110,7 +114,7 @@ class SBIRunner:
             prior=prior,
             proposal=proposal,
             inference_class=inference_class,
-            neural_posteriors=neural_posteriors,
+            nets=nets,
             device=config["device"],
             embedding_net=embedding_net,
             train_args=train_args,
@@ -118,31 +122,82 @@ class SBIRunner:
         )
 
     @classmethod
-    def load_neural_posteriors(
+    def load_nets(
         cls,
         embedding_net: nn.Module,
+        class_name: str,
         posteriors_config: List[Dict],
     ) -> List[Callable]:
         """Load the inference model
 
         Args:
             embedding_net (nn.Module): neural network to compress data
+            class_name (str): name of the inference class
             posterior_config(List[Dict]): list with configurations for each
                 neural posterior model in the ensemble
 
         Returns:
-            List[Callable]: list of neural posterior models with forward
+            List[Callable]: list of pytorch neural network models with forward
                 methods
         """
-        neural_posteriors = []
-        for model_args in posteriors_config:
-            neural_posteriors.append(
-                sbi.utils.posterior_nn(
-                    embedding_net=embedding_net,
-                    **model_args,
+        # determine the correct model type
+        def _build_model(embedding_net, model_args):
+            if "SNPE" in class_name:
+                return sbi.utils.posterior_nn(
+                    embedding_net=embedding_net, **model_args)
+            elif "SNLE" in class_name:
+                return sbi.utils.likelihood_nn(
+                    embedding_net=embedding_net, **model_args)
+            elif "SNRE" in class_name:
+                return sbi.utils.classifier_nn(
+                    embedding_net_x=embedding_net, **model_args)
+            else:
+                raise ValueError(
+                    f"Model class {class_name} not supported. "
+                    "Please choose one of SNPE, SNLE, or SNRE."
                 )
-            )
-        return neural_posteriors
+
+        return [_build_model(embedding_net, model_args)
+                for model_args in posteriors_config]
+
+    def _train_model_SNPE(self, net, theta, x):
+        """Instantiate and train an amoritized posterior SNPE model."""
+        model = self.inference_class(
+            prior=self.prior,
+            density_estimator=net,
+            device=self.device,
+        )
+        model = model.append_simulations(theta, x, proposal=self.proposal)
+        if not isinstance(self.embedding_net, nn.Identity):
+            self.embedding_net.initalize_model(n_input=x.shape[-1])
+        _ = model.train(**self.train_args)
+        return model
+
+    def _train_model_SNLE(self, net, theta, x):
+        """Instantiate and train a likelihood estimation SNLE model."""
+        model = self.inference_class(
+            prior=self.prior,
+            density_estimator=net,
+            device=self.device,
+        )
+        model = model.append_simulations(theta, x)
+        if not isinstance(self.embedding_net, nn.Identity):
+            self.embedding_net.initalize_model(n_input=x.shape[-1])
+        _ = model.train(**self.train_args)
+        return model
+
+    def _train_model_SNRE(self, net, theta, x):
+        """Instantiate and train a ratio estimation SNRE model."""
+        model = self.inference_class(
+            prior=self.prior,
+            classifier=net,
+            device=self.device,
+        )
+        model = model.append_simulations(theta, x)
+        if not isinstance(self.embedding_net, nn.Identity):
+            self.embedding_net.initalize_model(n_input=x.shape[-1])
+        _ = model.train(**self.train_args)
+        return model
 
     def __call__(self, loader, seed=None):
         """Train your posterior and save it to file
@@ -155,32 +210,31 @@ class SBIRunner:
         t0 = time.time()
         x = torch.Tensor(loader.get_all_data())
         theta = torch.Tensor(loader.get_all_parameters())
-        posteriors, val_loss = [], []
-        for n, posterior in enumerate(self.neural_posteriors):
-            if seed is not None:
-                torch.manual_seed(seed)
-            if seed is not None:
-                torch.manual_seed(seed)
+        posteriors, val_logprob = [], []
+        for n, posterior in enumerate(self.nets):
             logging.info(
-                f"Training model {n+1} out of {len(self.neural_posteriors)}"
+                f"Training model {n+1} out of {len(self.nets)}"
                 " ensemble models"
             )
-            model = self.inference_class(
-                prior=self.prior,
-                density_estimator=posterior,
-                device=self.device,
-            )
-            model = model.append_simulations(theta, x, proposal=self.proposal)
-            if not isinstance(self.embedding_net, nn.Identity):
-                self.embedding_net.initalize_model(n_input=x.shape[-1])
-            density_estimator = model.train(
-                **self.train_args,
-            )
-            posteriors.append(model.build_posterior(density_estimator))
-            val_loss += model.summary["best_validation_log_prob"]
+            # set seed for reproducibility
+            if seed is not None:
+                torch.manual_seed(seed)
+
+            if "SNPE" in self.class_name:
+                model = self._train_model_SNPE(posterior, theta, x)
+            elif "SNLE" in self.class_name:
+                model = self._train_model_SNLE(posterior, theta, x)
+            elif "SNRE" in self.class_name:
+                model = self._train_model_SNRE(posterior, theta, x)
+
+            # save model
+            posteriors.append(model.build_posterior())
+            val_logprob += model.summary["best_validation_log_prob"]
+
+        # ensemble all trained models, weighted by validation loss
         posterior = NeuralPosteriorEnsemble(
             posteriors=posteriors,
-            weights=torch.tensor([float(vl) for vl in val_loss]),
+            weights=torch.tensor([float(vl) for vl in val_logprob]),
         )
         with open(self.output_path / "posterior.pkl", "wb") as handle:
             pickle.dump(posterior, handle)
@@ -205,7 +259,7 @@ class SBIRunnerSequential(SBIRunner):
         x_obs = loader.get_obs_data()
 
         all_model = []
-        for n, posterior in enumerate(self.neural_posteriors):
+        for n, posterior in enumerate(self.nets):
             all_model.append(self.inference_class(
                 prior=self.prior,
                 density_estimator=posterior,
@@ -220,11 +274,11 @@ class SBIRunnerSequential(SBIRunner):
             )
             theta, x = loader.simulate(proposal)
             theta, x = torch.Tensor(theta), torch.Tensor(x)
-            posteriors, val_loss = [], []
-            for i in range(len(self.neural_posteriors)):
+            posteriors, val_logprob = [], []
+            for i in range(len(self.nets)):
                 logging.info(
                     f"Training model {n+1} out of "
-                    f"{len(self.neural_posteriors)} ensemble models"
+                    f"{len(self.nets)} ensemble models"
                 )
                 if not isinstance(self.embedding_net, nn.Identity):
                     self.embedding_net.initalize_model(n_input=x.shape[-1])
@@ -234,18 +288,18 @@ class SBIRunnerSequential(SBIRunner):
                     )
                 posteriors.append(
                     all_model[i].build_posterior(density_estimator))
-                val_loss.append(
+                val_logprob.append(
                     all_model[i].summary["best_validation_log_prob"][-1])
 
-            val_loss = torch.tensor([float(vl) for vl in val_loss])
+            val_logprob = torch.tensor([float(vl) for vl in val_logprob])
             # Subtract maximum loss to improve numerical stability of exp
             # (cancels in next line)
-            val_loss = torch.exp(val_loss - val_loss.max())
-            val_loss /= val_loss.sum()
+            val_logprob = torch.exp(val_logprob - val_logprob.max())
+            val_logprob /= val_logprob.sum()
 
             posterior = NeuralPosteriorEnsemble(
                 posteriors=posteriors,
-                weights=val_loss
+                weights=val_logprob
             )
 
             with open(self.output_path / f"posterior_{rnd}.pkl", "wb") as f:
