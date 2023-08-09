@@ -25,7 +25,13 @@ pip install -e ili-summarizer
 
 # run sbi backend examples 
 cd ../ltu-ili/examples
-python3 toy_sbi.py
+for MODEL in SNLE SNRE SNPE 
+do
+	echo -e"\n" $MODEL
+	python3 toy_sbi.py --model $MODEL
+done
+
+# test multiround with sbi
 python3 toy_sbi_multiround.py
 
 conda deactivate
