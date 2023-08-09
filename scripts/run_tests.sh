@@ -26,6 +26,7 @@ pip install -e ili-summarizer
 # run sbi backend examples 
 cd ../ltu-ili/examples
 python3 toy_sbi.py
+python3 toy_sbi_multiround.py
 
 conda deactivate
 
