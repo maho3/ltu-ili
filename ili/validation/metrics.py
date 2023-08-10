@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import tqdm
+import os
 from typing import List, Optional
 from abc import ABC
 from pathlib import Path
@@ -193,7 +194,7 @@ class PlotRankStatistics(_SampleBasedMetric):
                 # except :
                 print("WARNING\n", w)
                 continue
-            if self.backend == 'sbi':
+            if self.backend == 'sbi' and self.sample_method != "emcee":
                 posterior_samples = posterior_samples.detach().numpy()
             mu, std = posterior_samples.mean(
                 axis=0)[:ndim], posterior_samples.std(axis=0)[:ndim]
@@ -339,16 +340,19 @@ class TARP(_SampleBasedMetric):
             metric (str, optional): which metric to use.
                 Defaults to "euclidean".
         """
-
-        posterior_samples = np.zeros(
-            (self.num_samples, x.shape[0], theta.shape[1]))
         # sample from the posterior
         sampler = self._build_sampler(posterior)
+        if self.sample_method == "emcee":
+            P = (os.cpu_count()-1)*self.num_samples if self.sample_params["num_chains"] == -1 else self.num_samples*self.sample_params["num_chains"]
+        else:
+            P = self.num_samples
+        posterior_samples = np.zeros(
+            (P, x.shape[0], theta.shape[1]))
         for ii in tqdm.tqdm(range(x.shape[0])):
             try:
                 samp_i = sampler.sample(
                     self.num_samples, x=x[ii], progress=False)
-                if self.backend == 'sbi':
+                if self.backend == 'sbi' and self.sample_method != "emcee":
                     samp_i = samp_i.detach().numpy()
                 posterior_samples[:, ii] = samp_i
             except Warning as w:
