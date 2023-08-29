@@ -2,7 +2,7 @@
 Module to train posterior inference models using the sbi package
 """
 
-
+import json
 import yaml
 import time
 import logging
@@ -71,6 +71,7 @@ class SBIRunner:
             self.num_rounds = 1
         self.output_path = output_path
         if self.output_path is not None:
+            self.output_path = Path(self.output_path)
             self.output_path.mkdir(parents=True, exist_ok=True)
 
     @classmethod
@@ -124,9 +125,9 @@ class SBIRunner:
     @classmethod
     def load_nets(
         cls,
-        embedding_net: nn.Module,
         class_name: str,
         posteriors_config: List[Dict],
+        embedding_net: nn.Module = nn.Identity(),
     ) -> List[Callable]:
         """Load the inference model
 
@@ -168,7 +169,7 @@ class SBIRunner:
             device=self.device,
         )
         model = model.append_simulations(theta, x, proposal=self.proposal)
-        if not isinstance(self.embedding_net, nn.Identity):
+        if self.embedding_net and not isinstance(self.embedding_net, nn.Identity):
             self.embedding_net.initalize_model(n_input=x.shape[-1])
         _ = model.train(**self.train_args)
         return model
@@ -181,7 +182,7 @@ class SBIRunner:
             device=self.device,
         )
         model = model.append_simulations(theta, x)
-        if not isinstance(self.embedding_net, nn.Identity):
+        if self.embedding_net and not isinstance(self.embedding_net, nn.Identity):
             self.embedding_net.initalize_model(n_input=x.shape[-1])
         _ = model.train(**self.train_args)
         return model
@@ -194,7 +195,7 @@ class SBIRunner:
             device=self.device,
         )
         model = model.append_simulations(theta, x)
-        if not isinstance(self.embedding_net, nn.Identity):
+        if self.embedding_net and not isinstance(self.embedding_net, nn.Identity):
             self.embedding_net.initalize_model(n_input=x.shape[-1])
         _ = model.train(**self.train_args)
         return model
@@ -210,7 +211,7 @@ class SBIRunner:
         t0 = time.time()
         x = torch.Tensor(loader.get_all_data())
         theta = torch.Tensor(loader.get_all_parameters())
-        posteriors, val_logprob = [], []
+        posteriors, summaries = [], []
         for n, posterior in enumerate(self.nets):
             logging.info(
                 f"Training model {n+1} out of {len(self.nets)}"
@@ -229,17 +230,23 @@ class SBIRunner:
 
             # save model
             posteriors.append(model.build_posterior())
-            val_logprob += model.summary["best_validation_log_prob"]
+            summaries.append(model.summary)
 
         # ensemble all trained models, weighted by validation loss
+        weights = torch.tensor(
+            [float(x["best_validation_log_prob"][0]) for x in summaries])
         posterior = NeuralPosteriorEnsemble(
-            posteriors=posteriors,
-            weights=torch.tensor([float(vl) for vl in val_logprob]),
-        )
-        with open(self.output_path / "posterior.pkl", "wb") as handle:
-            pickle.dump(posterior, handle)
+            posteriors=posteriors, weights=weights)
+        # save if output path is specified
+        if self.output_path is not None:
+            with open(self.output_path / "posterior.pkl", "wb") as handle:
+                pickle.dump(posterior, handle)
+            with open(self.output_path / "summary.json", "w") as handle:
+                json.dump(summaries, handle)
+
         logging.info(
             f"It took {time.time() - t0} seconds to train all models.")
+        return posterior, summaries
 
 
 class SBIRunnerSequential(SBIRunner):

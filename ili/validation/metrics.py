@@ -227,6 +227,8 @@ class PlotRankStatistics(_SampleBasedMetric):
             axis.axhline(ncounts - ncounts ** 0.5, color='k', ls="--")
             axis.axhline(ncounts + ncounts ** 0.5, color='k', ls="--")
 
+        if self.output_path is None:
+            return fig
         plt.savefig(self.output_path / 'rankplot.jpg',
                     dpi=300, bbox_inches='tight')
 
@@ -256,6 +258,8 @@ class PlotRankStatistics(_SampleBasedMetric):
         for axis in ax:
             axis.grid(visible=True)
 
+        if self.output_path is None:
+            return fig
         plt.savefig(self.output_path / 'coverage.jpg',
                     dpi=300, bbox_inches='tight')
 
@@ -279,6 +283,8 @@ class PlotRankStatistics(_SampleBasedMetric):
             axs[j].set_xlabel('True')
             axs[j].set_ylabel('Predicted')
 
+        if self.output_path is None:
+            return fig
         plt.savefig(self.output_path / 'predictions.jpg',
                     dpi=300, bbox_inches='tight')
 
@@ -343,7 +349,10 @@ class TARP(_SampleBasedMetric):
         # sample from the posterior
         sampler = self._build_sampler(posterior)
         if self.sample_method == "emcee":
-            P = (os.cpu_count()-1)*self.num_samples if self.sample_params["num_chains"] == -1 else self.num_samples*self.sample_params["num_chains"]
+            if self.sample_params["num_chains"] == -1:
+                P = os.cpu_count()-1
+            else:
+                P = self.num_samples*self.sample_params["num_chains"]
         else:
             P = self.num_samples
         posterior_samples = np.zeros(
@@ -372,5 +381,8 @@ class TARP(_SampleBasedMetric):
         ax.legend()
         ax.set_ylabel("Expected Coverage")
         ax.set_xlabel("Credibility Level")
+
+        if self.output_path is None:
+            return fig
         plt.savefig(self.output_path / "plot_tarp.jpg",
                     dpi=300, bbox_inches='tight')
