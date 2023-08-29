@@ -89,10 +89,6 @@ class SBIRunner:
             proposal = load_from_config(config["proposal"])
         else:
             proposal = None
-        if "proposal" in config:
-            proposal = load_from_config(config["proposal"])
-        else:
-            proposal = None
         if "embedding_net" in config:
             embedding_net = load_from_config(
                 config=config["embedding_net"],
