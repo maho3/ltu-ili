@@ -15,6 +15,7 @@ from typing import Dict, List, Callable
 from torch.distributions import Independent
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+from ili.dataloaders import _BaseLoader
 from ili.utils import load_class, load_from_config
 
 logging.basicConfig(level=logging.INFO)
@@ -169,7 +170,7 @@ class SBIRunner:
         return [_build_model(embedding_net, model_args)
                 for model_args in posteriors_config]
 
-    def _setup_SNPE(self, net, theta, x):
+    def _setup_SNPE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
         """Instantiate and train an amoritized posterior SNPE model."""
         model = self.inference_class(
             prior=self.prior,
@@ -179,7 +180,7 @@ class SBIRunner:
         model = model.append_simulations(theta, x, proposal=self.proposal)
         return model
 
-    def _setup_SNLE(self, net, theta, x):
+    def _setup_SNLE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
         """Instantiate and train a likelihood estimation SNLE model."""
         model = self.inference_class(
             prior=self.prior,
@@ -189,7 +190,7 @@ class SBIRunner:
         model = model.append_simulations(theta, x)
         return model
 
-    def _setup_SNRE(self, net, theta, x):
+    def _setup_SNRE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
         """Instantiate and train a ratio estimation SNRE model."""
         model = self.inference_class(
             prior=self.prior,
@@ -199,11 +200,11 @@ class SBIRunner:
         model = model.append_simulations(theta, x)
         return model
 
-    def __call__(self, loader, seed=None):
+    def __call__(self, loader: _BaseLoader, seed: int=None):
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): dataloader with stored summary-parameter pairs
+            loader (_BaseLoader): dataloader with stored summary-parameter pairs
             seed (int): torch seed for reproducibility
         """
 
@@ -261,11 +262,11 @@ class SBIRunnerSequential(SBIRunner):
     multiple rounds
     """
 
-    def __call__(self, loader):
+    def __call__(self, loader: _BaseLoader):
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): data loader with ability to simulate
+            loader (_BaseLoader): data loader with ability to simulate
                 summary-parameter pairs
         """
         t0 = time.time()

@@ -11,8 +11,11 @@ from abc import ABC
 
 try:
     import torch
+    from sbi.inference.posteriors.base_posterior import NeuralPosterior
+    ModelClass = NeuralPosterior
 except ModuleNotFoundError:
-    pass
+    from ili.inference.pydelfi_wrappers import DelfiWrapper
+    ModelClass = DelfiWrapper
 
 
 class _BaseSampler(ABC):
@@ -30,10 +33,10 @@ class _BaseSampler(ABC):
 
     def __init__(
             self,
-            posterior,
-            num_chains=-1,
-            thin=10,
-            burn_in=100
+            posterior: ModelClass,
+            num_chains: int = -1,
+            thin: int = 10,
+            burn_in: int = 100
     ) -> None:
         super().__init__()
         self.posterior = posterior
@@ -55,7 +58,7 @@ class EmceeSampler(_BaseSampler):
             Defaults to 100
     """
 
-    def sample(self, nsteps, x, progress=False) -> np.ndarray:
+    def sample(self, nsteps: int, x: np.ndarray, progress: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -104,12 +107,18 @@ class PyroSampler(_BaseSampler):
             'slice_np_vectorize'. See sbi documentation for more details.
     """
 
-    def __init__(self, posterior, num_chains, thin, burn_in,
-                 method='slice_np_vectorize') -> None:
+    def __init__(
+        self,
+        posterior: ModelClass,
+        num_chains: int = -1,
+        thin: int = 10,
+        burn_in: int = 100,
+        method='slice_np_vectorize'
+    ) -> None:
         super().__init__(posterior, num_chains, thin, burn_in)
         self.method = method
 
-    def sample(self, nsteps, x, progress=False) -> np.ndarray:
+    def sample(self, nsteps: int, x: np.ndarray, progress: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -139,10 +148,10 @@ class DirectSampler(ABC):
             a .sample method allowing for direct sampling.
     """
 
-    def __init__(self, posterior):
+    def __init__(self, posterior: ModelClass) -> None:
         self.posterior = posterior
 
-    def sample(self, nsteps, x, progress=False) -> np.ndarray:
+    def sample(self, nsteps: int, x: np.ndarray, progress: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
