@@ -50,10 +50,10 @@ class SBIRunner:
         prior: Independent,
         inference_class: NeuralInference,
         nets: List[Callable],
-        embedding_net: nn.Module,
         train_args: Dict,
         output_path: Path,
         device: str = 'cpu',
+        embedding_net: nn.Module = None,
         proposal: Independent = None,
     ):
         self.prior = prior
@@ -73,10 +73,10 @@ class SBIRunner:
         if self.output_path is not None:
             self.output_path = Path(self.output_path)
             self.output_path.mkdir(parents=True, exist_ok=True)
-        
-        # move things to torch device
-        self.embedding_net = self.embedding_net.to(self.device)
 
+        # move things to torch device
+        if self.embedding_net:
+            self.embedding_net = self.embedding_net.to(self.device)
 
     @classmethod
     def from_config(cls, config_path: Path) -> "SBIRunner":
@@ -89,7 +89,7 @@ class SBIRunner:
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
-        
+
         # load prior and proposal distributions
         config['prior']['args']['device'] = config['device']
         prior = load_from_config(config["prior"])
@@ -105,7 +105,7 @@ class SBIRunner:
             )
         else:
             embedding_net = nn.Identity()
-        
+
         # load inference class and neural nets
         inference_class = load_class(
             module_name=config["model"]["module"],
