@@ -50,10 +50,10 @@ class SBIRunner:
         prior: Independent,
         inference_class: NeuralInference,
         nets: List[Callable],
-        device: str,
         embedding_net: nn.Module,
         train_args: Dict,
         output_path: Path,
+        device: str = 'cpu',
         proposal: Independent = None,
     ):
         self.prior = prior
@@ -73,6 +73,10 @@ class SBIRunner:
         if self.output_path is not None:
             self.output_path = Path(self.output_path)
             self.output_path.mkdir(parents=True, exist_ok=True)
+        
+        # move things to torch device
+        self.embedding_net = self.embedding_net.to(self.device)
+
 
     @classmethod
     def from_config(cls, config_path: Path) -> "SBIRunner":
@@ -85,17 +89,24 @@ class SBIRunner:
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
+        
+        # load prior and proposal distributions
+        config['prior']['args']['device'] = config['device']
         prior = load_from_config(config["prior"])
         if "proposal" in config:
             proposal = load_from_config(config["proposal"])
         else:
             proposal = None
+
+        # load embedding net
         if "embedding_net" in config:
             embedding_net = load_from_config(
                 config=config["embedding_net"],
             )
         else:
             embedding_net = nn.Identity()
+        
+        # load inference class and neural nets
         inference_class = load_class(
             module_name=config["model"]["module"],
             class_name=config["model"]["class"],
@@ -105,6 +116,8 @@ class SBIRunner:
             class_name=config["model"]["class"],
             posteriors_config=config["model"]["nets"],
         )
+
+        # load logistics
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
         return cls(
@@ -196,8 +209,8 @@ class SBIRunner:
         """
 
         t0 = time.time()
-        x = torch.Tensor(loader.get_all_data())
-        theta = torch.Tensor(loader.get_all_parameters())
+        x = torch.Tensor(loader.get_all_data()).to(self.device)
+        theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
 
         # instantiate embedding_net architecture, if necessary
         if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):

@@ -121,13 +121,13 @@ class PyroSampler(_BaseSampler):
         """
         return self.posterior.sample(
             (nsteps,),
-            x=torch.Tensor(x),
+            x=torch.Tensor(x).to(self.posterior._device),
             method=self.method,
             num_chains=self.num_chains,
             thin=self.thin,
             warmup_steps=self.burn_in,
             show_progress_bars=progress
-        )
+        ).detach().cpu().numpy()
 
 
 class DirectSampler(ABC):
@@ -153,4 +153,6 @@ class DirectSampler(ABC):
                 Defaults to False.
         """
         return self.posterior.sample(
-            (nsteps,), x=x, show_progress_bars=progress)
+            (nsteps,), x=torch.Tensor(x).to(self.posterior._device), 
+            show_progress_bars=progress
+        ).detach().cpu().numpy()

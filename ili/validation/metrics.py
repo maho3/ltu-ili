@@ -194,8 +194,6 @@ class PlotRankStatistics(_SampleBasedMetric):
                 # except :
                 print("WARNING\n", w)
                 continue
-            if self.backend == 'sbi' and self.sample_method != "emcee":
-                posterior_samples = posterior_samples.detach().numpy()
             mu, std = posterior_samples.mean(
                 axis=0)[:ndim], posterior_samples.std(axis=0)[:ndim]
             rank = [(posterior_samples[:, i] < theta[ii, i]).sum()
@@ -358,8 +356,6 @@ class TARP(_SampleBasedMetric):
             try:
                 samp_i = sampler.sample(
                     self.num_samples, x=x[ii], progress=False)
-                if self.backend == 'sbi' and self.sample_method != "emcee":
-                    samp_i = samp_i.detach().numpy()
                 posterior_samples[:, ii] = samp_i
             except Warning as w:
                 # except :

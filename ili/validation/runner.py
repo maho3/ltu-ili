@@ -12,6 +12,7 @@ from ili.validation.metrics import _BaseMetric
 from ili.utils import load_from_config
 
 try:
+    import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
 except ModuleNotFoundError:
@@ -80,7 +81,7 @@ class ValidationRunner:
             backend=backend,
             posterior=posterior,
             metrics=metrics,
-            output_path=output_path
+            output_path=output_path,
         )
 
     @classmethod
@@ -109,6 +110,7 @@ class ValidationRunner:
         """
         t0 = time.time()
 
+        # load data
         x_test = loader.get_all_data()
         theta_test = loader.get_all_parameters()
         if hasattr(loader, 'simulate'):
