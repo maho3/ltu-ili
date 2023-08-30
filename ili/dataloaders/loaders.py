@@ -12,7 +12,7 @@ import pandas as pd
 from summarizer.dataset import Dataset
 
 try:
-    from sbi.inference import simulate_for_sbi
+    from sbi.simulators.simutils import simulate_in_batches
 except ModuleNotFoundError:
     pass
 
@@ -268,9 +268,9 @@ class SBISimulator(_BaseLoader):
             Tuple[np.array, np.array]: Sampled parameters $\theta$ and
                 simulation-outputs $x$.
         """
-        theta, x = simulate_for_sbi(
-            self.simulator, proposal, num_simulations=self.num_simulations)
-        theta, x = theta.detach().cpu().numpy(), x.detach().cpu().numpy()
+        theta = proposal.sample((self.num_simulations,)).cpu()
+        x = simulate_in_batches(self.simulator, theta)
+        theta, x = theta.numpy(), x.numpy()
         if self.theta is None or self.x is None:
             self.theta, self.x = theta, x
         else:

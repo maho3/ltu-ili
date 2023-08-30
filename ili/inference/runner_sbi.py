@@ -242,9 +242,12 @@ class SBIRunner:
             val_logprob += model.summary["best_validation_log_prob"]
 
         # ensemble all trained models, weighted by validation loss
+        weights = torch.tensor(
+            [float(vl) for vl in val_logprob]
+        ).to(self.device)
         posterior = NeuralPosteriorEnsemble(
             posteriors=posteriors,
-            weights=torch.tensor([float(vl) for vl in val_logprob]),
+            weights=weights,
         )
         with open(self.output_path / "posterior.pkl", "wb") as handle:
             pickle.dump(posterior, handle)
