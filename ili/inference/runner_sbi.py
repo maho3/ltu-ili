@@ -157,7 +157,7 @@ class SBIRunner:
         return [_build_model(embedding_net, model_args)
                 for model_args in posteriors_config]
 
-    def _train_model_SNPE(self, net, theta, x):
+    def _setup_SNPE(self, net, theta, x):
         """Instantiate and train an amoritized posterior SNPE model."""
         model = self.inference_class(
             prior=self.prior,
@@ -165,12 +165,9 @@ class SBIRunner:
             device=self.device,
         )
         model = model.append_simulations(theta, x, proposal=self.proposal)
-        if self.embedding_net and not isinstance(self.embedding_net, nn.Identity):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
-        _ = model.train(**self.train_args)
         return model
 
-    def _train_model_SNLE(self, net, theta, x):
+    def _setup_SNLE(self, net, theta, x):
         """Instantiate and train a likelihood estimation SNLE model."""
         model = self.inference_class(
             prior=self.prior,
@@ -178,12 +175,9 @@ class SBIRunner:
             device=self.device,
         )
         model = model.append_simulations(theta, x)
-        if self.embedding_net and not isinstance(self.embedding_net, nn.Identity):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
-        _ = model.train(**self.train_args)
         return model
 
-    def _train_model_SNRE(self, net, theta, x):
+    def _setup_SNRE(self, net, theta, x):
         """Instantiate and train a ratio estimation SNRE model."""
         model = self.inference_class(
             prior=self.prior,
@@ -191,9 +185,6 @@ class SBIRunner:
             device=self.device,
         )
         model = model.append_simulations(theta, x)
-        if self.embedding_net and not isinstance(self.embedding_net, nn.Identity):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
-        _ = model.train(**self.train_args)
         return model
 
     def __call__(self, loader, seed=None):
@@ -207,8 +198,14 @@ class SBIRunner:
         t0 = time.time()
         x = torch.Tensor(loader.get_all_data())
         theta = torch.Tensor(loader.get_all_parameters())
+
+        # instantiate embedding_net architecture, if necessary
+        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
+            self.embedding_net.initalize_model(n_input=x.shape[-1])
+
+        # setup and train each architecture
         posteriors, summaries = [], []
-        for n, posterior in enumerate(self.nets):
+        for n, net in enumerate(self.nets):
             logging.info(
                 f"Training model {n+1} out of {len(self.nets)}"
                 " ensemble models"
@@ -217,12 +214,16 @@ class SBIRunner:
             if seed is not None:
                 torch.manual_seed(seed)
 
+            # setup training class
             if "SNPE" in self.class_name:
-                model = self._train_model_SNPE(posterior, theta, x)
+                model = self._setup_SNPE(net, theta, x)
             elif "SNLE" in self.class_name:
-                model = self._train_model_SNLE(posterior, theta, x)
+                model = self._setup_SNLE(net, theta, x)
             elif "SNRE" in self.class_name:
-                model = self._train_model_SNRE(posterior, theta, x)
+                model = self._setup_SNRE(net, theta, x)
+
+            # train
+            _ = model.train(**self.train_args)
 
             # save model
             posteriors.append(model.build_posterior())

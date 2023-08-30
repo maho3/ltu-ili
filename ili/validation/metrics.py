@@ -349,10 +349,7 @@ class TARP(_SampleBasedMetric):
         # sample from the posterior
         sampler = self._build_sampler(posterior)
         if self.sample_method == "emcee":
-            if self.sample_params["num_chains"] == -1:
-                P = os.cpu_count()-1
-            else:
-                P = self.num_samples*self.sample_params["num_chains"]
+            P = sampler.num_chains*self.num_samples
         else:
             P = self.num_samples
         posterior_samples = np.zeros(
