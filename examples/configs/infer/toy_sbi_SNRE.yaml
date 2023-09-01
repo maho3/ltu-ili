@@ -8,14 +8,13 @@ prior:
 
 model:
   module: 'sbi.inference'
-  class: 'SNPE_C'
-  neural_posteriors:
-    - model: 'maf'
-      hidden_features: 50 
-      num_transforms: 5
-    - model: 'mdn'
-      hidden_features: 50 
-      num_components: 2
+  class: 'SNRE'
+  nets:
+    - model: 'resnet'
+      hidden_features: 50
+      num_blocks: 3
+    - model: 'mlp'
+      hidden_features: 50
     
 train_args:
   training_batch_size: 32

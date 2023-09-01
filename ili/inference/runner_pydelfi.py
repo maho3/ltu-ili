@@ -19,7 +19,7 @@ class DelfiRunner:
         prior (Independent): prior on the parameters
         inference_class (Any): pydelfi inference class used to that train
             neural posteriors
-        neural_posteriors (List[Callable]): list of neural posteriors to
+        nets (List[Callable]): list of neural posteriors to
             train
         engine_kwargs (Dict): dictionary of additional keywords for Delfi
             engine
@@ -34,7 +34,7 @@ class DelfiRunner:
         config_ndes: List[Dict],
         prior: Any,
         inference_class: Any,
-        neural_posteriors: List[Callable],
+        nets: List[Callable],
         engine_kwargs: Dict,
         train_args: Dict,
         output_path: Path,
@@ -44,7 +44,7 @@ class DelfiRunner:
         self.config_ndes = config_ndes
         self.prior = prior
         self.inference_class = inference_class
-        self.neural_posteriors = neural_posteriors
+        self.nets = nets
         self.engine_kwargs = engine_kwargs
         self.train_args = train_args
         self.output_path = output_path
@@ -75,8 +75,8 @@ class DelfiRunner:
 
         n_params = config['n_params']
         n_data = config['n_data']
-        config_ndes = config["model"]["neural_posteriors"]
-        neural_posteriors = inference_class.load_ndes(
+        config_ndes = config["model"]["nets"]
+        nets = inference_class.load_ndes(
             n_params=n_params,
             n_data=n_data,
             config_ndes=config_ndes,
@@ -90,7 +90,7 @@ class DelfiRunner:
             config_ndes=config_ndes,
             prior=prior,
             inference_class=inference_class,
-            neural_posteriors=neural_posteriors,
+            nets=nets,
             engine_kwargs=engine_kwargs,
             train_args=train_args,
             output_path=output_path,
@@ -111,7 +111,7 @@ class DelfiRunner:
             config_ndes=self.config_ndes,
             data=x[0],
             prior=self.prior,
-            nde=self.neural_posteriors,
+            nde=self.nets,
             results_dir=str(self.output_path)+'/',
             param_names=np.arange(self.n_params).astype(str),
             graph_restore_filename="graph_checkpoint",
