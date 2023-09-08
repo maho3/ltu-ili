@@ -8,19 +8,18 @@ prior:
 
 model:
   module: 'sbi.inference'
-  class: 'SNPE_C'
+  class: 'SNPE'
   nets:
     - model: 'maf'
-      hidden_features: 100 
-      num_transforms: 2
+      hidden_features: 50 
+      num_transforms: 5
     - model: 'mdn'
       hidden_features: 50 
-      num_components: 4
+      num_components: 2
     
 train_args:
   training_batch_size: 32
   learning_rate: 0.001
-  num_round: 2
 
 device: 'cpu'
 output_path: './toy'

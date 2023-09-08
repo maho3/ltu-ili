@@ -31,6 +31,20 @@ class DelfiWrapper(Delfi):
         kwargs.pop('nde')
         self.kwargs = kwargs
         self.config_ndes = config_ndes
+        self.prior.sample = self.prior.draw  # aliasing for consistency
+
+    def potential(self, theta: np.array, x: np.array):
+        """Modification of Delfi.log_prob designed to conform with the
+        form of sbi.utils.posterior_ensemble
+
+        Args:
+            theta (np.array): parameter vector
+            x (np.array): data vector to condition the inference on
+
+        Returns:
+            float: log posterior probability
+        """
+        return self.log_posterior_stacked(theta, x)
 
     def sample(
         self,
@@ -40,7 +54,7 @@ class DelfiWrapper(Delfi):
         burn_in_chain=1000
     ) -> np.array:
         """Modification of Delfi.emcee_sample designed to conform with the
-        sbi.utils.posterior_ensemble sampler
+        form of sbi.utils.posterior_ensemble
 
         Args:
             sample_shape (tuple[int]): size of samples to generate with each
@@ -102,7 +116,7 @@ class DelfiWrapper(Delfi):
             List[Callable]: list of neural posterior models with forward
                 methods
         """
-        neural_posteriors = []
+        nets = []
         for i, model_args in enumerate(config_ndes):
             model_args['args']['index'] = i
             model_args['args']['n_parameters'] = n_params
@@ -118,10 +132,10 @@ class DelfiWrapper(Delfi):
                      if isinstance(x, str) else x
                      for x in model_args['args']['activations']]
 
-            neural_posteriors.append(
+            nets.append(
                 load_from_config(model_args)
             )
-        return neural_posteriors
+        return nets
 
     def save_engine(
         self,

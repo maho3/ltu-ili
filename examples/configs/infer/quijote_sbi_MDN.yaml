@@ -17,7 +17,7 @@ embedding_net:
 model:
   module: 'sbi.inference'
   class: 'SNPE_C'
-  neural_posteriors:
+  nets:
     - model: 'mdn'
       hidden_features: 50
       num_components: 1

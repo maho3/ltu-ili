@@ -2,12 +2,17 @@ backend: 'pydelfi'
 
 meta_path: './toy/tempmeta.pkl'
 output_path: './toy'
+labels: ['t1', 't2', 't3']
 
 metrics:
   single_example:
     module: 'ili.validation.metrics'
     class: 'PlotSinglePosterior'
     args:
-      num_samples: 100
-      labels: ['t1', 't2', 't3']
+      num_samples: 1000
+      sample_method: 'emcee'
+      sample_params:
+        num_chains: 10
+        burn_in: 100
+        thin: 10
 

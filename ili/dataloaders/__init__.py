@@ -1,1 +1,1 @@
-from .loaders import StaticNumpyLoader, SummarizerDatasetLoader, SBISimulator
+from .loaders import _BaseLoader, StaticNumpyLoader, SummarizerDatasetLoader, SBISimulator

@@ -12,3 +12,9 @@ cd examples
 python toy_sbi.py
 ```
 This will run a full inference pipeline, from data loading to model training to validation. Trained models and validation results will then be saved in the `toy` subfolder.
+
+To try other inference models (i.e. likelihood or ratio estimation) with the toy data, you can also use:
+```bash
+python toy_sbi.py --model SNLE
+python toy_sbi.py --model SNRE
+```

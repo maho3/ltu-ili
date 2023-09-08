@@ -8,10 +8,11 @@ import time
 import yaml
 from pathlib import Path
 from typing import List
-from ili.validation.metrics import BaseMetric
+from ili.validation.metrics import _BaseMetric
 from ili.utils import load_from_config
 
 try:
+    import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
 except ModuleNotFoundError:
@@ -26,7 +27,7 @@ class ValidationRunner:
 
     Args:
         posterior (ModelClass): trained sbi posterior inference engine
-        metrics (List[BaseMetric]): list of metric objects to measure on
+        metrics (List[_BaseMetric]): list of metric objects to measure on
             the test set
         backend (str): the backend for the posterior models
             ('sbi' or 'pydelfi')
@@ -36,7 +37,7 @@ class ValidationRunner:
     def __init__(
         self,
         posterior: ModelClass,
-        metrics: List[BaseMetric],
+        metrics: List[_BaseMetric],
         backend: str,
         output_path: Path,
     ):
@@ -73,13 +74,14 @@ class ValidationRunner:
         for key, value in config["metrics"].items():
             value["args"]["backend"] = backend
             value["args"]["output_path"] = output_path
+            value["args"]["labels"] = config["labels"]
             metrics[key] = load_from_config(value)
 
         return cls(
             backend=backend,
             posterior=posterior,
             metrics=metrics,
-            output_path=output_path
+            output_path=output_path,
         )
 
     @classmethod
@@ -95,10 +97,10 @@ class ValidationRunner:
             return pickle.load(handle)
 
     def __call__(
-            self, 
+            self,
             loader,
-            x_obs = None,
-            theta_obs = None
+            x_obs=None,
+            theta_obs=None
     ):
         """Run your validation metrics and save them to file
 
@@ -108,14 +110,16 @@ class ValidationRunner:
         """
         t0 = time.time()
 
+        # load data
         x_test = loader.get_all_data()
         theta_test = loader.get_all_parameters()
         if hasattr(loader, 'simulate'):
             x_obs = loader.get_obs_data()
             theta_obs = loader.get_obs_parameters()
-        
+
         # evaluate metrics
         for metric in self.metrics.values():
+            logging.info(f"Running metric {metric.__class__.__name__}.")
             metric(self.posterior, x_test, theta_test,
                    x_obs=x_obs, theta_obs=theta_obs)
 
