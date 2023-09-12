@@ -156,10 +156,10 @@ class SBIRunner:
             if "SNPE" in class_name:
                 return sbi.utils.posterior_nn(
                     embedding_net=embedding_net, **model_args)
-            elif "SNLE" in class_name:
+            elif "SNLE" in class_name or "MNLE" in class_name:
                 return sbi.utils.likelihood_nn(
                     embedding_net=embedding_net, **model_args)
-            elif "SNRE" in class_name:
+            elif "SNRE" in class_name or "BNRE" in class_name:
                 return sbi.utils.classifier_nn(
                     embedding_net_x=embedding_net, **model_args)
             else:
@@ -231,9 +231,9 @@ class SBIRunner:
             # setup training class
             if "SNPE" in self.class_name:
                 model = self._setup_SNPE(net, theta, x)
-            elif "SNLE" in self.class_name:
+            elif "SNLE" in self.class_name or "MNLE" in self.class_name:
                 model = self._setup_SNLE(net, theta, x)
-            elif "SNRE" in self.class_name:
+            elif "SNRE" in self.class_name or "BNRE" in self.class_name:
                 model = self._setup_SNRE(net, theta, x)
 
             # train
