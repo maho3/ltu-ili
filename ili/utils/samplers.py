@@ -5,6 +5,7 @@ and pydelfi backends, and pyro samplers only for the sbi backend.
 """
 
 import os
+import warnings
 import numpy as np
 import emcee
 from abc import ABC
@@ -161,7 +162,9 @@ class DirectSampler(ABC):
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
         """
-        return self.posterior.sample(
-            (nsteps,), x=torch.Tensor(x).to(self.posterior._device), 
-            show_progress_bars=progress
-        ).detach().cpu().numpy()
+        with warnings.catch_warnings():  # catching a nflows-caused deprecation warning
+            warnings.filterwarnings("ignore")
+            return self.posterior.sample(
+                (nsteps,), x=torch.Tensor(x).to(self.posterior._device),
+                show_progress_bars=progress
+            ).detach().cpu().numpy()
