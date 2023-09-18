@@ -76,10 +76,6 @@ class SBIRunner:
             self.output_path = Path(self.output_path)
             self.output_path.mkdir(parents=True, exist_ok=True)
 
-        # move things to torch device
-        if self.embedding_net:
-            self.embedding_net = self.embedding_net.to(self.device)
-
     @classmethod
     def from_config(cls, config_path: Path) -> "SBIRunner":
         """Create an sbi runner from a yaml config file
