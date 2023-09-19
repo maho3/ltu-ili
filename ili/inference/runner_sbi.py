@@ -234,7 +234,9 @@ class SBIRunner:
                 model = self._setup_SNRE(net, theta, x)
 
             # train
-            _ = model.train(**self.train_args)
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore")
+                _ = model.train(**self.train_args)
 
             # save model
             posteriors.append(model.build_posterior())
