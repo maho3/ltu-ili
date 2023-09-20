@@ -6,7 +6,6 @@ import json
 import yaml
 import time
 import logging
-import warnings
 import pickle
 import torch
 import torch.nn as nn
@@ -234,9 +233,7 @@ class SBIRunner:
                 model = self._setup_SNRE(net, theta, x)
 
             # train
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore")
-                _ = model.train(**self.train_args)
+            _ = model.train(**self.train_args)
 
             # save model
             posteriors.append(model.build_posterior())
@@ -246,10 +243,8 @@ class SBIRunner:
         weights = torch.tensor(
             [float(x["best_validation_log_prob"][0]) for x in summaries]
         ).to(self.device)
-        with warnings.catch_warnings():  # catching an sbi-caused warning
-            warnings.filterwarnings("ignore")
-            posterior = NeuralPosteriorEnsemble(
-                posteriors=posteriors, weights=weights)
+        posterior = NeuralPosteriorEnsemble(
+            posteriors=posteriors, weights=weights)
         # save if output path is specified
         if self.output_path is not None:
             with open(self.output_path / "posterior.pkl", "wb") as handle:
@@ -317,12 +312,10 @@ class SBIRunnerSequential(SBIRunner):
             val_logprob = torch.exp(val_logprob - val_logprob.max())
             val_logprob /= val_logprob.sum()
 
-            with warnings.catch_warnings():  # catching an sbi-caused warning
-                warnings.filterwarnings("ignore")
-                posterior = NeuralPosteriorEnsemble(
-                    posteriors=posteriors,
-                    weights=val_logprob
-                )
+            posterior = NeuralPosteriorEnsemble(
+                posteriors=posteriors,
+                weights=val_logprob
+            )
 
             with open(self.output_path / f"posterior_{rnd}.pkl", "wb") as f:
                 pickle.dump(posterior, f)

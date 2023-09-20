@@ -124,14 +124,12 @@ class PlotSinglePosterior(_SampleBasedMetric):
         samples = sampler.sample(self.num_samples, x=x_obs, progress=True)
 
         # plot
-        with warnings.catch_warnings():  # catching mpl-caused warning
-            warnings.filterwarnings("ignore")
-            g = sns.pairplot(
-                pd.DataFrame(samples, columns=self.labels),
-                kind=None,
-                diag_kind="kde",
-                corner=True,
-            )
+        g = sns.pairplot(
+            pd.DataFrame(samples, columns=self.labels),
+            kind=None,
+            diag_kind="kde",
+            corner=True,
+        )
         g.map_lower(sns.kdeplot, levels=4, color=".2")
 
         for i in range(ndim):
