@@ -162,6 +162,6 @@ class DirectSampler(ABC):
                 Defaults to False.
         """
         return self.posterior.sample(
-            (nsteps,), x=torch.Tensor(x).to(self.posterior._device), 
+            (nsteps,), x=torch.Tensor(x).to(self.posterior._device),
             show_progress_bars=progress
         ).detach().cpu().numpy()
