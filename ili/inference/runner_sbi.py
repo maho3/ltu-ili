@@ -15,6 +15,7 @@ from typing import Dict, List, Callable
 from torch.distributions import Independent
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+from ili.dataloaders import _BaseLoader
 from ili.utils import load_class, load_from_config
 
 logging.basicConfig(level=logging.INFO)
@@ -73,10 +74,6 @@ class SBIRunner:
         if self.output_path is not None:
             self.output_path = Path(self.output_path)
             self.output_path.mkdir(parents=True, exist_ok=True)
-
-        # move things to torch device
-        if self.embedding_net:
-            self.embedding_net = self.embedding_net.to(self.device)
 
     @classmethod
     def from_config(cls, config_path: Path) -> "SBIRunner":
@@ -155,10 +152,10 @@ class SBIRunner:
             if "SNPE" in class_name:
                 return sbi.utils.posterior_nn(
                     embedding_net=embedding_net, **model_args)
-            elif "SNLE" in class_name:
+            elif "SNLE" in class_name or "MNLE" in class_name:
                 return sbi.utils.likelihood_nn(
                     embedding_net=embedding_net, **model_args)
-            elif "SNRE" in class_name:
+            elif "SNRE" in class_name or "BNRE" in class_name:
                 return sbi.utils.classifier_nn(
                     embedding_net_x=embedding_net, **model_args)
             else:
@@ -170,7 +167,7 @@ class SBIRunner:
         return [_build_model(embedding_net, model_args)
                 for model_args in posteriors_config]
 
-    def _setup_SNPE(self, net, theta, x):
+    def _setup_SNPE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
         """Instantiate and train an amoritized posterior SNPE model."""
         model = self.inference_class(
             prior=self.prior,
@@ -180,7 +177,7 @@ class SBIRunner:
         model = model.append_simulations(theta, x, proposal=self.proposal)
         return model
 
-    def _setup_SNLE(self, net, theta, x):
+    def _setup_SNLE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
         """Instantiate and train a likelihood estimation SNLE model."""
         model = self.inference_class(
             prior=self.prior,
@@ -190,7 +187,7 @@ class SBIRunner:
         model = model.append_simulations(theta, x)
         return model
 
-    def _setup_SNRE(self, net, theta, x):
+    def _setup_SNRE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
         """Instantiate and train a ratio estimation SNRE model."""
         model = self.inference_class(
             prior=self.prior,
@@ -200,11 +197,11 @@ class SBIRunner:
         model = model.append_simulations(theta, x)
         return model
 
-    def __call__(self, loader, seed=None):
+    def __call__(self, loader: _BaseLoader, seed: int = None):
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): dataloader with stored summary-parameter pairs
+            loader (_BaseLoader): dataloader with stored summary-parameter pairs
             seed (int): torch seed for reproducibility
         """
 
@@ -230,9 +227,9 @@ class SBIRunner:
             # setup training class
             if "SNPE" in self.class_name:
                 model = self._setup_SNPE(net, theta, x)
-            elif "SNLE" in self.class_name:
+            elif "SNLE" in self.class_name or "MNLE" in self.class_name:
                 model = self._setup_SNLE(net, theta, x)
-            elif "SNRE" in self.class_name:
+            elif "SNRE" in self.class_name or "BNRE" in self.class_name:
                 model = self._setup_SNRE(net, theta, x)
 
             # train
@@ -244,7 +241,8 @@ class SBIRunner:
 
         # ensemble all trained models, weighted by validation loss
         weights = torch.tensor(
-            [float(x["best_validation_log_prob"][0]) for x in summaries])
+            [float(x["best_validation_log_prob"][0]) for x in summaries]
+        ).to(self.device)
         posterior = NeuralPosteriorEnsemble(
             posteriors=posteriors, weights=weights)
         # save if output path is specified
@@ -265,11 +263,11 @@ class SBIRunnerSequential(SBIRunner):
     multiple rounds
     """
 
-    def __call__(self, loader):
+    def __call__(self, loader: _BaseLoader):
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): data loader with ability to simulate
+            loader (_BaseLoader): data loader with ability to simulate
                 summary-parameter pairs
         """
         t0 = time.time()
