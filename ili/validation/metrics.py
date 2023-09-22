@@ -145,8 +145,110 @@ class PlotSinglePosterior(_SampleBasedMetric):
             return g
         g.savefig(self.output_path / "plot_single_posterior.jpg",
                   dpi=200, bbox_inches='tight')
+        
+class PosteriorCoverage(_SampleBasedMetric):
+    
+    """Plot rank histogram, posterior coverage, and true-pred diagnostics
+ based on rank statistics inferred from posteriors. These are derived
+ from sbi posterior metrics originally written by Chirag Modi.
+ Reference: https://github.com/modichirag/contrastive_cosmology/blob/main/src/sbiplots.py
 
+ Args:
+     num_samples (int): number of posterior samples
+     labels (List[str]): list of parameter names
+     output_path (Path): path where to store outputs
+     
+ Compute the TARP validation metric
+ Reference: https://arxiv.org/abs/2302.03026.
 
+ Args:
+     num_samples (int): number of posterior samples
+     output_path (Path): path where to store outputs
+ """
+ 
+    def __call__(
+        self,
+        posterior: ModelClass,
+        x: np.array,
+        theta: np.array,
+        x_obs: Optional[np.array] = None,
+        theta_obs: Optional[np.array] = None,
+        plot_list: Optional[list] = ["coverage"],
+        references: str = "random",
+        metric: str = "euclidean"
+    ):
+        """Given a posterior and test data, compute the TARP metric and save
+        to file.
+
+        Args:
+            posterior (ModelClass): trained sbi posterior inference engine
+            x (np.array): tensor of test summaries
+            theta (np.array): tensor of test parameters
+            x_obs (np.array, optional): Not used
+            theta_obs (np.array, optional): Not used
+            references (str, optional): how to select the reference points.
+                Defaults to "random".
+            metric (str, optional): which metric to use.
+                Defaults to "euclidean".
+        """
+        # build for the posterior (required for both ranks and TARP)
+        sampler = self._build_sampler(posterior)
+        ndim = theta.shape[1]
+        
+        # Initialize posterior samples array ; careful about size consistency given backend
+        if self.sample_method == "emcee":
+            P = sampler.num_chains*self.num_samples
+        else:
+            P = self.num_samples
+        #(total sample for each test x, number of realizations in test set, dim of theta)
+        posterior_samples = np.zeros((P, x.shape[0], theta.shape[1]))
+    
+
+        # Next line: for each x realization of the test set
+        for ii in tqdm.tqdm(range(x.shape[0])):
+            try:
+                # Sample posterior P(theta | x[ii])
+                samp_i = sampler.sample(self.num_samples, x=x[ii], progress=False) # shape (num_samples, dim of theta)
+                posterior_samples[:, ii] = samp_i # same as posterior_samples[:, ii, :].shape
+            except Warning as w:
+                # except :
+                print("WARNING\n", w)
+                continue
+        
+        # TODO
+        if "coverage" in plot_list:
+            pass
+        
+        # TODO
+        if "histogram" in plot_list:
+            pass
+        
+        # TODO
+        if "predictions" in plot_list:
+            pass
+        
+        
+        if "TARP" in plot_list:
+            # TARP Expected Coverage Probability
+            alpha, ecp = tarp.get_drp_coverage(posterior_samples,
+                                               theta,
+                                               references=references,
+                                               metric=metric)
+    
+            # plot the TARP metric
+            fig, ax = plt.subplots(1, 1, figsize=(4, 4))
+            ax.plot([0, 1], [0, 1], ls='--', color='k')
+            ax.plot(alpha, ecp, label='TARP')
+            ax.legend()
+            ax.set_ylabel("Expected Coverage")
+            ax.set_xlabel("Credibility Level")
+    
+            if self.output_path is None:
+                return fig
+            plt.savefig(self.output_path / "plot_tarp.jpg",
+                        dpi=300, bbox_inches='tight')
+            
+            
 class PlotRankStatistics(_SampleBasedMetric):
     """Plot rank histogram, posterior coverage, and true-pred diagnostics
     based on rank statistics inferred from posteriors. These are derived
@@ -356,6 +458,11 @@ class TARP(_SampleBasedMetric):
             try:
                 samp_i = sampler.sample(
                     self.num_samples, x=x[ii], progress=False)
+                if ii == x.shape[0] -1:
+                    print(posterior_samples.shape)
+                    print(posterior_samples[:, ii].shape)
+                    print(posterior_samples[:, ii, :].shape)
+                    print(ii)
                 posterior_samples[:, ii] = samp_i
             except Warning as w:
                 # except :
@@ -370,7 +477,7 @@ class TARP(_SampleBasedMetric):
         # plot the TARP metric
         fig, ax = plt.subplots(1, 1, figsize=(4, 4))
         ax.plot([0, 1], [0, 1], ls='--', color='k')
-        ax.plot(alpha, ecp, label='DRP')
+        ax.plot(alpha, ecp, label='TARP')
         ax.legend()
         ax.set_ylabel("Expected Coverage")
         ax.set_xlabel("Credibility Level")
