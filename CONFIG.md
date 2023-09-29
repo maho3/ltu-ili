@@ -10,10 +10,10 @@ In general, these steps are designed to be independent. For example, if you want
 
 ## Data Loading
 We have three primary objects for dataloading:
-- `NumpyLoader`: Loads summaries and parameters from `np.array`'s stored in memory.
-- `StaticNumpyLoader`: Loads summaries and parameters from `.npy` files on disk.
-- `SummarizerDatasetLoader`: Loads summaries following the [`ili_summarizer.Dataset`](https://github.com/florpi/ili-summarizer/blob/3d9d4005cfbc187afdbfbed2a5a4414bc07902ef/summarizer/dataset.py#L6) convention, as `xarray.DataArray`'s stored in `.nc` files on disk. Also, it loads parameters from `.txt` files on disk.
-- `SBISimulator`: Contains a `simulate` function which, when given new parameters, generates new summaries. This interface is then used to train multiround inference with e.g. `SBIRunnerSequential`. It also can seperately load `.npy` files of test data and parameters from disk, for validation.
+- [`NumpyLoader`](./ili/dataloaders/loaders.py#L47): Loads summaries and parameters from `np.array`'s stored in memory.
+- [`StaticNumpyLoader`](./ili/dataloaders/loaders.py#L81): Loads summaries and parameters from `.npy` files on disk.
+- [`SummarizerDatasetLoader`](./ili/dataloaders/loaders.py#L101): Loads summaries following the [`ili_summarizer.Dataset`](https://github.com/florpi/ili-summarizer/blob/3d9d4005cfbc187afdbfbed2a5a4414bc07902ef/summarizer/dataset.py#L6) convention, as `xarray.DataArray`'s stored in `.nc` files on disk. Also, it loads parameters from `.txt` files on disk.
+- [`SBISimulator`](./ili/dataloaders/loaders.py#L208): Contains a `simulate` function which, when given new parameters, generates new summaries. This interface is then used to train multiround inference with e.g. `SBIRunnerSequential`. It also can seperately load `.npy` files of test data and parameters from disk, for validation.
 
 `NumpyLoader`s are only built from inline initialization, but the remaining classes can take config files that look like:
 
