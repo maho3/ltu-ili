@@ -9,7 +9,7 @@ This document provides guidance to configuring an inference pipeline with ltu-il
 In general, these steps are designed to be independent. For example, if you wanted to try out a different training model, all you would need to do is change the training configuration, and the data loading and validation stages should integrate (nearly) seamlessly with the new model. Each pipeline stage specified below can be instantiated from `json`-like configuration files or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb).
 
 ## Data Loading
-We have three primary objects for dataloading:
+We have four primary objects for dataloading:
 - [`NumpyLoader`](./ili/dataloaders/loaders.py#L47): Loads summaries and parameters from `np.array`'s stored in memory.
 - [`StaticNumpyLoader`](./ili/dataloaders/loaders.py#L81): Loads summaries and parameters from `.npy` files on disk.
 - [`SummarizerDatasetLoader`](./ili/dataloaders/loaders.py#L101): Loads summaries following the [`ili_summarizer.Dataset`](https://github.com/florpi/ili-summarizer/blob/3d9d4005cfbc187afdbfbed2a5a4414bc07902ef/summarizer/dataset.py#L6) convention, as `xarray.DataArray`'s stored in `.nc` files on disk. Also, it loads parameters from `.txt` files on disk.
@@ -52,7 +52,7 @@ theta_file: 'theta.npy'  # filename to save simulation parameters
 num_simulations: 400  # how many simulations to generate for each training round
 ```
 
-You are also welcome also to design your own dataloading objects, so long as they contain the functions: `__len__`, `get_all_data`, and `get_all_parameters`.
+You are also welcome to design your own dataloading objects, so long as they contain the functions: `__len__`, `get_all_data`, and `get_all_parameters`.
 
 ## Training
 There are three available training engines in ltu-ili, SBIRunner and SBIRunnerSequential for `sbi` models, and PydelfiRunner for `pydelfi` models. Each of these engines can be configured from a `yaml`-like configuration file or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb).
@@ -136,7 +136,7 @@ model:
   module: 'ili.inference.pydelfi_wrappers'
   class: 'DelfiWrapper'
   kwargs:
-    nwalkers: 20 (FIX ME?)
+    nwalkers: 20
   nets:
     - module: 'pydelfi.ndes'
       class: 'MixtureDensityNetwork'
