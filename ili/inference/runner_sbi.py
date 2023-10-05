@@ -24,6 +24,12 @@ default_config = (
     Path(__file__).parent.parent / "examples/configs/sample_sbi.yaml"
 )
 
+class PosteriorEnsemble:
+    
+    def __init__(self, posteriors, signatures):
+        self.posteriors = posteriors # NeuralPosteriorEnsemble instance
+        self.signatures = signatures
+
 
 class SBIRunner:
     """Class to train posterior inference models using the sbi package
