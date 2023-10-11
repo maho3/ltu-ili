@@ -211,6 +211,8 @@ class PlotRankStatistics(_SampleBasedMetric):
         npars = ranks.shape[-1]
 
         fig, ax = plt.subplots(1, npars, figsize=(npars * 3, 4))
+        if npars == 1:
+            ax = [ax]
 
         for i in range(npars):
             ax[i].hist(np.array(ranks)[:, i], bins=nbins)
@@ -237,6 +239,8 @@ class PlotRankStatistics(_SampleBasedMetric):
         unicov = [np.sort(np.random.uniform(0, 1, ncounts)) for j in range(20)]
 
         fig, ax = plt.subplots(1, npars, figsize=(npars * 4, 4))
+        if npars == 1:
+            ax = [ax]
 
         for i in range(npars):
             xr = np.sort(ranks[:, i])
@@ -266,7 +270,10 @@ class PlotRankStatistics(_SampleBasedMetric):
 
         # plot predictions
         fig, axs = plt.subplots(1, npars, figsize=(npars * 4, 4))
-        axs = axs.flatten()
+        if npars == 1:
+            axs = [axs]
+        else:
+            axs = axs.flatten()
         for j in range(npars):
             axs[j].errorbar(trues[:, j], mus[:, j], stds[:, j],
                             fmt="none", elinewidth=0.5, alpha=0.5)
