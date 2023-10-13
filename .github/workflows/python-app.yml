@@ -27,7 +27,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install flake8 pytest
-          pip install -e "ltu-ili[sbi]"
+          pip install -e .[sbi]
       - name: Lint with Ruff
         run: |
           pip install ruff
