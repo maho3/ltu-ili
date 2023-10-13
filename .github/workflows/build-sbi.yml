@@ -28,7 +28,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 pytest
           pip install -e .[sbi]
-          git clone git@github.com:florpi/ili-summarizer.git
+          git clone https://github.com/florpi/ili-summarizer.git
           pip install -e ili-summarizer
       - name: Lint with Ruff
         run: |
