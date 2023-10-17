@@ -4,6 +4,8 @@ posterior_path: './toy/posterior.pkl'
 output_path: './toy'
 labels: ['t1', 't2', 't3']
 
+ensemble_mode: False
+
 metrics:
   single_example:
     module: 'ili.validation.metrics'
@@ -20,10 +22,22 @@ metrics:
     module: 'ili.validation.metrics'
     class: 'PosteriorCoverage'
     args:
-      num_samples: 100
+      num_samples: 10
       sample_method: 'slice_np_vectorized'
       sample_params:
         num_chains: -1
         burn_in: 20
         thin: 1
       plot_list: ["coverage", "histogram", "predictions", "TARP"]
+
+
+  samples:
+    module: 'ili.validation.metrics'
+    class: 'PosteriorSamples'
+    args:
+      num_samples: 3
+      sample_method: 'slice_np_vectorized'
+      sample_params:
+        num_chains: -1
+        burn_in: 20
+        thin: 1

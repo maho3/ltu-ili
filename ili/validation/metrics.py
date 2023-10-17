@@ -70,13 +70,20 @@ class _SampleBasedMetric(_BaseMetric):
             if self.backend != 'sbi':
                 raise ValueError(
                     'Pyro backend is only available for sbi posteriors')
+                    
             # check if DirectPosterior is available
+            # First case: we have a NeuralPosteriorEnsemble instance
             if isinstance(posterior, NeuralPosteriorEnsemble):
+                # We only need to check the first element (one model class for a posterior ensemble)
                 if isinstance(posterior.posteriors[0], DirectPosterior):
                     warnings.warn(
                         'DirectPosterior detected. '
                         'Ignoring mcmc sampler parameters.')
                     return DirectSampler(posterior)
+            # Second case (when ValidationRunner.ensemble_mode = False)
+            elif isinstance(posterior, DirectPosterior):
+                return DirectSampler(posterior)
+            
             return PyroSampler(posterior, method=self.sample_method,
                                **self.sample_params)
 
@@ -90,7 +97,9 @@ class PosteriorSamples(_SampleBasedMetric):
         self,
         posterior: ModelClass,
         x: np.array,
-        theta: np.array
+        theta: np.array,
+        x_obs: Optional[np.array] = None,
+        theta_obs: Optional[np.array] = None # here for debuggin purpose, otherwise error in runner.py line 123
     ):
         """Given a posterior and test data, plot the inferred posterior of a
         single test point and save to file.
