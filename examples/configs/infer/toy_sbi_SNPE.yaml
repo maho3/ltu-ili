@@ -9,13 +9,15 @@ prior:
 model:
   module: 'sbi.inference'
   class: 'SNPE'
+  str_save: 'new_PR_sr_'
   nets:
     - model: 'maf'
       hidden_features: 50 
       num_transforms: 5
+      signature: "test_sig_maf_"
     - model: 'mdn'
       hidden_features: 50 
-      num_components: 2
+      num_components: 6
     
 train_args:
   training_batch_size: 32

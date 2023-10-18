@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 import sbi
 from pathlib import Path
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Optional
 from torch.distributions import Independent
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
@@ -26,8 +26,8 @@ default_config = (
 
 class PosteriorEnsemble:
     
-    def __init__(self, posteriors, signatures):
-        self.posteriors = posteriors # NeuralPosteriorEnsemble instance
+    def __init__(self, ensemble, signatures):
+        self.ensemble = ensemble # NeuralPosteriorEnsemble instance
         self.signatures = signatures
 
 
@@ -56,12 +56,14 @@ class SBIRunner:
         self,
         prior: Independent,
         inference_class: NeuralInference,
-        nets: List[Callable],
+        nets: List[Callable], # eg list of posterior_nn instances (callable from sbi package)
         train_args: Dict,
         output_path: Path,
         device: str = 'cpu',
         embedding_net: nn.Module = None,
         proposal: Independent = None,
+        signatures: Optional[List[str]] = None, # for the different NNs trained in the ensemble
+        str_save: Optional[str] = ""
     ):
         self.prior = prior
         self.proposal = proposal
@@ -80,6 +82,9 @@ class SBIRunner:
         if self.output_path is not None:
             self.output_path = Path(self.output_path)
             self.output_path.mkdir(parents=True, exist_ok=True)
+        
+        self.signatures = signatures
+        self.str_save = str_save
 
     @classmethod
     def from_config(cls, config_path: Path) -> "SBIRunner":
@@ -119,6 +124,15 @@ class SBIRunner:
             class_name=config["model"]["class"],
             posteriors_config=config["model"]["nets"],
         )
+        
+        str_save = config["model"]["str_save"]
+        signatures = []
+        for type_nn in config["model"]["nets"]:
+            if "signature" in type_nn:
+                signatures.append(type_nn["signature"])
+            else:
+                signatures.append(type_nn["model"]+ "_")                
+        #signatures = [type_nn["model"] for type_nn in config["model"]["nets"]]
 
         # load logistics
         train_args = config["train_args"]
@@ -132,6 +146,8 @@ class SBIRunner:
             embedding_net=embedding_net,
             train_args=train_args,
             output_path=output_path,
+            signatures = signatures,
+            str_save = str_save,
         )
 
     @classmethod
@@ -169,7 +185,6 @@ class SBIRunner:
                     f"Model class {class_name} not supported. "
                     "Please choose one of SNPE, SNLE, or SNRE."
                 )
-
         return [_build_model(embedding_net, model_args)
                 for model_args in posteriors_config]
 
@@ -210,7 +225,6 @@ class SBIRunner:
             loader (_BaseLoader): dataloader with stored summary-parameter pairs
             seed (int): torch seed for reproducibility
         """
-
         t0 = time.time()
         x = torch.Tensor(loader.get_all_data()).to(self.device)
         theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
@@ -229,7 +243,6 @@ class SBIRunner:
             # set seed for reproducibility
             if seed is not None:
                 torch.manual_seed(seed)
-
             # setup training class
             if "SNPE" in self.class_name:
                 model = self._setup_SNPE(net, theta, x)
@@ -237,10 +250,12 @@ class SBIRunner:
                 model = self._setup_SNLE(net, theta, x)
             elif "SNRE" in self.class_name or "BNRE" in self.class_name:
                 model = self._setup_SNRE(net, theta, x)
+            
+            #print(dir(model))
 
             # train
             _ = model.train(**self.train_args)
-
+            
             # save model
             posteriors.append(model.build_posterior())
             summaries.append(model.summary)
@@ -251,16 +266,28 @@ class SBIRunner:
         ).to(self.device)
         posterior = NeuralPosteriorEnsemble(
             posteriors=posteriors, weights=weights)
+        
+        if self.signatures is None:
+            self.signatures = [""]*len(summaries)
+        print(self.signatures)
+        
+        # Instanciate custom class with NPE and signature
+        posterior_ensemble = PosteriorEnsemble(posterior, self.signatures)
+        
+            
+        #print("NUMBER OF POSTERIOR ESTIMATES IS %i"%posterior.num_components)
         # save if output path is specified
         if self.output_path is not None:
-            with open(self.output_path / "posterior.pkl", "wb") as handle:
-                pickle.dump(posterior, handle)
-            with open(self.output_path / "summary.json", "w") as handle:
+            str_p = self.str_save + "posterior.pkl"
+            str_s = self.str_save + "summary.json"
+            with open(self.output_path / str_p, "wb") as handle:
+                pickle.dump(posterior_ensemble, handle)
+            with open(self.output_path / str_s, "w") as handle:
                 json.dump(summaries, handle)
 
         logging.info(
             f"It took {time.time() - t0} seconds to train all models.")
-        return posterior, summaries
+        return posterior_ensemble, summaries
 
 
 class SBIRunnerSequential(SBIRunner):
@@ -322,14 +349,24 @@ class SBIRunnerSequential(SBIRunner):
                 posteriors=posteriors,
                 weights=val_logprob
             )
-
-            with open(self.output_path / f"posterior_{rnd}.pkl", "wb") as f:
-                pickle.dump(posterior, f)
-            proposal = posterior.set_default_x(x_obs)
+            
+            if self.signatures is None:
+                self.signatures = [""]*len(posteriors)
+                
+            print(self.signatures)
+                
+            # Instanciate custom class with NPE and signature
+            posterior_ensemble = PosteriorEnsemble(posterior, self.signatures)
+            
+            str_p = self.str_save + f"posterior_{rnd}.pkl"
+            with open(self.output_path / str_p, "wb") as f:
+                pickle.dump(posterior_ensemble, f)
+            proposal = posterior_ensemble.ensemble.set_default_x(x_obs)
             logging.info(
                 f"It took {time.time()-t1} seconds to complete round {rnd+1}.")
-
-        with open(self.output_path / "posterior.pkl", "wb") as f:
-            pickle.dump(posterior, f)
+        
+        str_p = self.str_save + "posterior.pkl"
+        with open(self.output_path / str_p, "wb") as f:
+            pickle.dump(posterior_ensemble, f)
         logging.info(
             f"It took {time.time() - t0} seconds to train all models.")

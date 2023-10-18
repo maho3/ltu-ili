@@ -21,6 +21,7 @@ try:
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
     ModelClass = NeuralPosterior
     import tarp  # doesn't yet work with pydelfi/python 3.6
+    from ili.inference import PosteriorEnsemble
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
@@ -40,11 +41,13 @@ class _BaseMetric(ABC):
         backend: str,
         output_path: Path,
         labels: Optional[List[str]] = None,
+        #signature: Optional[str] = "",
     ):
         """Construct the base metric."""
         self.backend = backend
         self.output_path = output_path
         self.labels = labels
+        #self.signature = signature
 
 
 class _SampleBasedMetric(_BaseMetric):
@@ -56,6 +59,7 @@ class _SampleBasedMetric(_BaseMetric):
         sample_method: str = 'emcee',
         sample_params: dict = {},
         labels: Optional[List[str]] = None,
+        #signature: Optional[str] = "",
     ):
         super().__init__(backend, output_path, labels)
         self.num_samples = num_samples
@@ -98,6 +102,7 @@ class PosteriorSamples(_SampleBasedMetric):
         posterior: ModelClass,
         x: np.array,
         theta: np.array,
+        signature: Optional[str] = "",
         x_obs: Optional[np.array] = None,
         theta_obs: Optional[np.array] = None # here for debuggin purpose, otherwise error in runner.py line 123
     ):
@@ -140,7 +145,8 @@ class PosteriorSamples(_SampleBasedMetric):
             
         if self.output_path is None:
             return posterior_samples
-        np.save(self.output_path / 'posterior_samples.npy',posterior_samples)
+        strFig = signature + "posterior_samples.npy"
+        np.save(self.output_path / strFig, posterior_samples)
 
 class PlotSinglePosterior(_SampleBasedMetric):
     """Perform inference sampling on a single test point and plot the
@@ -160,7 +166,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
         x: np.array,
         theta: np.array,
         x_obs: Optional[np.array] = None,
-        theta_obs: Optional[np.array] = None
+        theta_obs: Optional[np.array] = None,
+        signature: Optional[str] = ""
     ):
         """Given a posterior and test data, plot the inferred posterior of a
         single test point and save to file.
@@ -204,7 +211,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
         if self.output_path is None:
             return g
-        g.savefig(self.output_path / "plot_single_posterior.jpg",
+        strFig = signature + "plot_single_posterior.jpg"
+        g.savefig(self.output_path / strFig,
                   dpi=200, bbox_inches='tight')
         
 class PosteriorCoverage(_SampleBasedMetric):
@@ -232,7 +240,7 @@ class PosteriorCoverage(_SampleBasedMetric):
         super(PosteriorCoverage,self).__init__(**kw)
     
     ## First, plot functions: histogram, coverage, predictions and TARP
-    def _plot_ranks_histogram(self, ranks, nbins=10):
+    def _plot_ranks_histogram(self, ranks, signature, nbins=10):
         ncounts = ranks.shape[0] / nbins
         npars = ranks.shape[-1]
 
@@ -253,10 +261,11 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        plt.savefig(self.output_path / 'rankplot.jpg',
+        strFig = signature + "rankplot.jpg"
+        plt.savefig(self.output_path / strFig,
                     dpi=300, bbox_inches='tight')
 
-    def _plot_coverage(self, ranks, plotscatter=True):
+    def _plot_coverage(self, ranks,signature, plotscatter=True):
         ncounts = ranks.shape[0]
         npars = ranks.shape[-1]
 
@@ -284,10 +293,11 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        plt.savefig(self.output_path / 'coverage.jpg',
+        strFig = signature + "coverage.jpg"
+        plt.savefig(self.output_path / strFig,
                     dpi=300, bbox_inches='tight')
 
-    def _plot_predictions(self, trues, mus, stds):
+    def _plot_predictions(self, trues, mus, stds, signature):
         npars = trues.shape[-1]
 
         # plot predictions
@@ -309,10 +319,11 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        plt.savefig(self.output_path / 'predictions.jpg',
+        strFig = signature + "predictions.jpg"
+        plt.savefig(self.output_path / strFig,
                     dpi=300, bbox_inches='tight')
         
-    def _plot_TARP(self, alpha, ecp):
+    def _plot_TARP(self, alpha, ecp, signature):
         # plot the TARP metric
         fig, ax = plt.subplots(1, 1, figsize=(4, 4))
         ax.plot([0, 1], [0, 1], ls='--', color='k')
@@ -323,7 +334,8 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        plt.savefig(self.output_path / "plot_tarp.jpg",
+        strFig = signature + "plot_tarp.jpg"
+        plt.savefig(self.output_path / strFig,
                     dpi=300, bbox_inches='tight')
 
  
@@ -334,6 +346,7 @@ class PosteriorCoverage(_SampleBasedMetric):
         theta: np.array,
         x_obs: Optional[np.array] = None,
         theta_obs: Optional[np.array] = None,
+        signature: Optional[str] = "",
         plot_list: Optional[list] = ["coverage", "histogram", "predictions", "TARP"], #plot each metric by default
         references: str = "random",
         metric: str = "euclidean"
@@ -403,11 +416,11 @@ class PosteriorCoverage(_SampleBasedMetric):
       
         # Save the plots
         if "coverage" in plot_list:
-            self._plot_coverage(ranks)
+            self._plot_coverage(ranks, signature)
         if "histogram" in plot_list:
-            self._plot_ranks_histogram(ranks)
+            self._plot_ranks_histogram(ranks, signature)
         if "predictions" in plot_list:
-            self._plot_predictions(trues, mus, stds)
+            self._plot_predictions(trues, mus, stds, signature)
         
         # Specifically for TARP
         if "TARP" in plot_list:
@@ -422,4 +435,4 @@ class PosteriorCoverage(_SampleBasedMetric):
                                                references=references,
                                                metric=metric)
             
-            self._plot_TARP(alpha, ecp)
+            self._plot_TARP(alpha, ecp, signature)

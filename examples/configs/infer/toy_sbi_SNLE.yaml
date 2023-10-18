@@ -16,6 +16,9 @@ model:
     - model: 'mdn'
       hidden_features: 50 
       num_components: 2
+    - model: 'mdn'
+      hidden_features: 50 
+      num_components: 5
     
 train_args:
   training_batch_size: 32

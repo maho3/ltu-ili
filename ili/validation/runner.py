@@ -16,6 +16,7 @@ try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+    from ili.inference import PosteriorEnsemble
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
@@ -42,6 +43,7 @@ class ValidationRunner:
         backend: str,
         output_path: Path,
         ensemble_mode: Optional[bool] = False,
+        signatures: Optional[List[str]] = None,
     ):
         self.posterior = posterior
         self.metrics = metrics
@@ -50,6 +52,7 @@ class ValidationRunner:
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
         self.ensemble_mode = ensemble_mode
+        self.signatures = signatures
 
     @classmethod
     def from_config(cls, config_path) -> "ValidationRunner":
@@ -66,7 +69,11 @@ class ValidationRunner:
 
         backend = config['backend']
         if backend == 'sbi':
-            posterior = cls.load_posterior_sbi(config["posterior_path"])
+            posterior_ensemble = cls.load_posterior_sbi(config["posterior_path"])
+            posterior = posterior_ensemble.ensemble
+            signatures = posterior_ensemble.signatures
+            print("SIGNATURES")
+            print(signatures)
         elif backend == 'pydelfi':
             posterior = DelfiWrapper.load_engine(config["meta_path"])
         else:
@@ -74,13 +81,9 @@ class ValidationRunner:
         output_path = Path(config["output_path"])
         if "ensemble_mode" in config:
             ensemble_mode = config["ensemble_mode"]
-        #print("HELLO 17/10/2023")
-        #print(posterior)
-        #print(type(posterior))
+
         print("NUMBER OF POSTERIOR ESTIMATES IS %i"%posterior.num_components)
         #print(posterior.posteriors[0])
-        #print("TEST TEST")
-        #print(posterior.posteriors[1])
         metrics = {}
         for key, value in config["metrics"].items():
             value["args"]["backend"] = backend
@@ -94,6 +97,7 @@ class ValidationRunner:
             metrics=metrics,
             output_path=output_path,
             ensemble_mode = ensemble_mode,
+            signatures = signatures,
         )
 
     @classmethod
@@ -131,19 +135,21 @@ class ValidationRunner:
         
         if isinstance(self.posterior, NeuralPosteriorEnsemble) and self.ensemble_mode == False:
             print("The posterior argument is a NeuralPosteriorEnsemble instance")
-            print("We compute the metrics for each posterior in the Ensemble")
-            print(vars(self.posterior.posteriors[0]))
-            print(vars(self.posterior.posteriors[1]))
+            print("We will compute validation metrics for each posterior in the Ensemble")
+            #print(vars(self.posterior.posteriors[0]))
             n = 0
             for posterior_model in self.posterior.posteriors:
+                signature = self.signatures[n]
+                n+=1
                 for metric in self.metrics.values():
                     logging.info(f"Running metric {metric.__class__.__name__}.")
-                    metric(posterior_model, x_test, theta_test, x_obs = x_obs, theta_obs = theta_obs)
+                    metric(posterior_model, x_test, theta_test, x_obs = x_obs, theta_obs = theta_obs, signature = signature)
         else:
             # evaluate metrics
+            signature = "".join(self.signatures)
             for metric in self.metrics.values():
                 logging.info(f"Running metric {metric.__class__.__name__}.")
                 metric(self.posterior, x_test, theta_test,
-                       x_obs=x_obs, theta_obs=theta_obs)
+                       x_obs=x_obs, theta_obs=theta_obs, signature = signature)
 
         logging.info(f"It took {time.time() - t0} seconds to run all metrics.")
