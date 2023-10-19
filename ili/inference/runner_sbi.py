@@ -228,6 +228,8 @@ class SBIRunner:
         t0 = time.time()
         x = torch.Tensor(loader.get_all_data()).to(self.device)
         theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
+        
+        print("INFERENCE CLASS For MODELS: %s"%self.class_name)
 
         # instantiate embedding_net architecture, if necessary
         if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
@@ -269,13 +271,11 @@ class SBIRunner:
         
         if self.signatures is None:
             self.signatures = [""]*len(summaries)
-        print(self.signatures)
         
         # Instanciate custom class with NPE and signature
         posterior_ensemble = PosteriorEnsemble(posterior, self.signatures)
         
-            
-        #print("NUMBER OF POSTERIOR ESTIMATES IS %i"%posterior.num_components)
+
         # save if output path is specified
         if self.output_path is not None:
             str_p = self.str_save + "posterior.pkl"

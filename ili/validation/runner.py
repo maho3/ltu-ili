@@ -42,7 +42,7 @@ class ValidationRunner:
         metrics: List[_BaseMetric],
         backend: str,
         output_path: Path,
-        ensemble_mode: Optional[bool] = False,
+        ensemble_mode: Optional[bool] = True,
         signatures: Optional[List[str]] = None,
     ):
         self.posterior = posterior
@@ -72,8 +72,6 @@ class ValidationRunner:
             posterior_ensemble = cls.load_posterior_sbi(config["posterior_path"])
             posterior = posterior_ensemble.ensemble
             signatures = posterior_ensemble.signatures
-            print("SIGNATURES")
-            print(signatures)
         elif backend == 'pydelfi':
             posterior = DelfiWrapper.load_engine(config["meta_path"])
         else:
@@ -82,8 +80,13 @@ class ValidationRunner:
         if "ensemble_mode" in config:
             ensemble_mode = config["ensemble_mode"]
 
-        print("NUMBER OF POSTERIOR ESTIMATES IS %i"%posterior.num_components)
-        #print(posterior.posteriors[0])
+        print("Number of posteriors in the ensemble is %i."%posterior.num_components)
+        if ensemble_mode:
+            print("Metrics are computed for the ensemble posterior estimate.")
+        else:
+            print("Metrics are computed for each posterior in the ensemble.")
+        #print(vars(posterior.posteriors[0]))
+        
         metrics = {}
         for key, value in config["metrics"].items():
             value["args"]["backend"] = backend
@@ -134,9 +137,6 @@ class ValidationRunner:
             theta_obs = loader.get_obs_parameters()
         
         if isinstance(self.posterior, NeuralPosteriorEnsemble) and self.ensemble_mode == False:
-            print("The posterior argument is a NeuralPosteriorEnsemble instance")
-            print("We will compute validation metrics for each posterior in the Ensemble")
-            #print(vars(self.posterior.posteriors[0]))
             n = 0
             for posterior_model in self.posterior.posteriors:
                 signature = self.signatures[n]

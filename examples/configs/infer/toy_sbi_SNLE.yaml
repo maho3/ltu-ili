@@ -9,16 +9,14 @@ prior:
 model:
   module: 'sbi.inference'
   class: 'SNLE'
+  str_save: 'new_toy_SNLE_'
   nets:
     - model: 'maf'
       hidden_features: 50 
-      num_transforms: 5
+      num_transforms: 6
     - model: 'mdn'
       hidden_features: 50 
-      num_components: 2
-    - model: 'mdn'
-      hidden_features: 50 
-      num_components: 5
+      num_components: 6
     
 train_args:
   training_batch_size: 32

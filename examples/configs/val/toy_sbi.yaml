@@ -4,7 +4,7 @@ posterior_path: './toy/new_PR_posterior.pkl'
 output_path: './toy'
 labels: ['t1', 't2', 't3']
 
-ensemble_mode: False
+ensemble_mode: True
 
 metrics:
   single_example:
@@ -22,7 +22,7 @@ metrics:
     module: 'ili.validation.metrics'
     class: 'PosteriorCoverage'
     args:
-      num_samples: 10
+      num_samples: 100
       sample_method: 'slice_np_vectorized'
       sample_params:
         num_chains: -1
@@ -35,7 +35,7 @@ metrics:
     module: 'ili.validation.metrics'
     class: 'PosteriorSamples'
     args:
-      num_samples: 3
+      num_samples: 100
       sample_method: 'slice_np_vectorized'
       sample_params:
         num_chains: -1
