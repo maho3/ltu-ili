@@ -4,12 +4,14 @@ warnings.filterwarnings('ignore')
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
-# import torch.nn as nn
+import torch.nn as nn
 import sbi
+import os
 
-from ili.dataloaders import NumpyLoader
-from ili.inference.runner_sbi import SBIRunner
+from ili.dataloaders import NumpyLoader, SBISimulator
+from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential
 from ili.validation.metrics import PlotSinglePosterior, PlotRankStatistics, TARP
+from ili.validation.runner import ValidationRunner
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Device:', device)
@@ -195,4 +197,75 @@ def test_snle(monkeypatch):
         x=x, theta=theta
     )
     
+    return
+
+
+def test_multiround():
+    
+    device = 'cpu'
+    
+    def simulator(params):
+        # create toy 'simulations'
+        x = np.arange(10)
+        y = params @ np.array([np.sin(x), x ** 2, x])
+        y += np.random.randn(len(params), len(x))
+        return y
+
+    # construct a working directory
+    if not os.path.isdir("toy"):
+        os.mkdir("toy")
+
+    # simulate a single test observation and save as numpy files
+    theta0 = np.zeros((1, 3))+0.5
+    x0 = simulator(theta0)
+    np.save('toy/thetaobs.npy', theta0[0])
+    np.save('toy/xobs.npy', x0[0])
+
+    # setup a dataloader which can simulate
+    all_loader = SBISimulator('./toy',
+                            'xobs.npy',
+                            'thetaobs.npy',
+                            './toy',
+                            'x.npy',
+                            'theta.npy',
+                            400,
+                            simulator,
+                             )
+
+    # train a model to infer x -> theta. save it as toy/posterior.pkl
+    
+    # define a prior
+    prior = sbi.utils.BoxUniform(low=(0,0,0), high=(1,1,1), device=device)
+    
+    # define an inference class (here, we are doing amortized posterior inference)
+    inference_class = sbi.inference.SNPE_C
+    
+    # instantiate your neural networks to be used as an ensemble
+    nets = [
+        sbi.utils.posterior_nn(model='maf', hidden_features=100, num_transforms=2),
+        sbi.utils.posterior_nn(model='mdn', hidden_features=50, num_transforms=4)
+    ]
+    
+    # define training arguments
+    train_args = {
+        'training_batch_size': 32,
+        'learning_rate': 1e-3,
+        'max_num_epochs':5,
+        'num_round':2,
+    }
+    
+    # initialize the trainer
+    runner = SBIRunnerSequential(
+        prior=prior,
+        inference_class=inference_class,
+        nets=nets,
+        device=device,
+        embedding_net=nn.Identity(),
+        train_args=train_args,
+        output_path='./toy',
+    )
+
+    # train the model
+    runner(loader=all_loader)
+
     return
