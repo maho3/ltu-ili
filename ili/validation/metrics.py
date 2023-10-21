@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import tqdm
+import os
 from typing import List, Optional
 from abc import ABC
 from pathlib import Path
@@ -193,8 +194,6 @@ class PlotRankStatistics(_SampleBasedMetric):
                 # except :
                 print("WARNING\n", w)
                 continue
-            if self.backend == 'sbi':
-                posterior_samples = posterior_samples.detach().numpy()
             mu, std = posterior_samples.mean(
                 axis=0)[:ndim], posterior_samples.std(axis=0)[:ndim]
             rank = [(posterior_samples[:, i] < theta[ii, i]).sum()
@@ -212,6 +211,8 @@ class PlotRankStatistics(_SampleBasedMetric):
         npars = ranks.shape[-1]
 
         fig, ax = plt.subplots(1, npars, figsize=(npars * 3, 4))
+        if npars == 1:
+            ax = [ax]
 
         for i in range(npars):
             ax[i].hist(np.array(ranks)[:, i], bins=nbins)
@@ -226,6 +227,8 @@ class PlotRankStatistics(_SampleBasedMetric):
             axis.axhline(ncounts - ncounts ** 0.5, color='k', ls="--")
             axis.axhline(ncounts + ncounts ** 0.5, color='k', ls="--")
 
+        if self.output_path is None:
+            return fig
         plt.savefig(self.output_path / 'rankplot.jpg',
                     dpi=300, bbox_inches='tight')
 
@@ -236,6 +239,8 @@ class PlotRankStatistics(_SampleBasedMetric):
         unicov = [np.sort(np.random.uniform(0, 1, ncounts)) for j in range(20)]
 
         fig, ax = plt.subplots(1, npars, figsize=(npars * 4, 4))
+        if npars == 1:
+            ax = [ax]
 
         for i in range(npars):
             xr = np.sort(ranks[:, i])
@@ -255,6 +260,8 @@ class PlotRankStatistics(_SampleBasedMetric):
         for axis in ax:
             axis.grid(visible=True)
 
+        if self.output_path is None:
+            return fig
         plt.savefig(self.output_path / 'coverage.jpg',
                     dpi=300, bbox_inches='tight')
 
@@ -263,7 +270,10 @@ class PlotRankStatistics(_SampleBasedMetric):
 
         # plot predictions
         fig, axs = plt.subplots(1, npars, figsize=(npars * 4, 4))
-        axs = axs.flatten()
+        if npars == 1:
+            axs = [axs]
+        else:
+            axs = axs.flatten()
         for j in range(npars):
             axs[j].errorbar(trues[:, j], mus[:, j], stds[:, j],
                             fmt="none", elinewidth=0.5, alpha=0.5)
@@ -278,6 +288,8 @@ class PlotRankStatistics(_SampleBasedMetric):
             axs[j].set_xlabel('True')
             axs[j].set_ylabel('Predicted')
 
+        if self.output_path is None:
+            return fig
         plt.savefig(self.output_path / 'predictions.jpg',
                     dpi=300, bbox_inches='tight')
 
@@ -339,17 +351,18 @@ class TARP(_SampleBasedMetric):
             metric (str, optional): which metric to use.
                 Defaults to "euclidean".
         """
-
-        posterior_samples = np.zeros(
-            (self.num_samples, x.shape[0], theta.shape[1]))
         # sample from the posterior
         sampler = self._build_sampler(posterior)
+        if self.sample_method == "emcee":
+            P = sampler.num_chains*self.num_samples
+        else:
+            P = self.num_samples
+        posterior_samples = np.zeros(
+            (P, x.shape[0], theta.shape[1]))
         for ii in tqdm.tqdm(range(x.shape[0])):
             try:
                 samp_i = sampler.sample(
                     self.num_samples, x=x[ii], progress=False)
-                if self.backend == 'sbi':
-                    samp_i = samp_i.detach().numpy()
                 posterior_samples[:, ii] = samp_i
             except Warning as w:
                 # except :
@@ -368,5 +381,8 @@ class TARP(_SampleBasedMetric):
         ax.legend()
         ax.set_ylabel("Expected Coverage")
         ax.set_xlabel("Credibility Level")
+
+        if self.output_path is None:
+            return fig
         plt.savefig(self.output_path / "plot_tarp.jpg",
                     dpi=300, bbox_inches='tight')

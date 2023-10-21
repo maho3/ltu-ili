@@ -33,6 +33,8 @@ Here is a quick guide for getting started with the ltu-ili framework.
     git clone git@github.com:florpi/ili-summarizer.git
     pip install -e ili-summarizer
     ```
+Note, the above command installs `ili-summarizer` without summary calculation backends (e.g. without `nbodykit`, `pycorr`, `jax`, `kymatio`). If you wish to use these, you can replace the above command with `pip install -e 'ili-summarizer[backends]'`, though this is incompatible with our `pydelfi` version.
+
 After this, ltu-ili and all its required dependencies should be correctly set up in your virtual environment.
 ## Verify installation
 
@@ -50,7 +52,7 @@ You can verify that the installation is working by running the toy example
 After the script completes, you should be able to find some metric summaries and plots in the **examples/toy** folder.
 
 ### Quijote example
-It's also possible to use pre-processed Quijote two point correlation function (TPCF) summaries and run example cosmological inference. Quijote TPCF summaries can be found in the LtU Open Storage Network data repository ([https://sdsc.osn.xsede.org/learningtheuniverse](https://sdsc.osn.xsede.org/learningtheuniverse)). See the data access instructions in [DATA.md](DATA.md) for more details.
+You can also download pre-processed Quijote two point correlation function (TPCF) summaries and run example cosmological inference. Quijote TPCF summaries can be found in the LtU Open Storage Network data repository ([https://sdsc.osn.xsede.org/learningtheuniverse](https://sdsc.osn.xsede.org/learningtheuniverse)). See the data access instructions in [DATA.md](DATA.md) for more details.
 
 Store this data in a subfolder called `ltu-ili-data/` and run the inference using
 ```bash
@@ -66,3 +68,6 @@ In case you want to use a mixture density network as density estimator instead o
 ```bash
    python quijote_sbi.py --cfginfer configs/infer/quijote_sbi_MDN.yaml
 ```
+
+## Jupyter Interface
+You can also interact with ltu-ili through an iPython environment such as jupyter. See the [notebooks/tutorial.ipynb](notebooks/tutorial.ipynb) notebook for a guide to the jupyter interface.

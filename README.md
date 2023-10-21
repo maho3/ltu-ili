@@ -14,6 +14,9 @@ The documentation for this project can be found [at this link](https://ltu-ili.r
 ## Installing 
 Follow the instructions for installing ltu-ili and running basic examples in [INSTALL.md](INSTALL.md).
 
+## Getting Started
+To get started, see examples of writing config-based scripts in [examples/](examples/) or a guide to the jupyter notebook interface in [notebooks/tutorial.ipynb](notebooks/tutorial.ipynb).
+
 ## Contributing
 Before contributing, please familiarize yourself with the contribution workflow described in [CONTRIBUTING.md](CONTRIBUTING.md).
 

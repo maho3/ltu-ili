@@ -12,7 +12,7 @@ import pandas as pd
 from summarizer.dataset import Dataset
 
 try:
-    from sbi.inference import simulate_for_sbi
+    from sbi.simulators.simutils import simulate_in_batches
 except ModuleNotFoundError:
     pass
 
@@ -44,23 +44,11 @@ class _BaseLoader(ABC):
         return cls(**config)
 
 
-class StaticNumpyLoader(_BaseLoader):
-    """Class to load single numpy files of summaries and parameters
+class NumpyLoader(_BaseLoader):
 
-    Args:
-        in_dir (str): path to the location of stored data
-        x_file (str): filename of the stored summaries
-        theta_file (str): filename of the stored parameters
-    """
-
-    def __init__(self, in_dir: str, x_file: str, theta_file: str):
-        self.in_dir = Path(in_dir)
-        self.x_path = self.in_dir / x_file
-        self.theta_path = self.in_dir / theta_file
-
-        self.x = np.load(self.x_path)
-        self.theta = np.load(self.theta_path)
-
+    def __init__(self, x, theta) -> None:
+        self.x = x
+        self.theta = theta
         if len(self.x) != len(self.theta):
             raise Exception(
                 "Stored summaries and parameters are not of same length.")
@@ -88,6 +76,26 @@ class StaticNumpyLoader(_BaseLoader):
             np.array: parameters
         """
         return self.theta
+
+
+class StaticNumpyLoader(NumpyLoader):
+    """Class to load single numpy files of summaries and parameters
+
+    Args:
+        in_dir (str): path to the location of stored data
+        x_file (str): filename of the stored summaries
+        theta_file (str): filename of the stored parameters
+    """
+
+    def __init__(self, in_dir: str, x_file: str, theta_file: str):
+        self.in_dir = Path(in_dir)
+        self.x_path = self.in_dir / x_file
+        self.theta_path = self.in_dir / theta_file
+
+        x = np.load(self.x_path)
+        theta = np.load(self.theta_path)
+
+        super().__init__(x=x, theta=theta)
 
 
 class SummarizerDatasetLoader(_BaseLoader):
@@ -268,9 +276,9 @@ class SBISimulator(_BaseLoader):
             Tuple[np.array, np.array]: Sampled parameters $\theta$ and
                 simulation-outputs $x$.
         """
-        theta, x = simulate_for_sbi(
-            self.simulator, proposal, num_simulations=self.num_simulations)
-        theta, x = theta.detach().cpu().numpy(), x.detach().cpu().numpy()
+        theta = proposal.sample((self.num_simulations,)).cpu()
+        x = simulate_in_batches(self.simulator, theta)
+        theta, x = theta.numpy(), x.numpy()
         if self.theta is None or self.x is None:
             self.theta, self.x = theta, x
         else:
