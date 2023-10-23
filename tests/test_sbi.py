@@ -7,8 +7,10 @@ import torch
 import torch.nn as nn
 import sbi
 import os
+import yaml
+import pickle
 
-from ili.dataloaders import NumpyLoader, SBISimulator
+from ili.dataloaders import NumpyLoader, SBISimulator, StaticNumpyLoader
 from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential
 from ili.validation.metrics import PlotSinglePosterior, PlotRankStatistics, TARP
 from ili.validation.runner import ValidationRunner
@@ -210,6 +212,9 @@ def test_multiround():
         y = params @ np.array([np.sin(x), x ** 2, x])
         y += np.random.randn(len(params), len(x))
         return y
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    # x = np.array([simulator(t) for t in theta])
+    x = simulator(theta)
 
     # construct a working directory
     if not os.path.isdir("toy"):
@@ -268,4 +273,181 @@ def test_multiround():
     # train the model
     runner(loader=all_loader)
 
+    return
+
+
+def test_yaml():
+    
+    if not os.path.isdir("toy"):
+        os.mkdir("toy")
+    
+    # Yaml file for data - standard
+    data = dict(
+        in_dir = './toy',
+        x_file = 'x.npy',
+        theta_file = 'theta.npy'
+      )
+    with open('./toy/data.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    
+    # Yaml file for data - multiround
+    data = dict(
+        in_dir = './toy',
+        out_dir = './toy',
+        xobs_file = 'xobs.npy',
+        thetaobs_file = 'thetaobs.npy',
+        x_file = 'x.npy',
+        theta_file = 'theta.npy',
+        num_simulations = 400,
+    )
+    with open('./toy/data_multi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)  
+        
+    # Yaml file for infer - standard
+    data = dict(
+        prior = {'module' : 'sbi.utils',
+            'class' : 'BoxUniform',
+            'args' : dict(
+                low =  [0,0,0],
+                high = [1,1,1],
+            ),
+        },
+        model = {'module' :  'sbi.inference',
+            'class' : 'SNPE',
+            'nets' : [dict(model='maf', hidden_features=50, num_transforms=5),
+                   dict(model='mdn', hidden_features=50, num_transforms=2)],
+        },
+        train_args = dict(
+            training_batch_size = 32,
+            learning_rate = 0.001,
+        ),
+        device = 'cpu',
+        output_path= './toy'
+    )
+    with open('./toy/infer.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+        
+    # Yaml file for infer - multiround
+    data = dict(
+        prior = {'module' : 'sbi.utils',
+            'class' : 'BoxUniform',
+            'args' : dict(
+                low =  [0,0,0],
+                high = [1,1,1],
+            ),
+        },
+        model = {'module' :  'sbi.inference',
+            'class' : 'SNPE_C',
+            'nets' : [dict(model='maf', hidden_features=100, num_transforms=2),
+                   dict(model='mdn', hidden_features=50, num_transforms=4)],
+        },
+        train_args = dict(
+            training_batch_size = 32,
+            learning_rate = 0.01,
+            num_round = 2,
+        ),
+        device = 'cpu',
+        output_path= './toy'
+    )
+    with open('./toy/infer_multi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+        
+    # Yaml file for validation
+    data = dict(
+        backend = 'sbi',
+        posterior_path =  './toy/posterior.pkl',
+        output_path = './toy',
+        labels = ['t1', 't2', 't3'],
+        metrics = dict(
+            single_example = {
+                'module': 'ili.validation.metrics',
+                'class': 'PlotSinglePosterior',
+                'args' : dict(
+                    num_samples = 1000,
+                  sample_method = 'slice_np_vectorized',
+                  sample_params = dict(
+                      num_chains = 1,
+                      burn_in = 100,
+                      thin = 10,
+                  )
+                )
+            },
+            rank_stats = {
+                'module': 'ili.validation.metrics',
+                'class': 'PlotRankStatistics',
+                'args': dict(
+                    num_samples = 100,
+                    sample_method = 'slice_np_vectorized',
+                    sample_params = dict(
+                        num_chains = 1,
+                        burn_in = 100,
+                        thin = 1,
+                    )  
+                )
+            },
+            tarp = {
+                'module':'ili.validation.metrics',
+                'class':'TARP',
+                'args' : dict(
+                    num_samples = 10,
+                    sample_method = 'slice_np_vectorized',
+                    sample_params = dict(
+                        num_chains = 1,
+                        burn_in = 100,
+                        thin = 1
+                    )
+                )
+            },
+        )
+    )
+    with open('./toy/val.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+        
+    # -------
+    # Run for single round
+        
+    def simulator(params):
+        # create toy simulations
+        x = np.arange(10)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += np.random.randn(len(x))
+        return y
+
+    # simulate data and save as numpy files
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+    np.save("toy/theta.npy", theta)
+    np.save("toy/x.npy", x)
+        
+    # Test objects
+    StaticNumpyLoader.from_config("./toy/data.yml")
+    SBIRunner.from_config("./toy/infer.yml")
+    
+    # -------
+    # Run for multi round
+    
+    def simulator(params):
+        # create toy 'simulations'
+        x = np.arange(10)
+        y = params @ np.array([np.sin(x), x ** 2, x])
+        y += np.random.randn(len(params), len(x))
+        return y
+
+    # simulate a single test observation and save as numpy files
+    theta0 = np.zeros((1, 3))+0.5
+    x0 = simulator(theta0)
+    np.save('toy/thetaobs.npy', theta0[0])
+    np.save('toy/xobs.npy', x0[0])
+    
+    loader = SBISimulator.from_config("./toy/data_multi.yml")
+    loader.set_simulator(simulator)
+    SBIRunnerSequential.from_config("./toy/infer_multi.yml")
+    
+    # -------
+    # Run validation
+    
+    with open ('toy/posterior.pkl', 'wb') as f:
+        pickle.dump(np.empty(1), f)
+    ValidationRunner.from_config("./toy/val.yml")
+    
     return
