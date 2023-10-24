@@ -9,6 +9,7 @@ import sbi
 import os
 import yaml
 import pickle
+from pathlib import Path
 
 from ili.dataloaders import NumpyLoader, SBISimulator, StaticNumpyLoader
 from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential
@@ -167,7 +168,7 @@ def test_snle(monkeypatch):
     )
     
     # train the model. this outputs a posterior model and training logs
-    posterior, summaries = runner(loader=loader)
+    posterior, summaries = runner(loader=loader, seed=1)
     
     # choose a random input
     ind = np.random.randint(len(theta))
@@ -198,6 +199,53 @@ def test_snle(monkeypatch):
         x_obs = x[ind], theta_obs=theta[ind], 
         x=x, theta=theta
     )
+    
+    return
+
+
+def test_snre():
+    
+    # create the same synthetic catalog as the previous example
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
+
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+
+    # make a dataloader
+    loader = NumpyLoader(x=x, theta=theta)
+    
+    # define a prior
+    prior = sbi.utils.BoxUniform(low=(0,0,0), high=(1,1,1), device=device)
+
+    # define an inference class (here, we are doing amortized likelihood inference)
+    inference_class = sbi.inference.SNRE
+    
+    nets = [
+        sbi.utils.classifier_nn(model='resnet', hidden_features=50, num_blocks=3),
+        sbi.utils.classifier_nn(model='mlp', hidden_features=50),
+    ]
+    
+    train_args = {'training_batch_size':32, 'learning_rate': 0.001, 'max_num_epochs':5}
+    
+    # initialize the trainer
+    runner = SBIRunner(
+        prior=prior,
+        inference_class=inference_class,
+        nets=nets,
+        device=device,
+        embedding_net=None,
+        train_args=train_args,
+        proposal=None,
+        output_path=Path('./toy')
+    )
+    
+    # train the model. this outputs a posterior model and training logs
+    posterior, summaries = runner(loader=loader)
     
     return
 
@@ -324,7 +372,17 @@ def test_yaml():
         device = 'cpu',
         output_path= './toy'
     )
-    with open('./toy/infer.yml', 'w') as outfile:
+    with open('./toy/infer_snpe.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    data['model']['class'] = 'SNLE'
+    data['model']['nets'] = [dict(model='maf', hidden_features=50, num_transforms=5),
+                            dict(model='made', hidden_features=50, num_transforms=5)]
+    with open('./toy/infer_snle.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    data['model']['class'] = 'SNRE'
+    data['model']['nets'] = [dict(model='resnet', hidden_features=50, num_blocks=3),
+                            dict(model='mlp', hidden_features=50)]
+    with open('./toy/infer_snre.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
         
     # Yaml file for infer - multiround
@@ -421,7 +479,9 @@ def test_yaml():
         
     # Test objects
     StaticNumpyLoader.from_config("./toy/data.yml")
-    SBIRunner.from_config("./toy/infer.yml")
+    SBIRunner.from_config("./toy/infer_snpe.yml")
+    SBIRunner.from_config("./toy/infer_snle.yml")
+    SBIRunner.from_config("./toy/infer_snre.yml")
     
     # -------
     # Run for multi round
