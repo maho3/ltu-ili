@@ -15,13 +15,15 @@ from ili.dataloaders import NumpyLoader, SBISimulator, StaticNumpyLoader
 from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential
 from ili.validation.metrics import PlotSinglePosterior, PlotRankStatistics, TARP
 from ili.validation.runner import ValidationRunner
+from ili.embedding import FCN
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Device:', device)
 
-def test_snpe(monkeypatch):
+# def test_snpe(monkeypatch):
     
-    monkeypatch.setattr(plt, 'show', lambda: None)
+    # monkeypatch.setattr(plt, 'show', lambda: None)
+def test_snpe():
     
     # create synthetic catalog
     def simulator(params):
@@ -55,6 +57,14 @@ def test_snpe(monkeypatch):
         'learning_rate': 1e-4,
         'max_num_epochs':5
     }
+    
+    # define an embedding network
+    embedding_args = {
+        'n_summary':x.shape[1], 
+        'n_hidden':[x.shape[1], x.shape[1], x.shape[1]],
+        'act_fn': "SiLU"
+    }
+    embedding_net = FCN(**embedding_args)
 
     # initialize the trainer
     runner = SBIRunner(
@@ -62,7 +72,7 @@ def test_snpe(monkeypatch):
         inference_class=inference_class,
         nets=nets,
         device=device,
-        embedding_net=None,
+        embedding_net=embedding_net,
         train_args=train_args,
         proposal=None,
         output_path=None  # no output path, so nothing will be saved to file
@@ -511,3 +521,5 @@ def test_yaml():
     ValidationRunner.from_config("./toy/val.yml")
     
     return
+
+test_snpe()
