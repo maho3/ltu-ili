@@ -254,7 +254,6 @@ class SBIRunner:
                 model = self._setup_SNRE(net, theta, x)
             
             #print(dir(model))
-
             # train
             _ = model.train(**self.train_args)
             
@@ -274,7 +273,6 @@ class SBIRunner:
         
         # Instanciate custom class with NPE and signature
         posterior_ensemble = PosteriorEnsemble(posterior, self.signatures)
-        
 
         # save if output path is specified
         if self.output_path is not None:

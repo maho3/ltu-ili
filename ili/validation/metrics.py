@@ -240,11 +240,59 @@ class PosteriorCoverage(_SampleBasedMetric):
         super(PosteriorCoverage,self).__init__(**kw)
     
     ## First, plot functions: histogram, coverage, predictions and TARP
-    def _plot_ranks_histogram(self, ranks, signature, nbins=10):
+    def _get_ranks(
+        self,
+        posterior: ModelClass,
+        x: np.array,
+        theta: np.array
+    ):
+        """Samples inferred parameters from a trained posterior given observed
+        data and calculates posterior metrics such as means, stdevs, and ranks.
+
+        Args:
+            posterior (ModelClass): trained sbi posterior inference engine
+            x (np.array): tensor of test summaries
+            y (np.array): tensor of test parameters
+
+        Returns:
+            trues (np.array): array of true parameter values
+            mus (np.array): array of posterior prediction means
+            stds (np.array): array of posterior prediction standard deviations
+            ranks (np.array): array of posterior prediction ranks
+        """
+        sampler = self._build_sampler(posterior)
+
+        ndim = theta.shape[1]
+        ranks = []
+        mus, stds = [], []
+        trues = []
+        for ii in tqdm.tqdm(range(x.shape[0])):
+            try:
+                posterior_samples = sampler.sample(
+                    self.num_samples, x=x[ii], progress=False)
+            except Warning as w:
+                # except :
+                print("WARNING\n", w)
+                continue
+            mu, std = posterior_samples.mean(
+                axis=0)[:ndim], posterior_samples.std(axis=0)[:ndim]
+            rank = [(posterior_samples[:, i] < theta[ii, i]).sum()
+                    for i in range(ndim)]
+            mus.append(mu)
+            stds.append(std)
+            ranks.append(rank)
+            trues.append(theta[ii][:ndim])
+        mus, stds, ranks = np.array(mus), np.array(stds), np.array(ranks)
+        trues = np.array(trues)
+        return trues, mus, stds, ranks
+
+    def _plot_ranks_histogram(self, ranks, nbins=10):
         ncounts = ranks.shape[0] / nbins
         npars = ranks.shape[-1]
 
         fig, ax = plt.subplots(1, npars, figsize=(npars * 3, 4))
+        if npars == 1:
+            ax = [ax]
 
         for i in range(npars):
             ax[i].hist(np.array(ranks)[:, i], bins=nbins)
@@ -272,6 +320,8 @@ class PosteriorCoverage(_SampleBasedMetric):
         unicov = [np.sort(np.random.uniform(0, 1, ncounts)) for j in range(20)]
 
         fig, ax = plt.subplots(1, npars, figsize=(npars * 4, 4))
+        if npars == 1:
+            ax = [ax]
 
         for i in range(npars):
             xr = np.sort(ranks[:, i])
@@ -302,7 +352,10 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         # plot predictions
         fig, axs = plt.subplots(1, npars, figsize=(npars * 4, 4))
-        axs = axs.flatten()
+        if npars == 1:
+            axs = [axs]
+        else:
+            axs = axs.flatten()
         for j in range(npars):
             axs[j].errorbar(trues[:, j], mus[:, j], stds[:, j],
                             fmt="none", elinewidth=0.5, alpha=0.5)
@@ -336,7 +389,6 @@ class PosteriorCoverage(_SampleBasedMetric):
             return fig
         strFig = signature + "plot_tarp.jpg"
         plt.savefig(self.output_path / strFig,
-                    dpi=300, bbox_inches='tight')
 
  
     def __call__(
@@ -413,7 +465,6 @@ class PosteriorCoverage(_SampleBasedMetric):
                 # except :
                 print("WARNING\n", w)
                 continue
-      
         # Save the plots
         if "coverage" in plot_list:
             self._plot_coverage(ranks, signature)
