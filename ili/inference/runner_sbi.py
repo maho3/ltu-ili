@@ -313,13 +313,34 @@ class SBIRunnerSequential(SBIRunner):
             ))
         proposal = self.prior
 
+        # loader has x and theta attributes, both default values are None
+        # Even in multiround inference, we can take advantage of prerun simulation-parameter pairs
+        x = loader.get_all_data()
+        theta = loader.get_all_parameters()
+        if x is not None and theta is not None:
+            theta = torch.Tensor(theta).to(self.device)
+            x = torch.Tensor(x).to(self.device)
+            prerun_sims = True
+            print("The first round of inference will use existing sims from the loader.")
+            print("Make sure that the simulations were run from the prior for consistency.")
+        else:
+            prerun_sims = False
+            print("The loader does not have existing simulation-parameter pairs.")
+            print("The first round of inference will simulate from the given prior.")
+        
+        # Start multiround inference
         for rnd in range(self.num_rounds):
             t1 = time.time()
             logging.info(
                 f"Running round {rnd+1} of {self.num_rounds}"
             )
-            theta, x = loader.simulate(proposal)
-            theta, x = torch.Tensor(theta), torch.Tensor(x)
+            
+            if rnd == 0 and prerun_sims:
+                pass # in that case theta and x were set before the loop on rnd
+            else:
+                theta, x = loader.simulate(proposal)
+                theta, x = torch.Tensor(theta).to(self.device), torch.Tensor(x).to(self.device)
+            
             posteriors, val_logprob = [], []
             for i in range(len(self.nets)):
                 logging.info(

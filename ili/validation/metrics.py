@@ -388,7 +388,7 @@ class PosteriorCoverage(_SampleBasedMetric):
         if self.output_path is None:
             return fig
         strFig = signature + "plot_tarp.jpg"
-        plt.savefig(self.output_path / strFig,
+        plt.savefig(self.output_path / strFig, dpi=300, bbox_inches='tight')
 
  
     def __call__(
