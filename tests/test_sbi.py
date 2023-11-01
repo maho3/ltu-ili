@@ -84,14 +84,20 @@ def test_snpe(monkeypatch):
     )
     
     # train the model
-    posterior, summaries = runner(loader=loader)
+    posterior_e, summaries = runner(loader=loader)
+    
+    posterior = posterior_e.ensemble
+    signatures = posterior_e.signatures
     
     # choose a random input
     ind = np.random.randint(len(theta))
     
     nsamples = 20
+    
+    #dummy = posterior.ensemble.bidule
 
     # generate samples from the posterior using accept/reject sampling
+    # Reminder: from PR94, posterior in a PosteriorEnsemble instance defined in inference.runnder_sbi
     samples = posterior.sample((nsamples,), torch.Tensor(x[ind]).to(device))
 
     # calculate the log_prob for each sample
@@ -112,7 +118,7 @@ def test_snpe(monkeypatch):
     metric = PosteriorCoverage(
         backend='sbi', output_path=None, num_samples=nsamples, 
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
-        plot_list = ["coverage", "histogram", "predictions", "TARP"]
+        plot_list = ["TARP", "predictions", "coverage", "histogram"]
     )
     fig = metric(
         posterior=posterior,
@@ -173,7 +179,10 @@ def test_snle(monkeypatch):
     )
     
     # train the model. this outputs a posterior model and training logs
-    posterior, summaries = runner(loader=loader, seed=1)
+    posterior_e, summaries = runner(loader=loader, seed = 1)
+    
+    posterior = posterior_e.ensemble
+    signatures = posterior_e.signatures
     
     # choose a random input
     ind = np.random.randint(len(theta))
@@ -507,13 +516,14 @@ def test_yaml():
     
     loader = SBISimulator.from_config("./toy/data_multi.yml")
     loader.set_simulator(simulator)
-    SBIRunnerSequential.from_config("./toy/infer_multi.yml")
+    run_seq = SBIRunnerSequential.from_config("./toy/infer_multi.yml")
+    run_seq(loader = loader)
     
     # -------
     # Run validation
     
-    with open ('toy/posterior.pkl', 'wb') as f:
-        pickle.dump(np.empty(1), f)
+    #with open ('toy/posterior.pkl', 'wb') as f:
+    #    pickle.dump(np.empty(1), f)
     ValidationRunner.from_config("./toy/val.yml")
     
     return

@@ -79,6 +79,8 @@ class ValidationRunner:
         output_path = Path(config["output_path"])
         if "ensemble_mode" in config:
             ensemble_mode = config["ensemble_mode"]
+        else:
+            ensemble_mode = True
 
         print("Number of posteriors in the ensemble is %i."%posterior.num_components)
         if ensemble_mode:

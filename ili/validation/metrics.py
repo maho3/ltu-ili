@@ -286,7 +286,8 @@ class PosteriorCoverage(_SampleBasedMetric):
         trues = np.array(trues)
         return trues, mus, stds, ranks
 
-    def _plot_ranks_histogram(self, ranks, nbins=10):
+    def _plot_ranks_histogram(self, ranks, signature, nbins=10):
+
         ncounts = ranks.shape[0] / nbins
         npars = ranks.shape[-1]
 

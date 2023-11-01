@@ -124,8 +124,10 @@ class SBIRunner:
             class_name=config["model"]["class"],
             posteriors_config=config["model"]["nets"],
         )
-        
-        str_save = config["model"]["str_save"]
+        if "str_save" in config["model"]:
+            str_save = config["model"]["str_save"]
+        else:
+            str_save = ""
         signatures = []
         for type_nn in config["model"]["nets"]:
             if "signature" in type_nn:
