@@ -16,7 +16,7 @@ import json
 
 from ili.dataloaders import NumpyLoader, SBISimulator, StaticNumpyLoader, SummarizerDatasetLoader
 from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential
-from ili.validation.metrics import PlotSinglePosterior, PlotRankStatistics, TARP
+from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage, PosteriorSamples
 from ili.validation.runner import ValidationRunner
 from ili.embedding import FCN
 
@@ -108,21 +108,11 @@ def test_snpe(monkeypatch):
         x=x, theta=theta
     )
     
-    # calculate and plot the rank statistics to describe univariate posterior coverage
-    metric = PlotRankStatistics(
+    # calculate and plot the rank statistics + TARP to describe univariate posterior coverage
+    metric = PosteriorCoverage(
         backend='sbi', output_path=None, num_samples=nsamples, 
-        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)]
-    )
-    fig = metric(
-        posterior=posterior,
-        x_obs = x[ind], theta_obs=theta[ind],
-        x=x, theta=theta
-    )
-    
-    # calculate and plot the TARP metric to describe multivariate posterior coverage
-    metric = TARP(
-        backend='sbi', output_path=None, num_samples=nsamples, 
-        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)]
+        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
+        plot_list = ["coverage", "histogram", "predictions", "TARP"]
     )
     fig = metric(
         posterior=posterior,
@@ -445,10 +435,11 @@ def test_yaml():
                   )
                 )
             },
-            rank_stats = {
+            coverage = {
                 'module': 'ili.validation.metrics',
-                'class': 'PlotRankStatistics',
+                'class': 'PosteriorCoverage',
                 'args': dict(
+                    plot_list = ["coverage", "histogram", "predictions", "TARP"],
                     num_samples = 100,
                     sample_method = 'slice_np_vectorized',
                     sample_params = dict(
@@ -458,9 +449,9 @@ def test_yaml():
                     )  
                 )
             },
-            tarp = {
+            save_samples = {
                 'module':'ili.validation.metrics',
-                'class':'TARP',
+                'class':'PosteriorSamples',
                 'args' : dict(
                     num_samples = 10,
                     sample_method = 'slice_np_vectorized',
