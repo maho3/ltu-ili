@@ -66,27 +66,28 @@ class _SampleBasedMetric(_BaseMetric):
     def _build_sampler(self, posterior) -> _BaseSampler:
         if self.sample_method == 'emcee':
             return EmceeSampler(posterior, **self.sample_params)
-        else:
-            # check if pytorch backend is available
-            if self.backend != 'sbi':
-                raise ValueError(
-                    'Pyro backend is only available for sbi posteriors')
 
-            # check if DirectPosterior is available
+        # check if pytorch backend is available
+        if self.backend != 'sbi':
+            raise ValueError(
+                'Pyro backend is only available for sbi posteriors')
+
+        # check if DirectPosterior is available
+        if self.sample_method == 'direct':
             # First case: we have a NeuralPosteriorEnsemble instance
-            if isinstance(posterior, NeuralPosteriorEnsemble):
-                # We only need to check the first element (one model class for a posterior ensemble)
-                if isinstance(posterior.posteriors[0], DirectPosterior):
-                    warnings.warn(
-                        'DirectPosterior detected. '
-                        'Ignoring mcmc sampler parameters.')
-                    return DirectSampler(posterior)
+            # We only need to check the first element
+            if (isinstance(posterior, NeuralPosteriorEnsemble) and
+                    isinstance(posterior.posteriors[0], DirectPosterior)):
+                return DirectSampler(posterior)
             # Second case (when ValidationRunner.ensemble_mode = False)
             elif isinstance(posterior, DirectPosterior):
                 return DirectSampler(posterior)
+            else:
+                raise ValueError(
+                    'Direct sampling is only available for DirectPosteriors')
 
-            return PyroSampler(posterior, method=self.sample_method,
-                               **self.sample_params)
+        return PyroSampler(posterior, method=self.sample_method,
+                           **self.sample_params)
 
 
 class PosteriorSamples(_SampleBasedMetric):

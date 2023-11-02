@@ -1,6 +1,6 @@
 backend: 'sbi'
 
-posterior_path: './toy/toy_SNPE_posterior.pkl'
+posterior_path: './toy/toy_SNLE_posterior.pkl'
 output_path: './toy'
 labels: ['t1', 't2', 't3']
 
