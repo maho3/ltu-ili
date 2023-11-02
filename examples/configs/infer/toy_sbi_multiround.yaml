@@ -9,12 +9,12 @@ prior:
 model:
   module: 'sbi.inference'
   class: 'SNPE_C'
-  str_save: "new_PR_mr_"
+  str_save: "toy_mr_"
   nets:
     - model: 'maf'
       hidden_features: 100 
       num_transforms: 2
-      signature: "test_maf_multi_"
+      signature: "maf_mr_"
     - model: 'mdn'
       hidden_features: 50 
       num_components: 4

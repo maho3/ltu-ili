@@ -24,10 +24,12 @@ default_config = (
     Path(__file__).parent.parent / "examples/configs/sample_sbi.yaml"
 )
 
+
 class PosteriorEnsemble:
-    
-    def __init__(self, ensemble, signatures):
-        self.ensemble = ensemble # NeuralPosteriorEnsemble instance
+    """Wrapper for NeuralPosteriorEnsemble with signatures"""
+
+    def __init__(self, ensemble: NeuralPosteriorEnsemble, signatures: List[str]):
+        self.ensemble = ensemble  # NeuralPosteriorEnsemble instance
         self.signatures = signatures
 
 
@@ -56,13 +58,15 @@ class SBIRunner:
         self,
         prior: Independent,
         inference_class: NeuralInference,
-        nets: List[Callable], # eg list of posterior_nn instances (callable from sbi package)
+        # eg list of posterior_nn instances (callable from sbi package)
+        nets: List[Callable],
         train_args: Dict,
         output_path: Path,
         device: str = 'cpu',
         embedding_net: nn.Module = None,
         proposal: Independent = None,
-        signatures: Optional[List[str]] = None, # for the different NNs trained in the ensemble
+        # for the different NNs trained in the ensemble
+        signatures: Optional[List[str]] = None,
         str_save: Optional[str] = ""
     ):
         self.prior = prior
@@ -82,7 +86,7 @@ class SBIRunner:
         if self.output_path is not None:
             self.output_path = Path(self.output_path)
             self.output_path.mkdir(parents=True, exist_ok=True)
-        
+
         self.signatures = signatures
         self.str_save = str_save
 
@@ -133,8 +137,7 @@ class SBIRunner:
             if "signature" in type_nn:
                 signatures.append(type_nn["signature"])
             else:
-                signatures.append(type_nn["model"]+ "_")                
-        #signatures = [type_nn["model"] for type_nn in config["model"]["nets"]]
+                signatures.append(type_nn["model"] + "_")
 
         # load logistics
         train_args = config["train_args"]
@@ -148,8 +151,8 @@ class SBIRunner:
             embedding_net=embedding_net,
             train_args=train_args,
             output_path=output_path,
-            signatures = signatures,
-            str_save = str_save,
+            signatures=signatures,
+            str_save=str_save,
         )
 
     @classmethod
@@ -230,8 +233,8 @@ class SBIRunner:
         t0 = time.time()
         x = torch.Tensor(loader.get_all_data()).to(self.device)
         theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
-        
-        print("INFERENCE CLASS For MODELS: %s"%self.class_name)
+
+        logging.info(f"MODEL INFERENCE CLASS: {self.class_name}")
 
         # instantiate embedding_net architecture, if necessary
         if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
@@ -254,11 +257,10 @@ class SBIRunner:
                 model = self._setup_SNLE(net, theta, x)
             elif "SNRE" in self.class_name or "BNRE" in self.class_name:
                 model = self._setup_SNRE(net, theta, x)
-            
-            #print(dir(model))
+
             # train
             _ = model.train(**self.train_args)
-            
+
             # save model
             posteriors.append(model.build_posterior())
             summaries.append(model.summary)
@@ -269,11 +271,11 @@ class SBIRunner:
         ).to(self.device)
         posterior = NeuralPosteriorEnsemble(
             posteriors=posteriors, weights=weights)
-        
+
         if self.signatures is None:
             self.signatures = [""]*len(summaries)
-        
-        # Instanciate custom class with NPE and signature
+
+        # Instantiate custom class with NPE and signature
         posterior_ensemble = PosteriorEnsemble(posterior, self.signatures)
 
         # save if output path is specified
@@ -316,33 +318,40 @@ class SBIRunnerSequential(SBIRunner):
         proposal = self.prior
 
         # loader has x and theta attributes, both default values are None
-        # Even in multiround inference, we can take advantage of prerun simulation-parameter pairs
+        # Even in multiround inference, we can take advantage of prerun
+        # simulation-parameter pairs
         x = loader.get_all_data()
         theta = loader.get_all_parameters()
         if x is not None and theta is not None:
             theta = torch.Tensor(theta).to(self.device)
             x = torch.Tensor(x).to(self.device)
             prerun_sims = True
-            print("The first round of inference will use existing sims from the loader.")
-            print("Make sure that the simulations were run from the prior for consistency.")
+            logging.info(
+                """The first round of inference will use existing sims from the 
+                loader. Make sure that the simulations were run from the 
+                prior for consistency.""")
         else:
             prerun_sims = False
-            print("The loader does not have existing simulation-parameter pairs.")
-            print("The first round of inference will simulate from the given prior.")
-        
+            logging.info(
+                """The first round of inference will simulate from the given 
+                prior. Make sure that the simulations were run from the
+                prior for consistency."""
+            )
+
         # Start multiround inference
         for rnd in range(self.num_rounds):
             t1 = time.time()
             logging.info(
                 f"Running round {rnd+1} of {self.num_rounds}"
             )
-            
+
             if rnd == 0 and prerun_sims:
-                pass # in that case theta and x were set before the loop on rnd
+                pass  # in that case theta and x were set before the loop on rnd
             else:
                 theta, x = loader.simulate(proposal)
-                theta, x = torch.Tensor(theta).to(self.device), torch.Tensor(x).to(self.device)
-            
+                theta, x = torch.Tensor(theta).to(
+                    self.device), torch.Tensor(x).to(self.device)
+
             posteriors, val_logprob = [], []
             for i in range(len(self.nets)):
                 logging.info(
@@ -370,22 +379,22 @@ class SBIRunnerSequential(SBIRunner):
                 posteriors=posteriors,
                 weights=val_logprob
             )
-            
+
             if self.signatures is None:
                 self.signatures = [""]*len(posteriors)
-                
-            print(self.signatures)
-                
+
+            logging.info(f"Network signatures: {self.signatures}")
+
             # Instanciate custom class with NPE and signature
             posterior_ensemble = PosteriorEnsemble(posterior, self.signatures)
-            
+
             str_p = self.str_save + f"posterior_{rnd}.pkl"
             with open(self.output_path / str_p, "wb") as f:
                 pickle.dump(posterior_ensemble, f)
             proposal = posterior_ensemble.ensemble.set_default_x(x_obs)
             logging.info(
                 f"It took {time.time()-t1} seconds to complete round {rnd+1}.")
-        
+
         str_p = self.str_save + "posterior.pkl"
         with open(self.output_path / str_p, "wb") as f:
             pickle.dump(posterior_ensemble, f)

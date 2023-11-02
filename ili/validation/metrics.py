@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import tqdm
-import os
 from typing import List, Optional
 from abc import ABC
 from pathlib import Path
@@ -21,7 +20,6 @@ try:
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
     ModelClass = NeuralPosterior
     import tarp  # doesn't yet work with pydelfi/python 3.6
-    from ili.inference import PosteriorEnsemble
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
@@ -41,13 +39,13 @@ class _BaseMetric(ABC):
         backend: str,
         output_path: Path,
         labels: Optional[List[str]] = None,
-        #signature: Optional[str] = "",
+        # signature: Optional[str] = "",
     ):
         """Construct the base metric."""
         self.backend = backend
         self.output_path = output_path
         self.labels = labels
-        #self.signature = signature
+        # self.signature = signature
 
 
 class _SampleBasedMetric(_BaseMetric):
@@ -59,7 +57,6 @@ class _SampleBasedMetric(_BaseMetric):
         sample_method: str = 'emcee',
         sample_params: dict = {},
         labels: Optional[List[str]] = None,
-        #signature: Optional[str] = "",
     ):
         super().__init__(backend, output_path, labels)
         self.num_samples = num_samples
@@ -74,7 +71,7 @@ class _SampleBasedMetric(_BaseMetric):
             if self.backend != 'sbi':
                 raise ValueError(
                     'Pyro backend is only available for sbi posteriors')
-                    
+
             # check if DirectPosterior is available
             # First case: we have a NeuralPosteriorEnsemble instance
             if isinstance(posterior, NeuralPosteriorEnsemble):
@@ -87,14 +84,15 @@ class _SampleBasedMetric(_BaseMetric):
             # Second case (when ValidationRunner.ensemble_mode = False)
             elif isinstance(posterior, DirectPosterior):
                 return DirectSampler(posterior)
-            
+
             return PyroSampler(posterior, method=self.sample_method,
                                **self.sample_params)
 
+
 class PosteriorSamples(_SampleBasedMetric):
-    
     """
-    Class to save samples from posterior at x data (test data) for downstream tasks (e.g. nested sampling) or making custom plots
+    Class to save samples from posterior at x data (test data) for downstream
+    tasks (e.g. nested sampling) or making custom plots
     """
 
     def __call__(
@@ -103,10 +101,11 @@ class PosteriorSamples(_SampleBasedMetric):
         x: np.array,
         theta: np.array,
         signature: Optional[str] = "",
+        # here for debugging purpose, otherwise error in runner.py line 123
         x_obs: Optional[np.array] = None,
-        theta_obs: Optional[np.array] = None # here for debuggin purpose, otherwise error in runner.py line 123
+        theta_obs: Optional[np.array] = None
     ):
-        """Given a posterior and test data, plot the inferred posterior of a
+        """Given a posterior and test data, infer posterior samples of a
         single test point and save to file.
 
         Args:
@@ -127,26 +126,30 @@ class PosteriorSamples(_SampleBasedMetric):
             P = sampler.num_chains*self.num_samples
         else:
             P = self.num_samples
-            
+
         # shape = (num_samples, ntest = x.shape[0], ndim)
         posterior_samples = np.zeros((P, ntest, ndim))
-        
+
         # Next line equiv  "for each x realization of the test set:
         for ii in tqdm.tqdm(range(ntest)):
             try:
                 # Sample posterior P(theta | x[ii])
-                samp_i = sampler.sample(self.num_samples, x=x[ii], progress=False) # shape (num_samples, dim of theta)
-                posterior_samples[:, ii] = samp_i # same as "posterior_samples[:, ii, :] = samp_i"
-            
+                # shape (num_samples, dim of theta)
+                samp_i = sampler.sample(
+                    self.num_samples, x=x[ii], progress=False)
+                # same as "posterior_samples[:, ii, :] = samp_i"
+                posterior_samples[:, ii] = samp_i
+
             except Warning as w:
                 # except :
                 print("WARNING\n", w)
                 continue
-            
+
         if self.output_path is None:
             return posterior_samples
         strFig = signature + "posterior_samples.npy"
         np.save(self.output_path / strFig, posterior_samples)
+
 
 class PlotSinglePosterior(_SampleBasedMetric):
     """Perform inference sampling on a single test point and plot the
@@ -214,32 +217,29 @@ class PlotSinglePosterior(_SampleBasedMetric):
         strFig = signature + "plot_single_posterior.jpg"
         g.savefig(self.output_path / strFig,
                   dpi=200, bbox_inches='tight')
-        
+
+
 class PosteriorCoverage(_SampleBasedMetric):
-    
+
     """Plot rank histogram, posterior coverage, and true-pred diagnostics
- based on rank statistics inferred from posteriors. These are derived
- from sbi posterior metrics originally written by Chirag Modi.
- Reference: https://github.com/modichirag/contrastive_cosmology/blob/main/src/sbiplots.py
+    based on rank statistics inferred from posteriors. These are derived
+    from sbi posterior metrics originally written by Chirag Modi.
+    Reference: https://github.com/modichirag/contrastive_cosmology/blob/main/src/sbiplots.py
 
- Args:
-     num_samples (int): number of posterior samples
-     labels (List[str]): list of parameter names
-     output_path (Path): path where to store outputs
-     
- Compute the TARP validation metric
- Reference: https://arxiv.org/abs/2302.03026.
+    Also has the option to compute the TARP validation metric.
+    Reference: https://arxiv.org/abs/2302.03026
 
- Args:
-     num_samples (int): number of posterior samples
-     output_path (Path): path where to store outputs
- """
- 
-    def __init__(self, plot_list, **kw):
+    Args:
+        num_samples (int): number of posterior samples
+        labels (List[str]): list of parameter names
+        output_path (Path): path where to store outputs
+    """
+
+    def __init__(self, plot_list, **kwargs):
         self.plot_list = plot_list
-        super(PosteriorCoverage,self).__init__(**kw)
-    
-    ## First, plot functions: histogram, coverage, predictions and TARP
+        super(PosteriorCoverage, self).__init__(**kwargs)
+
+    # First, plot functions: histogram, coverage, predictions and TARP
     def _get_ranks(
         self,
         posterior: ModelClass,
@@ -298,7 +298,7 @@ class PosteriorCoverage(_SampleBasedMetric):
         for i in range(npars):
             ax[i].hist(np.array(ranks)[:, i], bins=nbins)
             ax[i].set_title(self.labels[i])
-            ax[0].set_ylabel('counts')
+        ax[0].set_ylabel('counts')
 
         for axis in ax:
             axis.set_xlim(0, ranks.max())
@@ -314,7 +314,7 @@ class PosteriorCoverage(_SampleBasedMetric):
         plt.savefig(self.output_path / strFig,
                     dpi=300, bbox_inches='tight')
 
-    def _plot_coverage(self, ranks,signature, plotscatter=True):
+    def _plot_coverage(self, ranks, signature, plotscatter=True):
         ncounts = ranks.shape[0]
         npars = ranks.shape[-1]
 
@@ -376,7 +376,7 @@ class PosteriorCoverage(_SampleBasedMetric):
         strFig = signature + "predictions.jpg"
         plt.savefig(self.output_path / strFig,
                     dpi=300, bbox_inches='tight')
-        
+
     def _plot_TARP(self, alpha, ecp, signature):
         # plot the TARP metric
         fig, ax = plt.subplots(1, 1, figsize=(4, 4))
@@ -391,7 +391,6 @@ class PosteriorCoverage(_SampleBasedMetric):
         strFig = signature + "plot_tarp.jpg"
         plt.savefig(self.output_path / strFig, dpi=300, bbox_inches='tight')
 
- 
     def __call__(
         self,
         posterior: ModelClass,
@@ -400,7 +399,8 @@ class PosteriorCoverage(_SampleBasedMetric):
         x_obs: Optional[np.array] = None,
         theta_obs: Optional[np.array] = None,
         signature: Optional[str] = "",
-        plot_list: Optional[list] = ["coverage", "histogram", "predictions", "TARP"], #plot each metric by default
+        plot_list: Optional[list] = ["coverage", "histogram",
+                                     "predictions", "tarp"],
         references: str = "random",
         metric: str = "euclidean"
     ):
@@ -418,50 +418,56 @@ class PosteriorCoverage(_SampleBasedMetric):
             metric (str, optional): which metric to use.
                 Defaults to "euclidean".
         """
-        
-        ranks_b = False ; pred_b = False 
+
+        ranks_b = False
+        pred_b = False
         plot_list = self.plot_list
-        
+
         # build for the posterior (required for both ranks and TARP)
         sampler = self._build_sampler(posterior)
         ndim = theta.shape[1]
         ntest = x.shape[0]
-        
+
         # initializations for rank statistics
         if "coverage" in plot_list or "histogram" in plot_list:
-            ranks =  np.zeros((ntest, ndim), dtype = int)
+            ranks = np.zeros((ntest, ndim), dtype=int)
             ranks_b = True
         if "predictions" in plot_list:
-            mus, stds = np.zeros((ntest, ndim), dtype = float), np.zeros((ntest, ndim), dtype = float)
-            trues = np.zeros((ntest, ndim), dtype = float)
+            mus, stds = np.zeros((ntest, ndim), dtype=float), np.zeros(
+                (ntest, ndim), dtype=float)
+            trues = np.zeros((ntest, ndim), dtype=float)
             pred_b = True
 
-        # Initialize posterior samples array ; careful about size consistency given backend
+        # Initialize posterior samples array ; checks size consistency given backend
         if self.sample_method == "emcee":
             P = sampler.num_chains*self.num_samples
         else:
             P = self.num_samples
-            
-        # shape = (num_samples, ntest = x.shape[0], ndim)
+
         posterior_samples = np.zeros((P, ntest, ndim))
-        
+
         # Next line equiv  "for each x realization of the test set:
         for ii in tqdm.tqdm(range(ntest)):
             try:
                 # Sample posterior P(theta | x[ii])
-                samp_i = sampler.sample(self.num_samples, x=x[ii], progress=False) # shape (num_samples, dim of theta)
-                posterior_samples[:, ii] = samp_i # same as "posterior_samples[:, ii, :] = samp_i"
-            
+                # shape (num_samples, dim of theta)
+                samp_i = sampler.sample(
+                    self.num_samples, x=x[ii], progress=False)
+                # same as "posterior_samples[:, ii, :] = samp_i"
+                posterior_samples[:, ii] = samp_i
+
                 if ranks_b:
-                    rank = [(samp_i[:, k] < theta[ii, k]).sum() for k in range(ndim)]
+                    rank = [(samp_i[:, k] < theta[ii, k]).sum()
+                            for k in range(ndim)]
                     ranks[ii] = rank
-                
+
                 if pred_b:
-                    mu, std = samp_i.mean(axis=0)[:ndim], samp_i.std(axis=0)[:ndim]
+                    mu, std = samp_i.mean(
+                        axis=0)[:ndim], samp_i.std(axis=0)[:ndim]
                     mus[ii] = mu
                     stds[ii] = std
                     trues[ii] = theta[ii]
-            
+
             except Warning as w:
                 # except :
                 print("WARNING\n", w)
@@ -473,18 +479,19 @@ class PosteriorCoverage(_SampleBasedMetric):
             self._plot_ranks_histogram(ranks, signature)
         if "predictions" in plot_list:
             self._plot_predictions(trues, mus, stds, signature)
-        
+
         # Specifically for TARP
-        if "TARP" in plot_list:
-            
+        if "tarp" in plot_list:
+
             # check if if backend is sbi
             if self.backend != 'sbi':
-                raise ValueError('TARP is not yet supported by pydelfi backend')
-                
+                raise ValueError(
+                    'TARP is not yet supported by pydelfi backend')
+
             # TARP Expected Coverage Probability
             alpha, ecp = tarp.get_drp_coverage(posterior_samples,
                                                theta,
                                                references=references,
                                                metric=metric)
-            
+
             self._plot_TARP(alpha, ecp, signature)

@@ -9,10 +9,7 @@ from pathlib import Path
 import numpy as np
 import json
 import pandas as pd
-from typing import Dict
-import xarray as xr
 from ili.utils import Dataset
-#from summarizer.dataset import Dataset
 
 try:
     from sbi.simulators.simutils import simulate_in_batches
