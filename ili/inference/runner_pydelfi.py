@@ -8,7 +8,7 @@ import logging
 import numpy as np
 import tensorflow as tf
 from pathlib import Path
-from typing import Dict, Any, List, Callable
+from typing import Dict, Any, List, Callable, Optional
 from ili.utils import load_class, load_from_config
 
 
@@ -38,6 +38,7 @@ class DelfiRunner:
         engine_kwargs: Dict,
         train_args: Dict,
         output_path: Path,
+        str_save: Optional[str] = ""
     ):
         self.n_params = n_params
         self.n_data = n_data
@@ -50,6 +51,7 @@ class DelfiRunner:
         self.output_path = output_path
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
+        self.str_save = str_save
 
     @classmethod
     def from_config(cls, config_path) -> "DelfiRunner":
@@ -82,8 +84,14 @@ class DelfiRunner:
             config_ndes=config_ndes,
         )
         engine_kwargs = config["model"]["kwargs"]
+
+        # load logistics
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
+        if "str_save" in config["model"]:
+            str_save = config["model"]["str_save"]
+        else:
+            str_save = ""
         return cls(
             n_params=n_params,
             n_data=n_data,
@@ -94,6 +102,7 @@ class DelfiRunner:
             engine_kwargs=engine_kwargs,
             train_args=train_args,
             output_path=output_path,
+            str_save=str_save,
         )
 
     def __call__(self, loader):
@@ -115,14 +124,14 @@ class DelfiRunner:
             results_dir=str(self.output_path)+'/',
             param_names=np.arange(self.n_params).astype(str),
             graph_restore_filename="graph_checkpoint",
-            restore_filename="posterior.pkl",
+            restore_filename="temp.pkl",
             restore=False, save=True,
             **self.engine_kwargs,
         )
         posterior.load_simulations(x, theta)
         posterior.train_ndes(**self.train_args)
 
-        posterior.save_engine('tempmeta.pkl')
+        posterior.save_engine(self.str_save+'posterior.pkl')
         tf.reset_default_graph()
 
         logging.info(

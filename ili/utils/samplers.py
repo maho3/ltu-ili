@@ -135,7 +135,7 @@ class PyroSampler(_BaseSampler):
         super().__init__(posterior, num_chains, thin, burn_in)
         self.method = method
 
-    def _Direct_to_MCMC(self, posterior: DirectPosterior) -> MCMCPosterior:
+    def _Direct_to_MCMC(self, posterior: ModelClass) -> ModelClass:
         """Converts a DirectPosterior to an MCMCPosterior, which is required
         for sampling with pyro.
 

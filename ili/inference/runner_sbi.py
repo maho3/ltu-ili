@@ -58,14 +58,12 @@ class SBIRunner:
         self,
         prior: Independent,
         inference_class: NeuralInference,
-        # eg list of posterior_nn instances (callable from sbi package)
         nets: List[Callable],
         train_args: Dict,
         output_path: Path,
         device: str = 'cpu',
         embedding_net: nn.Module = None,
         proposal: Independent = None,
-        # for the different NNs trained in the ensemble
         signatures: Optional[List[str]] = None,
         str_save: Optional[str] = ""
     ):
@@ -86,7 +84,6 @@ class SBIRunner:
         if self.output_path is not None:
             self.output_path = Path(self.output_path)
             self.output_path.mkdir(parents=True, exist_ok=True)
-
         self.signatures = signatures
         self.str_save = str_save
 
@@ -128,6 +125,10 @@ class SBIRunner:
             class_name=config["model"]["class"],
             posteriors_config=config["model"]["nets"],
         )
+
+        # load logistics
+        train_args = config["train_args"]
+        output_path = Path(config["output_path"])
         if "str_save" in config["model"]:
             str_save = config["model"]["str_save"]
         else:
@@ -138,10 +139,6 @@ class SBIRunner:
                 signatures.append(type_nn["signature"])
             else:
                 signatures.append(type_nn["model"] + "_")
-
-        # load logistics
-        train_args = config["train_args"]
-        output_path = Path(config["output_path"])
         return cls(
             prior=prior,
             proposal=proposal,
@@ -385,7 +382,7 @@ class SBIRunnerSequential(SBIRunner):
 
             logging.info(f"Network signatures: {self.signatures}")
 
-            # Instanciate custom class with NPE and signature
+            # Instantiate custom class with NPE and signature
             posterior_ensemble = PosteriorEnsemble(posterior, self.signatures)
 
             str_p = self.str_save + f"posterior_{rnd}.pkl"

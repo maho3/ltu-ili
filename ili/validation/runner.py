@@ -73,6 +73,7 @@ class ValidationRunner:
             signatures = posterior_ensemble.signatures
         elif backend == 'pydelfi':
             posterior = DelfiWrapper.load_engine(config["meta_path"])
+            signatures = [""]*posterior.num_components
         else:
             raise NotImplementedError
         output_path = Path(config["output_path"])
@@ -139,8 +140,8 @@ class ValidationRunner:
             x_obs = loader.get_obs_data()
             theta_obs = loader.get_obs_parameters()
 
-        if (isinstance(self.posterior, NeuralPosteriorEnsemble) and
-                (not self.ensemble_mode)):
+        if ((not self.ensemble_mode) and (self.backend == 'sbi') and
+                isinstance(self.posterior, NeuralPosteriorEnsemble)):
             n = 0
             for posterior_model in self.posterior.posteriors:
                 signature = self.signatures[n]

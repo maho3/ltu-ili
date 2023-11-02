@@ -1,6 +1,6 @@
 backend: 'pydelfi'
 
-meta_path: './toy/tempmeta.pkl'
+meta_path: './toy/toy_pydelfi_posterior.pkl'
 output_path: './toy'
 labels: ['t1', 't2', 't3']
 

@@ -31,6 +31,7 @@ class DelfiWrapper(Delfi):
         kwargs.pop('nde')
         self.kwargs = kwargs
         self.config_ndes = config_ndes
+        self.num_components = len(config_ndes)
         self.prior.sample = self.prior.draw  # aliasing for consistency
 
     def potential(self, theta: np.array, x: np.array):
