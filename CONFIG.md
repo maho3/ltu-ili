@@ -70,16 +70,22 @@ prior:
 model:
   module: 'sbi.inference'
   class: 'SNPE_C'
+<<<<<<< HEAD
   str_save: 'run_SNPE'
+=======
+>>>>>>> main
   neural_posteriors:
     - model: 'maf'
       hidden_features: 50 
       num_transforms: 5
+<<<<<<< HEAD
       signature: 'maf1'
     - model: 'maf'
       hidden_features: 50 
       num_transforms: 5
       signature: 'maf2'
+=======
+>>>>>>> main
     - model: 'mdn'
       hidden_features: 50 
       num_components: 2
@@ -115,8 +121,11 @@ All implemented methods allow you to specify an ensemble of independently-traine
   - Multilayer Perceptrons ([`mlp`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/classifier.py#L136))
   - ResNets ([`resnet`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/classifier.py#L194)).
 
+<<<<<<< HEAD
 Within the model configuration, you can specify a name for your ensemble posterior and a name for each individual neural network, with the `str_save` and `signature` parameters, respectively. These names are used to save the trained models to file, and can be referenced later in the validation stage using its `posterior_path` argument.
 
+=======
+>>>>>>> main
 The **embedding_net** configuration allows one to specify additional neural layers which will prepend the input layer of the above neural density estimators. The default `sbi` architectures listed above are generally quite shallow, so its a good idea to make use of embedding architectures, especially for complex data. We include a fully-connected network (`ili.embedding.FCN`), but we also have an example of a CNN-like embedding network in [tutorial.ipynb](notebooks/tutorial.ipynb).
 
 The **train_args** are used to configure the training optimizer and early stopping criterion. All `sbi` models use the Adam optimizer. Lastly, **device** specifies whether to use Pytorch's `cpu` or `cuda` backend, and **output_path** specifies where to save your models after they are done training.
@@ -143,7 +152,10 @@ prior:
 model:
   module: 'ili.inference.pydelfi_wrappers'
   class: 'DelfiWrapper'
+<<<<<<< HEAD
   str_save: 'run_delfi'
+=======
+>>>>>>> main
   kwargs:
     nwalkers: 20
   nets:
@@ -182,12 +194,19 @@ Here's an example configuration for a `ValidationRunner` object.
 ```bash
 backend: 'sbi'
 
+<<<<<<< HEAD
 posterior_path: './toy/run_SNPE_posterior.pkl'
 output_path: './toy'
 labels: ['t1', 't2', 't3']
 
 ensemble_mode: True
 
+=======
+posterior_path: './toy/posterior.pkl'
+output_path: './toy'
+labels: ['t1', 't2', 't3']
+
+>>>>>>> main
 metrics:
   # plots a well-sampled posterior for a single test example
   single_example:  
