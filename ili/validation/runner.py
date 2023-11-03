@@ -69,11 +69,10 @@ class ValidationRunner:
         if backend == 'sbi':
             posterior_ensemble = cls.load_posterior_sbi(
                 config["posterior_path"])
-            posterior = posterior_ensemble.ensemble
             signatures = posterior_ensemble.signatures
         elif backend == 'pydelfi':
-            posterior = DelfiWrapper.load_engine(config["meta_path"])
-            signatures = [""]*posterior.num_components
+            posterior_ensemble = DelfiWrapper.load_engine(config["meta_path"])
+            signatures = [""]*posterior_ensemble.num_components
         else:
             raise NotImplementedError
         output_path = Path(config["output_path"])
@@ -83,7 +82,7 @@ class ValidationRunner:
             ensemble_mode = True
 
         logging.info("Number of posteriors in the ensemble is "
-                     f"{posterior.num_components}")
+                     f"{posterior_ensemble.num_components}")
         if ensemble_mode:
             logging.info(
                 "Metrics are computed for the ensemble posterior estimate.")
@@ -100,7 +99,7 @@ class ValidationRunner:
 
         return cls(
             backend=backend,
-            posterior=posterior,
+            posterior=posterior_ensemble,
             metrics=metrics,
             output_path=output_path,
             ensemble_mode=ensemble_mode,

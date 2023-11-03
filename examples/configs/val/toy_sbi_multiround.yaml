@@ -1,0 +1,31 @@
+backend: 'sbi'
+
+posterior_path: './toy/toy_mr_posterior.pkl'
+output_path: './toy'
+labels: ['t1', 't2', 't3']
+
+ensemble_mode: True
+
+metrics:
+  single_example:
+    module: 'ili.validation.metrics'
+    class: 'PlotSinglePosterior'
+    args:
+      num_samples: 1200
+      sample_method: 'direct'
+
+  coverages:
+    module: 'ili.validation.metrics'
+    class: 'PosteriorCoverage'
+    args:
+      num_samples: 100
+      sample_method: 'direct'
+      plot_list: ["coverage", "histogram", "predictions", "TARP"]
+
+
+  samples:
+    module: 'ili.validation.metrics'
+    class: 'PosteriorSamples'
+    args:
+      num_samples: 100
+      sample_method: 'direct'
