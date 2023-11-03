@@ -9,7 +9,7 @@ prior:
 model:
   module: 'sbi.inference'
   class: 'SNLE'
-  str_save: 'toy_SNLE'
+  name: 'toy_SNLE'
   nets:
     - model: 'maf'
       hidden_features: 50 

@@ -12,7 +12,7 @@ prior:
 model:
   module: 'ili.inference.pydelfi_wrappers'
   class: 'DelfiWrapper'
-  str_save: 'toy_pydelfi'
+  name: 'toy_pydelfi'
   kwargs:
     nwalkers: 20
   nets:

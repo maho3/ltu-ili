@@ -65,7 +65,7 @@ class SBIRunner:
         embedding_net: nn.Module = None,
         proposal: Independent = None,
         signatures: Optional[List[str]] = None,
-        str_save: Optional[str] = ""
+        name: Optional[str] = ""
     ):
         self.prior = prior
         self.proposal = proposal
@@ -85,7 +85,7 @@ class SBIRunner:
             self.output_path = Path(self.output_path)
             self.output_path.mkdir(parents=True, exist_ok=True)
         self.signatures = signatures
-        self.str_save = str_save
+        self.name = name
 
     @classmethod
     def from_config(cls, config_path: Path) -> "SBIRunner":
@@ -129,10 +129,10 @@ class SBIRunner:
         # load logistics
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
-        if "str_save" in config["model"]:
-            str_save = config["model"]["str_save"]+"_"
+        if "name" in config["model"]:
+            name = config["model"]["name"]+"_"
         else:
-            str_save = ""
+            name = ""
         signatures = []
         for type_nn in config["model"]["nets"]:
             if "signature" in type_nn:
@@ -149,7 +149,7 @@ class SBIRunner:
             train_args=train_args,
             output_path=output_path,
             signatures=signatures,
-            str_save=str_save,
+            name=name,
         )
 
     @classmethod
@@ -277,8 +277,8 @@ class SBIRunner:
 
         # save if output path is specified
         if self.output_path is not None:
-            str_p = self.str_save + "posterior.pkl"
-            str_s = self.str_save + "summary.json"
+            str_p = self.name + "posterior.pkl"
+            str_s = self.name + "summary.json"
             with open(self.output_path / str_p, "wb") as handle:
                 pickle.dump(posterior_ensemble, handle)
             with open(self.output_path / str_s, "w") as handle:
@@ -385,14 +385,14 @@ class SBIRunnerSequential(SBIRunner):
             # Instantiate custom class with NPE and signature
             posterior_ensemble = PosteriorEnsemble(posterior, self.signatures)
 
-            str_p = self.str_save + f"posterior_{rnd}.pkl"
+            str_p = self.name + f"posterior_{rnd}.pkl"
             with open(self.output_path / str_p, "wb") as f:
                 pickle.dump(posterior_ensemble, f)
             proposal = posterior_ensemble.ensemble.set_default_x(x_obs)
             logging.info(
                 f"It took {time.time()-t1} seconds to complete round {rnd+1}.")
 
-        str_p = self.str_save + "posterior.pkl"
+        str_p = self.name + "posterior.pkl"
         with open(self.output_path / str_p, "wb") as f:
             pickle.dump(posterior_ensemble, f)
         logging.info(

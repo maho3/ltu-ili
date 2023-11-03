@@ -38,7 +38,7 @@ class DelfiRunner:
         engine_kwargs: Dict,
         train_args: Dict,
         output_path: Path,
-        str_save: Optional[str] = ""
+        name: Optional[str] = ""
     ):
         self.n_params = n_params
         self.n_data = n_data
@@ -51,7 +51,7 @@ class DelfiRunner:
         self.output_path = output_path
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
-        self.str_save = str_save
+        self.name = name
 
     @classmethod
     def from_config(cls, config_path) -> "DelfiRunner":
@@ -88,10 +88,10 @@ class DelfiRunner:
         # load logistics
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
-        if "str_save" in config["model"]:
-            str_save = config["model"]["str_save"] + "_"
+        if "name" in config["model"]:
+            name = config["model"]["name"] + "_"
         else:
-            str_save = ""
+            name = ""
         return cls(
             n_params=n_params,
             n_data=n_data,
@@ -102,7 +102,7 @@ class DelfiRunner:
             engine_kwargs=engine_kwargs,
             train_args=train_args,
             output_path=output_path,
-            str_save=str_save,
+            name=name,
         )
 
     def __call__(self, loader):
@@ -131,7 +131,7 @@ class DelfiRunner:
         posterior.load_simulations(x, theta)
         posterior.train_ndes(**self.train_args)
 
-        posterior.save_engine(self.str_save+'posterior.pkl')
+        posterior.save_engine(self.name+'posterior.pkl')
         tf.reset_default_graph()
 
         logging.info(
