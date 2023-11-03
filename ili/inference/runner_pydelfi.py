@@ -89,7 +89,7 @@ class DelfiRunner:
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
         if "str_save" in config["model"]:
-            str_save = config["model"]["str_save"]
+            str_save = config["model"]["str_save"] + "_"
         else:
             str_save = ""
         return cls(

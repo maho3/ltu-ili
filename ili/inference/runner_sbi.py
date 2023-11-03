@@ -130,13 +130,13 @@ class SBIRunner:
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
         if "str_save" in config["model"]:
-            str_save = config["model"]["str_save"]
+            str_save = config["model"]["str_save"]+"_"
         else:
             str_save = ""
         signatures = []
         for type_nn in config["model"]["nets"]:
             if "signature" in type_nn:
-                signatures.append(type_nn["signature"])
+                signatures.append(type_nn["signature"] + "_")
             else:
                 signatures.append(type_nn["model"] + "_")
         return cls(

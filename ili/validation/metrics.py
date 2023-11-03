@@ -122,7 +122,7 @@ class PosteriorSamples(_SampleBasedMetric):
         ndim = theta.shape[1]
         ntest = x.shape[0]
 
-        # Initialize posterior samples array ; careful about size consistency given backend
+        # Initialize posterior samples array ; careful about backend
         if self.sample_method == "emcee":
             P = sampler.num_chains*self.num_samples
         else:
@@ -182,6 +182,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): tensor of observed summaries
             theta_obs (np.array, optional): tensor of true parameters for x_obs
+            signature (str, optional): signature for the output file name
         """
         ndim = theta.shape[-1]
 
@@ -231,12 +232,13 @@ class PosteriorCoverage(_SampleBasedMetric):
     Reference: https://arxiv.org/abs/2302.03026
 
     Args:
+        plot_list (list): list of plot types to save
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
         output_path (Path): path where to store outputs
     """
 
-    def __init__(self, plot_list, **kwargs):
+    def __init__(self, plot_list: List[str], **kwargs):
         self.plot_list = plot_list
         super(PosteriorCoverage, self).__init__(**kwargs)
 
@@ -414,6 +416,10 @@ class PosteriorCoverage(_SampleBasedMetric):
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): Not used
             theta_obs (np.array, optional): Not used
+            signature (str, optional): signature for the output file name
+            plot_list (list, optional): list of plot types to save
+
+        Args (TARP only):
             references (str, optional): how to select the reference points.
                 Defaults to "random".
             metric (str, optional): which metric to use.
@@ -439,7 +445,7 @@ class PosteriorCoverage(_SampleBasedMetric):
             trues = np.zeros((ntest, ndim), dtype=float)
             pred_b = True
 
-        # Initialize posterior samples array ; checks size consistency given backend
+        # Initialize posterior samples array ; careful about backend
         if self.sample_method == "emcee":
             P = sampler.num_chains*self.num_samples
         else:
