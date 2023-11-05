@@ -27,4 +27,4 @@ train_args:
   learning_rate: 0.001
 
 device: 'cpu'
-output_path: './toy'
+output_path: 'toy'

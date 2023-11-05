@@ -7,14 +7,14 @@ import pickle
 import time
 import yaml
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from ili.validation.metrics import _BaseMetric
 from ili.utils import load_from_config
 
 try:
-    import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
+    from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
@@ -36,10 +36,12 @@ class ValidationRunner:
 
     def __init__(
         self,
-        posterior: ModelClass,
+        posterior: ModelClass,  # see imports
         metrics: List[_BaseMetric],
         backend: str,
         output_path: Path,
+        ensemble_mode: Optional[bool] = True,
+        signatures: Optional[List[str]] = None,
     ):
         self.posterior = posterior
         self.metrics = metrics
@@ -47,6 +49,8 @@ class ValidationRunner:
         self.output_path = output_path
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
+        self.ensemble_mode = ensemble_mode
+        self.signatures = signatures
 
     @classmethod
     def from_config(cls, config_path) -> "ValidationRunner":
@@ -63,12 +67,28 @@ class ValidationRunner:
 
         backend = config['backend']
         if backend == 'sbi':
-            posterior = cls.load_posterior_sbi(config["posterior_path"])
+            posterior_ensemble = cls.load_posterior_sbi(
+                config["posterior_path"])
+            signatures = posterior_ensemble.signatures
         elif backend == 'pydelfi':
-            posterior = DelfiWrapper.load_engine(config["meta_path"])
+            posterior_ensemble = DelfiWrapper.load_engine(config["meta_path"])
+            signatures = [""]*posterior_ensemble.num_components
         else:
             raise NotImplementedError
         output_path = Path(config["output_path"])
+        if "ensemble_mode" in config:
+            ensemble_mode = config["ensemble_mode"]
+        else:
+            ensemble_mode = True
+
+        logging.info("Number of posteriors in the ensemble is "
+                     f"{posterior_ensemble.num_components}")
+        if ensemble_mode:
+            logging.info(
+                "Metrics are computed for the ensemble posterior estimate.")
+        else:
+            logging.info(
+                "Metrics are computed for each posterior in the ensemble.")
 
         metrics = {}
         for key, value in config["metrics"].items():
@@ -79,9 +99,11 @@ class ValidationRunner:
 
         return cls(
             backend=backend,
-            posterior=posterior,
+            posterior=posterior_ensemble,
             metrics=metrics,
             output_path=output_path,
+            ensemble_mode=ensemble_mode,
+            signatures=signatures,
         )
 
     @classmethod
@@ -117,10 +139,23 @@ class ValidationRunner:
             x_obs = loader.get_obs_data()
             theta_obs = loader.get_obs_parameters()
 
-        # evaluate metrics
-        for metric in self.metrics.values():
-            logging.info(f"Running metric {metric.__class__.__name__}.")
-            metric(self.posterior, x_test, theta_test,
-                   x_obs=x_obs, theta_obs=theta_obs)
+        if ((not self.ensemble_mode) and (self.backend == 'sbi') and
+                isinstance(self.posterior, NeuralPosteriorEnsemble)):
+            n = 0
+            for posterior_model in self.posterior.posteriors:
+                signature = self.signatures[n]
+                n += 1
+                for metric in self.metrics.values():
+                    logging.info(
+                        f"Running metric {metric.__class__.__name__}.")
+                    metric(posterior_model, x_test, theta_test, x_obs=x_obs,
+                           theta_obs=theta_obs, signature=signature)
+        else:
+            # evaluate metrics
+            signature = "".join(self.signatures)
+            for metric in self.metrics.values():
+                logging.info(f"Running metric {metric.__class__.__name__}.")
+                metric(self.posterior, x_test, theta_test,
+                       x_obs=x_obs, theta_obs=theta_obs, signature=signature)
 
         logging.info(f"It took {time.time() - t0} seconds to run all metrics.")

@@ -12,6 +12,7 @@ prior:
 model:
   module: 'ili.inference.pydelfi_wrappers'
   class: 'DelfiWrapper'
+  name: 'quijote_pydelfi'
   kwargs:
     nwalkers: 10
   nets:

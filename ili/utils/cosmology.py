@@ -52,7 +52,7 @@ class Cosmology(object):
         """
         :return: CAMB cosmology object
         """
-        pars = camb.CAMBparams()
+        pars = camb.CAMBparams(WantTransfer=True)
         pars.set_cosmology(
             H0=self.h * 100,
             ombh2=self.ombh2,
