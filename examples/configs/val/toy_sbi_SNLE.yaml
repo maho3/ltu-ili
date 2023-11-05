@@ -28,7 +28,7 @@ metrics:
         num_chains: -1
         burn_in: 20
         thin: 1
-      plot_list: ["coverage", "histogram", "predictions", "TARP"]
+      plot_list: ["coverage", "histogram", "predictions", "tarp"]
 
 
   samples:
