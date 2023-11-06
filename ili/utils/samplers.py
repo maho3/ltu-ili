@@ -12,6 +12,11 @@ from abc import ABC
 try:
     import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
+    from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+    from sbi.inference.posteriors import DirectPosterior, MCMCPosterior
+    from sbi.inference.potentials.posterior_based_potential import (
+        posterior_estimator_based_potential,
+    )
     ModelClass = NeuralPosterior
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
@@ -115,8 +120,43 @@ class PyroSampler(_BaseSampler):
         burn_in: int = 100,
         method='slice_np_vectorize'
     ) -> None:
+        # convert DirectPosteriors to MCMCPosteriors
+        if isinstance(posterior, DirectPosterior):
+            posterior = self._Direct_to_MCMC(posterior)
+        elif isinstance(posterior, NeuralPosteriorEnsemble):
+            posteriors = posterior.posteriors
+            posterior = NeuralPosteriorEnsemble(
+                [(self._Direct_to_MCMC(p) if isinstance(p, DirectPosterior)
+                  else p)
+                 for p in posteriors],
+                weights=posterior.weights,
+                theta_transform=posterior.theta_transform
+            )
         super().__init__(posterior, num_chains, thin, burn_in)
         self.method = method
+
+    def _Direct_to_MCMC(self, posterior: ModelClass) -> ModelClass:
+        """Converts a DirectPosterior to an MCMCPosterior, which is required
+        for sampling with pyro.
+
+        Args:
+            posterior (DirectPosterior): posterior object to convert
+
+        Returns:
+            MCMCPosterior: converted posterior object
+        """
+        potential_fn, theta_transform = posterior_estimator_based_potential(
+            posterior.posterior_estimator,
+            posterior.prior,
+            x_o=None,
+            enable_transform=True,
+        )
+        return MCMCPosterior(
+            potential_fn=potential_fn,
+            proposal=posterior.prior,
+            theta_transform=theta_transform,
+            device=posterior._device
+        )
 
     def sample(self, nsteps: int, x: np.ndarray, progress: bool = False) -> np.ndarray:
         """

@@ -9,12 +9,13 @@ from pathlib import Path
 import numpy as np
 import json
 import pandas as pd
-from summarizer.dataset import Dataset
+from ili.utils import Dataset
 
 try:
     from sbi.simulators.simutils import simulate_in_batches
 except ModuleNotFoundError:
     pass
+
 
 
 class _BaseLoader(ABC):

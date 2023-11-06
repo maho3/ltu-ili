@@ -44,5 +44,5 @@ if __name__ == '__main__':
     # use the trained posterior model to predict on a single example from
     # the test set
     val_runner = ValidationRunner.from_config(
-        "configs/val/toy_sbi.yaml")
+        f"configs/val/toy_sbi_{args.model}.yaml")
     val_runner(loader=all_loader)

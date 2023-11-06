@@ -9,13 +9,15 @@ prior:
 model:
   module: 'sbi.inference'
   class: 'SNPE'
+  name: 'toy_SNPE'
   nets:
     - model: 'maf'
       hidden_features: 50 
       num_transforms: 5
+      signature: "maf"
     - model: 'mdn'
       hidden_features: 50 
-      num_components: 2
+      num_components: 6
     
 train_args:
   training_batch_size: 32
