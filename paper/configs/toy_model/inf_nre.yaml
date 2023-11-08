@@ -1,0 +1,33 @@
+
+prior:
+  module: 'sbi.utils'
+  class: 'BoxUniform'
+  args:
+    low: [0,0,0]
+    high: [1,1,1]
+
+embedding_net:
+  module: 'ili.embedding'
+  class: 'FCN'
+  args:
+    n_summary: 10
+    n_hidden: [64,64]
+    act_fn: "SiLU"
+
+model:
+  module: 'sbi.inference'
+  class: 'SNRE'
+  name: 'toy_SNRE'
+  nets:
+    - model: 'resnet'
+      hidden_features: 50
+      num_blocks: 3
+    - model: 'mlp'
+      hidden_features: 50
+    
+train_args:
+  training_batch_size: 32
+  learning_rate: 0.001
+
+device: 'cuda'
+output_path: './toy'
