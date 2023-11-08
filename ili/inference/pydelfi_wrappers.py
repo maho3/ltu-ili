@@ -6,7 +6,7 @@ interface.
 import pickle
 import emcee
 import numpy as np
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Optional
 from pydelfi.delfi import Delfi
 from ili.utils import load_class, load_from_config
 
@@ -25,12 +25,14 @@ class DelfiWrapper(Delfi):
     def __init__(
         self,
         config_ndes: List[Dict],
+        name: Optional[str] = '',
         **kwargs
     ):
         super().__init__(**kwargs)
         kwargs.pop('nde')
         self.kwargs = kwargs
         self.config_ndes = config_ndes
+        self.name = name
         self.num_components = len(config_ndes)
         self.prior.sample = self.prior.draw  # aliasing for consistency
 

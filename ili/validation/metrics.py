@@ -142,13 +142,12 @@ class PosteriorSamples(_SampleBasedMetric):
                 posterior_samples[:, ii] = samp_i
 
             except Warning as w:
-                # except :
                 print("WARNING\n", w)
                 continue
 
         if self.output_path is None:
             return posterior_samples
-        strFig = signature + "posterior_samples.npy"
+        strFig = signature + "single_samples.npy"
         np.save(self.output_path / strFig, posterior_samples)
 
 
@@ -163,6 +162,11 @@ class PlotSinglePosterior(_SampleBasedMetric):
             ('sbi' or 'pydelfi')
         output_path (Path): path where to store outputs
     """
+
+    def __init__(self, save_samples: bool = False, seed: int = None, **kwargs):
+        self.save_samples = save_samples
+        self.seed = seed
+        super().__init__(**kwargs)
 
     def __call__(
         self,
@@ -188,6 +192,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
         # choose a random test datapoint if not supplied
         if x_obs is None or theta_obs is None:
+            if self.seed:
+                np.random.seed(self.seed)
             ind = np.random.choice(len(x))
             x_obs = x[ind]
             theta_obs = theta[ind]
@@ -219,6 +225,10 @@ class PlotSinglePosterior(_SampleBasedMetric):
         strFig = signature + "plot_single_posterior.jpg"
         g.savefig(self.output_path / strFig,
                   dpi=200, bbox_inches='tight')
+
+        if self.save_samples:
+            strFig = signature + "posterior_samples.npy"
+            np.save(self.output_path / strFig, samples)
 
 
 class PosteriorCoverage(_SampleBasedMetric):
