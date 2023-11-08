@@ -152,6 +152,7 @@ class DelfiWrapper(Delfi):
         metadata = {
             'n_data': self.D,
             'n_params': self.npar,
+            'name': self.name,
             'config_ndes': self.config_ndes,
             'kwargs': self.kwargs
         }

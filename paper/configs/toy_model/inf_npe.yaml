@@ -20,9 +20,11 @@ model:
   name: 'toy_SNPE'
   nets:
     - model: 'maf'
+      signature: ''
       hidden_features: 50 
       num_transforms: 5
     - model: 'mdn'
+      signature: ''
       hidden_features: 50 
       num_components: 6
     

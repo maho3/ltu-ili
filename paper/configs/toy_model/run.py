@@ -1,8 +1,6 @@
 from os.path import join
 import argparse
-import numpy as np
 from ili.dataloaders import StaticNumpyLoader
-from ili.inference.runner_sbi import SBIRunner
 from ili.validation.runner import ValidationRunner
 
 
@@ -16,8 +14,7 @@ if __name__ == '__main__':
         help="Configuration file to use for model training.")
     parser.add_argument(
         "--cfgdir", type=str,
-        help="Directory to look for config files in.",
-    )
+        help="Directory to look for config files in.",)
     args = parser.parse_args()
     model = args.model
     cfgdir = args.cfgdir
@@ -26,11 +23,15 @@ if __name__ == '__main__':
     all_loader = StaticNumpyLoader.from_config(join(cfgdir, "data.yaml"))
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl
-    runner = SBIRunner.from_config(join(cfgdir, f"inf_{args.model}.yaml"))
+    if model == 'pydelfi':
+        from ili.inference.runner_pydelfi import DelfiRunner as Runner
+    else:
+        from ili.inference.runner_sbi import SBIRunner as Runner
+    runner = Runner.from_config(join(cfgdir, f"inf_{model}.yaml"))
     runner(loader=all_loader)
 
     # use the trained posterior model to predict on a single example from
     # the test set
     val_runner = ValidationRunner.from_config(
-        join(cfgdir, f"val_{args.model}.yaml"))
+        join(cfgdir, f"val_{model}.yaml"))
     val_runner(loader=all_loader)

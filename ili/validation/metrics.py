@@ -10,7 +10,7 @@ import tqdm
 from typing import List, Optional
 from abc import ABC
 from pathlib import Path
-import warnings
+import logging
 from ili.utils.samplers import (_BaseSampler, EmceeSampler, PyroSampler,
                                 DirectSampler)
 
@@ -142,7 +142,7 @@ class PosteriorSamples(_SampleBasedMetric):
                 posterior_samples[:, ii] = samp_i
 
             except Warning as w:
-                print("WARNING\n", w)
+                logging.warn("WARNING\n", w)
                 continue
 
         if self.output_path is None:
@@ -227,7 +227,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
                   dpi=200, bbox_inches='tight')
 
         if self.save_samples:
-            strFig = signature + "posterior_samples.npy"
+            strFig = signature + "single_samples.npy"
             np.save(self.output_path / strFig, samples)
 
 
@@ -285,7 +285,7 @@ class PosteriorCoverage(_SampleBasedMetric):
                     self.num_samples, x=x[ii], progress=False)
             except Warning as w:
                 # except :
-                print("WARNING\n", w)
+                logging.warn("WARNING\n", w)
                 continue
             mu, std = posterior_samples.mean(
                 axis=0)[:ndim], posterior_samples.std(axis=0)[:ndim]
@@ -487,7 +487,7 @@ class PosteriorCoverage(_SampleBasedMetric):
 
             except Warning as w:
                 # except :
-                print("WARNING\n", w)
+                logging.warn("WARNING\n", w)
                 continue
         # Save the plots
         if "coverage" in plot_list:
