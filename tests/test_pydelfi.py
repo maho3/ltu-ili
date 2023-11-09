@@ -74,7 +74,7 @@ def test_toy():
         config_ndes=config_ndes,
     )
 
-    # train a model to infer x -> theta. save it as toy/posterior.pkl
+    # train a model to infer x -> theta. save it as toy_pydelfi/posterior.pkl
     runner = DelfiRunner(
         n_params=n_params,
         n_data=n_data,
@@ -84,7 +84,7 @@ def test_toy():
         nets=nets,
         engine_kwargs={'nwalkers': 20},
         train_args=train_args,
-        output_path=Path('toy')
+        output_path=Path('toy_pydelfi')
 
     )
     runner(loader=all_loader)
@@ -184,16 +184,16 @@ def test_yaml():
             'nets': config_ndes,
         },
         train_args={'batch_size': 32, 'epochs': 5},
-        output_path='toy',
+        output_path='toy_pydelfi',
     )
-    with open('./toy/infer.yml', 'w') as outfile:
+    with open('./toy_pydelfi/infer.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for validation
     data = dict(
         backend='pydelfi',
-        meta_path='./toy/tempmeta.pkl',
-        output_path='./toy/',
+        meta_path='./toy_pydelfi/tempmeta.pkl',
+        output_path='./toy_pydelfi/',
         labels=['t1', 't2', 't3'],
         metrics={
             'single_example': {
@@ -208,12 +208,12 @@ def test_yaml():
             }
         }
     )
-    with open('./toy/val.yml', 'w') as outfile:
+    with open('./toy_pydelfi/val.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
-    all_loader = StaticNumpyLoader.from_config("./toy/data.yml")
-    runner = DelfiRunner.from_config("./toy/infer.yml")
+    all_loader = StaticNumpyLoader.from_config("./toy_pydelfi/data.yml")
+    runner = DelfiRunner.from_config("./toy_pydelfi/infer.yml")
     runner(loader=all_loader)
-    ValidationRunner.from_config("./toy/val.yml")
+    ValidationRunner.from_config("./toy_pydelfi/val.yml")
 
     return
