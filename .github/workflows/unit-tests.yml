@@ -40,7 +40,7 @@ jobs:
         
   pydelfi_build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
       - uses: actions/checkout@v3
@@ -65,8 +65,21 @@ jobs:
           echo "Running pydelfi tests"
           COVERAGE_FILE=.coverage_pydelfi python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
         shell: bash
-      - name: Combine pytest results
+
+  combine_tests:
+    needs: [sbi_build, pydelfi_build]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
+          pip install coverage pytest
           coverage combine .coverage_sbi .coverage_pydelfi .coverage_utils
           coverage xml
           coverage report -m
