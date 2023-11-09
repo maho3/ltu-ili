@@ -26,20 +26,20 @@ def test_toy():
         return y
 
     # construct a working directory
-    if not os.path.isdir("toy"):
-        os.mkdir("toy")
-    if os.path.isfile('./toy/tempmeta.pkl'):
-        os.remove('./toy/tempmeta.pkl')
+    if not os.path.isdir("toy_pydelfi"):
+        os.mkdir("toy_pydelfi")
+    if os.path.isfile('./toy_pydelfi/tempmeta.pkl'):
+        os.remove('./toy_pydelfi/tempmeta.pkl')
 
     # simulate data and save as numpy files
     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
     x = np.array([simulator(t) for t in theta])
-    np.save("toy/theta.npy", theta)
-    np.save("toy/x.npy", x)
+    np.save("toy_pydelfi/theta.npy", theta)
+    np.save("toy_pydelfi/x.npy", x)
 
     # reload all simulator examples as a dataloader
     all_loader = StaticNumpyLoader(
-        in_dir='./toy',
+        in_dir='./toy_pydelfi',
         x_file='x.npy',
         theta_file='theta.npy',
     )
@@ -93,7 +93,7 @@ def test_toy():
     # the test set
     args = {
         'backend': 'pydelfi',
-        'output_path': Path('toy'),
+        'output_path': Path('toy_pydelfi'),
         'labels': ['t1', 't2', 't3'],
         'num_samples': 20,
         'sample_method': 'emcee',
@@ -105,10 +105,10 @@ def test_toy():
     }
     metrics = {'single_example': PlotSinglePosterior(**args)}
     val_runner = ValidationRunner(
-        posterior=DelfiWrapper.load_engine('./toy/tempmeta.pkl'),
+        posterior=DelfiWrapper.load_engine('./toy_pydelfi/tempmeta.pkl'),
         metrics=metrics,
         backend='pydelfi',
-        output_path=Path('./toy'),
+        output_path=Path('./toy_pydelfi'),
     )
     val_runner(loader=all_loader)
 
@@ -132,8 +132,8 @@ def test_yaml():
 
     tf.keras.backend.clear_session()
 
-    if not os.path.isdir("toy"):
-        os.mkdir("toy")
+    if not os.path.isdir("toy_pydelfi"):
+        os.mkdir("toy_pydelfi")
 
     config_ndes = [
         {'module': 'pydelfi.ndes', 'class': 'MixtureDensityNetwork',
@@ -156,16 +156,16 @@ def test_yaml():
     # simulate data and save as numpy files
     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
     x = np.array([simulator(t) for t in theta])
-    np.save("toy/theta.npy", theta)
-    np.save("toy/x.npy", x)
+    np.save("toy_pydelfi/theta.npy", theta)
+    np.save("toy_pydelfi/x.npy", x)
 
     # Yaml file for data
     data = dict(
-        in_dir='./toy',
+        in_dir='./toy_pydelfi',
         x_file='x.npy',
         theta_file='theta.npy'
     )
-    with open('./toy/data.yml', 'w') as outfile:
+    with open('./toy_pydelfi/data.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     #  Yaml file for infer
