@@ -12,11 +12,9 @@ model:
   name: 'toy_SNLE'
   nets:
     - model: 'maf'
-      signature: ''
       hidden_features: 50 
       num_transforms: 6
     - model: 'mdn'
-      signature: ''
       hidden_features: 50 
       num_components: 6
     

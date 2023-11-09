@@ -1,6 +1,6 @@
 backend: 'sbi'
 
-posterior_path: './toy/toy_SNLE_posterior.pkl'
+posterior_path: './toy/toy_SNRE_posterior.pkl'
 output_path: './toy'
 labels: ['t1', 't2', 't3']
 
@@ -16,7 +16,7 @@ metrics:
       num_samples: 1500
       sample_method: 'slice_np_vectorized'
       sample_params:
-        num_chains: 1
+        num_chains: 6
         burn_in: 100
         thin: 10
 

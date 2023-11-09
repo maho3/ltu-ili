@@ -182,10 +182,10 @@ class DelfiWrapper(Delfi):
         )
         if 'restore' in metadata['kwargs']:
             metadata['kwargs'].pop('restore')
-
         return cls(
             **metadata['kwargs'],
             nde=ndes,
             config_ndes=metadata['config_ndes'],
+            name=metadata['name'],
             restore=True
         )

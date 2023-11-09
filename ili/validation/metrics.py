@@ -147,8 +147,8 @@ class PosteriorSamples(_SampleBasedMetric):
 
         if self.output_path is None:
             return posterior_samples
-        strFig = signature + "single_samples.npy"
-        np.save(self.output_path / strFig, posterior_samples)
+        strFig = self.output_path / (signature + "single_samples.npy")
+        np.save(strFig, posterior_samples)
 
 
 class PlotSinglePosterior(_SampleBasedMetric):
@@ -222,13 +222,15 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
         if self.output_path is None:
             return g
-        strFig = signature + "plot_single_posterior.jpg"
-        g.savefig(self.output_path / strFig,
+        strFig = self.output_path / (signature + "plot_single_posterior.jpg")
+        logging.info(f"Saving plot to {strFig}")
+        g.savefig(strFig,
                   dpi=200, bbox_inches='tight')
 
         if self.save_samples:
-            strFig = signature + "single_samples.npy"
-            np.save(self.output_path / strFig, samples)
+            strFig = self.output_path / (signature + "single_samples.npy")
+            logging.info(f"Saving samples to {strFig}")
+            np.save(strFig, samples)
 
 
 class PosteriorCoverage(_SampleBasedMetric):
@@ -323,9 +325,9 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        strFig = signature + "rankplot.jpg"
-        plt.savefig(self.output_path / strFig,
-                    dpi=300, bbox_inches='tight')
+        strFig = self.output_path / (signature + "rankplot.jpg")
+        logging.info(f"Saving plot to {strFig}")
+        plt.savefig(strFig, dpi=300, bbox_inches='tight')
 
     def _plot_coverage(self, ranks, signature, plotscatter=True):
         ncounts = ranks.shape[0]
@@ -357,9 +359,9 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        strFig = signature + "coverage.jpg"
-        plt.savefig(self.output_path / strFig,
-                    dpi=300, bbox_inches='tight')
+        strFig = self.output_path / (signature + "coverage.jpg")
+        logging.info(f"Saving plot to {strFig}")
+        plt.savefig(strFig, dpi=300, bbox_inches='tight')
 
     def _plot_predictions(self, trues, mus, stds, signature):
         npars = trues.shape[-1]
@@ -386,9 +388,9 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        strFig = signature + "predictions.jpg"
-        plt.savefig(self.output_path / strFig,
-                    dpi=300, bbox_inches='tight')
+        strFig = self.output_path / (signature + "predictions.jpg")
+        logging.info(f"Saving plot to {strFig}")
+        plt.savefig(strFig, dpi=300, bbox_inches='tight')
 
     def _plot_TARP(self, alpha, ecp, signature):
         # plot the TARP metric
@@ -401,8 +403,9 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        strFig = signature + "plot_tarp.jpg"
-        plt.savefig(self.output_path / strFig, dpi=300, bbox_inches='tight')
+        strFig = self.output_path / (signature + "plot_tarp.jpg")
+        logging.info(f"Saving plot to {strFig}")
+        plt.savefig(strFig, dpi=300, bbox_inches='tight')
 
     def __call__(
         self,

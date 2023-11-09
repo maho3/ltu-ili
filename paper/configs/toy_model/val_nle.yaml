@@ -16,7 +16,7 @@ metrics:
       num_samples: 1500
       sample_method: 'slice_np_vectorized'
       sample_params:
-        num_chains: 1
+        num_chains: 6
         burn_in: 100
         thin: 10
 

@@ -20,11 +20,9 @@ model:
   name: 'toy_SNRE'
   nets:
     - model: 'resnet'
-      signature: ''
       hidden_features: 50
       num_blocks: 3
     - model: 'mlp'
-      signature: ''
       hidden_features: 50
     
 train_args:

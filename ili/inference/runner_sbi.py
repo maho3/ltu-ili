@@ -134,7 +134,7 @@ class SBIRunner:
             if "signature" in type_nn:
                 signatures.append(type_nn["signature"] + "_")
             else:
-                signatures.append(type_nn["model"] + "_")
+                signatures.append("")
         return cls(
             prior=prior,
             proposal=proposal,
@@ -169,6 +169,7 @@ class SBIRunner:
         """
         # determine the correct model type
         def _build_model(embedding_net, model_args):
+            print(model_args)
             if "SNPE" in class_name:
                 return sbi.utils.posterior_nn(
                     embedding_net=embedding_net, **model_args)
