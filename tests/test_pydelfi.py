@@ -28,8 +28,8 @@ def test_toy():
     # construct a working directory
     if not os.path.isdir("toy_pydelfi"):
         os.mkdir("toy_pydelfi")
-    if os.path.isfile('./toy_pydelfi/tempmeta.pkl'):
-        os.remove('./toy_pydelfi/tempmeta.pkl')
+    if os.path.isfile('./toy_pydelfi/posterior.pkl'):
+        os.remove('./toy_pydelfi/posterior.pkl')
 
     # simulate data and save as numpy files
     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
@@ -105,7 +105,7 @@ def test_toy():
     }
     metrics = {'single_example': PlotSinglePosterior(**args)}
     val_runner = ValidationRunner(
-        posterior=DelfiWrapper.load_engine('./toy_pydelfi/tempmeta.pkl'),
+        posterior=DelfiWrapper.load_engine('./toy_pydelfi/posterior.pkl'),
         metrics=metrics,
         backend='pydelfi',
         output_path=Path('./toy_pydelfi'),
@@ -115,7 +115,6 @@ def test_toy():
     # Check sampling of the DelfiWrapper
     theta0 = np.zeros(3)+0.5
     x0 = simulator(theta0)
-    print(type(val_runner.posterior))
     samples = val_runner.posterior.sample(
         sample_shape=100,
         x=x0,
@@ -168,7 +167,7 @@ def test_yaml():
     with open('./toy_pydelfi/data.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
-    #  Yaml file for infer
+    # Yaml file for infer
     data = dict(
         n_params=3,
         n_data=10,
@@ -192,7 +191,7 @@ def test_yaml():
     # Yaml file for validation
     data = dict(
         backend='pydelfi',
-        meta_path='./toy_pydelfi/tempmeta.pkl',
+        meta_path='./toy_pydelfi/posterior.pkl',
         output_path='./toy_pydelfi/',
         labels=['t1', 't2', 't3'],
         metrics={
@@ -217,3 +216,4 @@ def test_yaml():
     ValidationRunner.from_config("./toy_pydelfi/val.yml")
 
     return
+
