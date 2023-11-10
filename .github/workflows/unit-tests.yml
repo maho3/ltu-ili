@@ -16,8 +16,8 @@ jobs:
 
     runs-on: ubuntu-latest
     outputs:
-      output1: .coverage_sbi
-      output2: .coverage_utils
+      output1: ${{ steps.step1.outputs.coverage_sbi }}
+      output2: ${{ steps.step2.outputs.coverage_sbi }}
 
     steps:
       - uses: actions/checkout@v3
@@ -32,20 +32,21 @@ jobs:
           pip install -e .[sbi]
           git clone https://github.com/florpi/ili-summarizer.git
           pip install -e ili-summarizer
-      - name: Test with pytest
-        run: |
           pip install coverage pytest
-          echo "Running sbi tests"
-          COVERAGE_FILE=.coverage_sbi python3 -m coverage run --source=ili -m pytest tests/test_sbi.py
-          echo "Running util tests"
-          COVERAGE_FILE=.coverage_utils python3 -m coverage run --source=ili -m pytest tests/test_utils.py
+      - id: step1
+        run: 
+          COVERAGE_FILE="$GITHUB_OUTPUT" python3 -m coverage run --source=ili -m pytest tests/test_sbi.py
+        shell: bash
+      - id: step2
+        run:
+          COVERAGE_FILE="$GITHUB_OUTPUT" python3 -m coverage run --source=ili -m pytest tests/test_utils.py
         shell: bash
         
   pydelfi_build:
 
     runs-on: ubuntu-20.04
     outputs:
-      output1: .coverage_pydelfi
+      output1: ${{ steps.step1.outputs.coverage_pydelfi }}
 
     steps:
       - uses: actions/checkout@v3
@@ -64,11 +65,10 @@ jobs:
           pip install -e .[pydelfi]
           git clone https://github.com/florpi/ili-summarizer.git
           pip install -e ili-summarizer
-      - name: Test with pytest
-        run: |
           pip install coverage pytest
-          echo "Running pydelfi tests"
-          COVERAGE_FILE=.coverage_pydelfi python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
+      - id: step1
+        run: |
+          COVERAGE_FILE="$GITHUB_OUTPUT" python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
         shell: bash
 
   combine_tests:
