@@ -41,7 +41,7 @@ class ValidationRunner:
         backend: str,
         output_path: Path,
         ensemble_mode: Optional[bool] = True,
-        signatures: Optional[List[str]] = None,
+        signatures: Optional[List[str]] = [],
     ):
         self.posterior = posterior
         self.metrics = metrics

@@ -26,20 +26,20 @@ def test_toy():
         return y
 
     # construct a working directory
-    if not os.path.isdir("toy"):
-        os.mkdir("toy")
-    if os.path.isfile('./toy/tempmeta.pkl'):
-        os.remove('./toy/tempmeta.pkl')
+    if not os.path.isdir("toy_pydelfi"):
+        os.mkdir("toy_pydelfi")
+    if os.path.isfile('./toy_pydelfi/posterior.pkl'):
+        os.remove('./toy_pydelfi/posterior.pkl')
 
     # simulate data and save as numpy files
     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
     x = np.array([simulator(t) for t in theta])
-    np.save("toy/theta.npy", theta)
-    np.save("toy/x.npy", x)
+    np.save("toy_pydelfi/theta.npy", theta)
+    np.save("toy_pydelfi/x.npy", x)
 
     # reload all simulator examples as a dataloader
     all_loader = StaticNumpyLoader(
-        in_dir='./toy',
+        in_dir='./toy_pydelfi',
         x_file='x.npy',
         theta_file='theta.npy',
     )
@@ -74,7 +74,7 @@ def test_toy():
         config_ndes=config_ndes,
     )
 
-    # train a model to infer x -> theta. save it as toy/posterior.pkl
+    # train a model to infer x -> theta. save it as toy_pydelfi/posterior.pkl
     runner = DelfiRunner(
         n_params=n_params,
         n_data=n_data,
@@ -84,7 +84,7 @@ def test_toy():
         nets=nets,
         engine_kwargs={'nwalkers': 20},
         train_args=train_args,
-        output_path=Path('toy')
+        output_path=Path('toy_pydelfi')
 
     )
     runner(loader=all_loader)
@@ -93,7 +93,7 @@ def test_toy():
     # the test set
     args = {
         'backend': 'pydelfi',
-        'output_path': Path('toy'),
+        'output_path': Path('toy_pydelfi'),
         'labels': ['t1', 't2', 't3'],
         'num_samples': 20,
         'sample_method': 'emcee',
@@ -105,17 +105,16 @@ def test_toy():
     }
     metrics = {'single_example': PlotSinglePosterior(**args)}
     val_runner = ValidationRunner(
-        posterior=DelfiWrapper.load_engine('./toy/tempmeta.pkl'),
+        posterior=DelfiWrapper.load_engine('./toy_pydelfi/posterior.pkl'),
         metrics=metrics,
         backend='pydelfi',
-        output_path=Path('./toy'),
+        output_path=Path('./toy_pydelfi'),
     )
     val_runner(loader=all_loader)
 
     # Check sampling of the DelfiWrapper
     theta0 = np.zeros(3)+0.5
     x0 = simulator(theta0)
-    print(type(val_runner.posterior))
     samples = val_runner.posterior.sample(
         sample_shape=100,
         x=x0,
@@ -132,8 +131,8 @@ def test_yaml():
 
     tf.keras.backend.clear_session()
 
-    if not os.path.isdir("toy"):
-        os.mkdir("toy")
+    if not os.path.isdir("toy_pydelfi"):
+        os.mkdir("toy_pydelfi")
 
     config_ndes = [
         {'module': 'pydelfi.ndes', 'class': 'MixtureDensityNetwork',
@@ -156,19 +155,19 @@ def test_yaml():
     # simulate data and save as numpy files
     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
     x = np.array([simulator(t) for t in theta])
-    np.save("toy/theta.npy", theta)
-    np.save("toy/x.npy", x)
+    np.save("toy_pydelfi/theta.npy", theta)
+    np.save("toy_pydelfi/x.npy", x)
 
     # Yaml file for data
     data = dict(
-        in_dir='./toy',
+        in_dir='./toy_pydelfi',
         x_file='x.npy',
         theta_file='theta.npy'
     )
-    with open('./toy/data.yml', 'w') as outfile:
+    with open('./toy_pydelfi/data.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
-    #  Yaml file for infer
+    # Yaml file for infer
     data = dict(
         n_params=3,
         n_data=10,
@@ -184,16 +183,16 @@ def test_yaml():
             'nets': config_ndes,
         },
         train_args={'batch_size': 32, 'epochs': 5},
-        output_path='toy',
+        output_path='toy_pydelfi',
     )
-    with open('./toy/infer.yml', 'w') as outfile:
+    with open('./toy_pydelfi/infer.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for validation
     data = dict(
         backend='pydelfi',
-        meta_path='./toy/tempmeta.pkl',
-        output_path='./toy/',
+        meta_path='./toy_pydelfi/posterior.pkl',
+        output_path='./toy_pydelfi/',
         labels=['t1', 't2', 't3'],
         metrics={
             'single_example': {
@@ -208,12 +207,13 @@ def test_yaml():
             }
         }
     )
-    with open('./toy/val.yml', 'w') as outfile:
+    with open('./toy_pydelfi/val.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
-    all_loader = StaticNumpyLoader.from_config("./toy/data.yml")
-    runner = DelfiRunner.from_config("./toy/infer.yml")
+    all_loader = StaticNumpyLoader.from_config("./toy_pydelfi/data.yml")
+    runner = DelfiRunner.from_config("./toy_pydelfi/infer.yml")
     runner(loader=all_loader)
-    ValidationRunner.from_config("./toy/val.yml")
+    ValidationRunner.from_config("./toy_pydelfi/val.yml")
 
     return
+

@@ -28,13 +28,6 @@ Here is a quick guide for getting started with the ltu-ili framework.
     pip install -e "ltu-ili[pydelfi]"
     ```
 
-3. Next, manually install the [ili-summarizer](https://github.com/florpi/ili-summarizer) dependency into the same environment with:
-    ```bash
-    git clone git@github.com:florpi/ili-summarizer.git
-    pip install -e ili-summarizer
-    ```
-Note, the above command installs `ili-summarizer` without summary calculation backends (e.g. without `nbodykit`, `pycorr`, `jax`, `kymatio`). If you wish to use these, you can replace the above command with `pip install -e 'ili-summarizer[backends]'`, though this is incompatible with our `pydelfi` version.
-
 After this, ltu-ili and all its required dependencies should be correctly set up in your virtual environment.
 ## Verify installation
 
