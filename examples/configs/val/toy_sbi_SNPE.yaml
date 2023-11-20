@@ -2,6 +2,7 @@ backend: 'sbi'
 
 posterior_path: './toy/toy_SNPE_posterior.pkl'
 output_path: './toy'
+style_path: './style.mcstyle'
 labels: ['t1', 't2', 't3']
 
 ensemble_mode: True
