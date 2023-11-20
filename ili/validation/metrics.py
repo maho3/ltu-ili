@@ -10,7 +10,7 @@ import tqdm
 from typing import List, Optional
 from abc import ABC
 from pathlib import Path
-import warnings
+import logging
 from ili.utils.samplers import (_BaseSampler, EmceeSampler, PyroSampler,
                                 DirectSampler)
 
@@ -39,13 +39,11 @@ class _BaseMetric(ABC):
         backend: str,
         output_path: Path,
         labels: Optional[List[str]] = None,
-        # signature: Optional[str] = "",
     ):
         """Construct the base metric."""
         self.backend = backend
         self.output_path = output_path
         self.labels = labels
-        # self.signature = signature
 
 
 class _SampleBasedMetric(_BaseMetric):
@@ -142,14 +140,15 @@ class PosteriorSamples(_SampleBasedMetric):
                 posterior_samples[:, ii] = samp_i
 
             except Warning as w:
-                # except :
-                print("WARNING\n", w)
+                logging.warning("WARNING\n", w)
                 continue
 
         if self.output_path is None:
             return posterior_samples
-        filename = signature + "posterior_samples.npy"
-        np.save(self.output_path / filename, posterior_samples)
+        filepath = self.ouput_path / (signature + "posterior_samples.npy")
+        logging.info(f"Saving posterior samples to {filepath}...")
+        np.save(filepath, posterior_samples)
+        return posterior_samples
 
 
 class PlotSinglePosterior(_SampleBasedMetric):
@@ -163,6 +162,11 @@ class PlotSinglePosterior(_SampleBasedMetric):
             ('sbi' or 'pydelfi')
         output_path (Path): path where to store outputs
     """
+
+    def __init__(self, save_samples: bool = False, seed: int = None, **kwargs):
+        self.save_samples = save_samples
+        self.seed = seed
+        super().__init__(**kwargs)
 
     def __call__(
         self,
@@ -188,6 +192,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
         # choose a random test datapoint if not supplied
         if x_obs is None or theta_obs is None:
+            if self.seed:
+                np.random.seed(self.seed)
             ind = np.random.choice(len(x))
             x_obs = x[ind]
             theta_obs = theta[ind]
@@ -197,28 +203,37 @@ class PlotSinglePosterior(_SampleBasedMetric):
         samples = sampler.sample(self.num_samples, x=x_obs, progress=True)
 
         # plot
-        g = sns.pairplot(
+        fig = sns.pairplot(
             pd.DataFrame(samples, columns=self.labels),
             kind=None,
             diag_kind="kde",
             corner=True,
         )
-        g.map_lower(sns.kdeplot, levels=4, color=".2")
+        fig.map_lower(sns.kdeplot, levels=4, color=".2")
 
         for i in range(ndim):
             for j in range(i + 1):
                 if i == j:
-                    g.axes[i, i].axvline(theta_obs[i], color="r")
+                    fig.axes[i, i].axvline(theta_obs[i], color="r")
                 else:
-                    g.axes[i, j].axhline(theta_obs[i], color="r")
-                    g.axes[i, j].axvline(theta_obs[j], color="r")
-                    g.axes[i, j].plot(theta_obs[j], theta_obs[i], "ro")
+                    fig.axes[i, j].axhline(theta_obs[i], color="r")
+                    fig.axes[i, j].axvline(theta_obs[j], color="r")
+                    fig.axes[i, j].plot(theta_obs[j], theta_obs[i], "ro")
 
+        # save
         if self.output_path is None:
-            return g
-        filename = signature + "plot_single_posterior.jpg"
-        g.savefig(self.output_path / filename,
-                  dpi=200, bbox_inches='tight')
+            return fig
+        filepath = self.output_path / (signature + "plot_single_posterior.jpg")
+        logging.info(f"Saving single posterior plot to {filepath}...")
+        fig.savefig(filepath, bbox_inches='tight')
+
+        # save single posterior samples if asked
+        if self.save_samples:
+            filepath = self.output_path / (signature + "single_samples.npy")
+            logging.info(f"Saving single posterior samples to {filepath}...")
+            np.save(filepath, samples)
+
+        return fig
 
 
 class PosteriorCoverage(_SampleBasedMetric):
@@ -274,8 +289,7 @@ class PosteriorCoverage(_SampleBasedMetric):
                 posterior_samples = sampler.sample(
                     self.num_samples, x=x[ii], progress=False)
             except Warning as w:
-                # except :
-                print("WARNING\n", w)
+                logging.warning("WARNING\n", w)
                 continue
             mu, std = posterior_samples.mean(
                 axis=0)[:ndim], posterior_samples.std(axis=0)[:ndim]
@@ -313,9 +327,9 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        filename = signature + "rankplot.jpg"
-        plt.savefig(self.output_path / filename,
-                    dpi=300, bbox_inches='tight')
+        filepath = self.output_path / (signature + "ranks_histogram.jpg")
+        logging.info(f"Saving ranks histogram to {filepath}...")
+        fig.savefig(filepath, bbox_inches='tight')
 
     def _plot_coverage(self, ranks, signature, plotscatter=True):
         ncounts = ranks.shape[0]
@@ -347,9 +361,9 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        filename = signature + "coverage.jpg"
-        plt.savefig(self.output_path / filename,
-                    dpi=300, bbox_inches='tight')
+        filepath = self.output_path / (signature + "plot_coverage.jpg")
+        logging.info(f"Saving coverage plot to {filepath}...")
+        fig.savefig(filepath, bbox_inches='tight')
 
     def _plot_predictions(self, trues, mus, stds, signature):
         npars = trues.shape[-1]
@@ -376,9 +390,8 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        filename = signature + "predictions.jpg"
-        plt.savefig(self.output_path / filename,
-                    dpi=300, bbox_inches='tight')
+        filepath = self.output_path / (signature + "plot_predictions.jpg")
+        fig.savefig(filepath, bbox_inches='tight')
 
     def _plot_TARP(self, alpha, ecp, signature):
         # plot the TARP metric
@@ -391,8 +404,8 @@ class PosteriorCoverage(_SampleBasedMetric):
 
         if self.output_path is None:
             return fig
-        filename = signature + "plot_tarp.jpg"
-        plt.savefig(self.output_path / filename, dpi=300, bbox_inches='tight')
+        filepath = self.output_path / (signature + "plot_TARP.jpg")
+        fig.savefig(filepath, bbox_inches='tight')
 
     def __call__(
         self,
@@ -476,8 +489,7 @@ class PosteriorCoverage(_SampleBasedMetric):
                     trues[ii] = theta[ii]
 
             except Warning as w:
-                # except :
-                print("WARNING\n", w)
+                logging.warning("WARNING\n", w)
                 continue
         # Save the plots
         if "coverage" in plot_list:
