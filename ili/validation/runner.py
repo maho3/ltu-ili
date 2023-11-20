@@ -6,6 +6,7 @@ import logging
 import pickle
 import time
 import yaml
+import matplotlib as mpl
 from pathlib import Path
 from typing import List, Optional
 from ili.validation.metrics import _BaseMetric
@@ -79,6 +80,8 @@ class ValidationRunner:
             raise NotImplementedError
         name = posterior_ensemble.name
         output_path = Path(config["output_path"])
+        if "style_path" in config:
+            mpl.style.use(config["style_path"])
         if "ensemble_mode" in config:
             ensemble_mode = config["ensemble_mode"]
         else:

@@ -145,7 +145,7 @@ class PosteriorSamples(_SampleBasedMetric):
 
         if self.output_path is None:
             return posterior_samples
-        filepath = self.ouput_path / (signature + "posterior_samples.npy")
+        filepath = self.output_path / (signature + "posterior_samples.npy")
         logging.info(f"Saving posterior samples to {filepath}...")
         np.save(filepath, posterior_samples)
         return posterior_samples
@@ -386,7 +386,8 @@ class PosteriorCoverage(_SampleBasedMetric):
             axs[j].set_title(self.labels[j], fontsize=12)
 
             axs[j].set_xlabel('True')
-            axs[j].set_ylabel('Predicted')
+
+        axs[0].set_ylabel('Predicted')
 
         if self.output_path is None:
             return fig
