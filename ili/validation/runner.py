@@ -41,6 +41,7 @@ class ValidationRunner:
         backend: str,
         output_path: Path,
         ensemble_mode: Optional[bool] = True,
+        name: Optional[str] = None,
         signatures: Optional[List[str]] = [],
     ):
         self.posterior = posterior
@@ -50,6 +51,7 @@ class ValidationRunner:
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
         self.ensemble_mode = ensemble_mode
+        self.name = name
         self.signatures = signatures
 
     @classmethod
@@ -75,6 +77,7 @@ class ValidationRunner:
             signatures = [""]*posterior_ensemble.num_components
         else:
             raise NotImplementedError
+        name = posterior_ensemble.name
         output_path = Path(config["output_path"])
         if "ensemble_mode" in config:
             ensemble_mode = config["ensemble_mode"]
@@ -103,6 +106,7 @@ class ValidationRunner:
             metrics=metrics,
             output_path=output_path,
             ensemble_mode=ensemble_mode,
+            name=name,
             signatures=signatures,
         )
 
@@ -152,7 +156,7 @@ class ValidationRunner:
                            theta_obs=theta_obs, signature=signature)
         else:
             # evaluate metrics
-            signature = "".join(self.signatures)
+            signature = self.name+"".join(self.signatures)
             for metric in self.metrics.values():
                 logging.info(f"Running metric {metric.__class__.__name__}.")
                 metric(self.posterior, x_test, theta_test,

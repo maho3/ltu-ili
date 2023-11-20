@@ -6,7 +6,7 @@ interface.
 import pickle
 import emcee
 import numpy as np
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Optional
 from pydelfi.delfi import Delfi
 from ili.utils import load_class, load_from_config
 
@@ -25,6 +25,7 @@ class DelfiWrapper(Delfi):
     def __init__(
         self,
         config_ndes: List[Dict],
+        name: Optional[str] = '',
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -32,6 +33,7 @@ class DelfiWrapper(Delfi):
         self.kwargs = kwargs
         self.config_ndes = config_ndes
         self.num_components = len(config_ndes)
+        self.name = name
         self.prior.sample = self.prior.draw  # aliasing for consistency
 
     def potential(self, theta: np.array, x: np.array):
@@ -150,6 +152,7 @@ class DelfiWrapper(Delfi):
         metadata = {
             'n_data': self.D,
             'n_params': self.npar,
+            'name': self.name,
             'config_ndes': self.config_ndes,
             'kwargs': self.kwargs
         }
@@ -184,5 +187,6 @@ class DelfiWrapper(Delfi):
             **metadata['kwargs'],
             nde=ndes,
             config_ndes=metadata['config_ndes'],
+            name=metadata['name'],
             restore=True
         )

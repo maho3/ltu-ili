@@ -134,7 +134,7 @@ class SBIRunner:
             if "signature" in type_nn:
                 signatures.append(type_nn["signature"] + "_")
             else:
-                signatures.append(type_nn["model"] + "_")
+                signatures.append("")
         return cls(
             prior=prior,
             proposal=proposal,
@@ -265,6 +265,7 @@ class SBIRunner:
         posterior_ensemble = NeuralPosteriorEnsemble(
             posteriors=posteriors,
             weights=weights)  # raises warning due to bug in sbi
+        posterior_ensemble.name = self.name
         posterior_ensemble.signatures = self.signatures
 
         # save if output path is specified
