@@ -330,6 +330,7 @@ class PosteriorCoverage(_SampleBasedMetric):
         filepath = self.output_path / (signature + "ranks_histogram.jpg")
         logging.info(f"Saving ranks histogram to {filepath}...")
         fig.savefig(filepath, bbox_inches='tight')
+        return fig
 
     def _plot_coverage(self, ranks, signature, plotscatter=True):
         ncounts = ranks.shape[0]
@@ -364,6 +365,7 @@ class PosteriorCoverage(_SampleBasedMetric):
         filepath = self.output_path / (signature + "plot_coverage.jpg")
         logging.info(f"Saving coverage plot to {filepath}...")
         fig.savefig(filepath, bbox_inches='tight')
+        return fig
 
     def _plot_predictions(self, trues, mus, stds, signature):
         npars = trues.shape[-1]
@@ -393,6 +395,7 @@ class PosteriorCoverage(_SampleBasedMetric):
             return fig
         filepath = self.output_path / (signature + "plot_predictions.jpg")
         fig.savefig(filepath, bbox_inches='tight')
+        return fig
 
     def _plot_TARP(self, alpha, ecp, signature):
         # plot the TARP metric
@@ -407,6 +410,7 @@ class PosteriorCoverage(_SampleBasedMetric):
             return fig
         filepath = self.output_path / (signature + "plot_TARP.jpg")
         fig.savefig(filepath, bbox_inches='tight')
+        return fig
 
     def __call__(
         self,
@@ -492,20 +496,21 @@ class PosteriorCoverage(_SampleBasedMetric):
             except Warning as w:
                 logging.warning("WARNING\n", w)
                 continue
+
+        figs = []
         # Save the plots
         if "coverage" in plot_list:
-            self._plot_coverage(ranks, signature)
+            figs.append(self._plot_coverage(ranks, signature))
         if "histogram" in plot_list:
-            self._plot_ranks_histogram(ranks, signature)
+            figs.append(self._plot_ranks_histogram(ranks, signature))
         if "predictions" in plot_list:
-            self._plot_predictions(trues, mus, stds, signature)
+            figs.append(self._plot_predictions(trues, mus, stds, signature))
 
         # Specifically for TARP
         if "tarp" in plot_list:
-
             # check if if backend is sbi
             if self.backend != 'sbi':
-                raise ValueError(
+                raise NotImplementedError(
                     'TARP is not yet supported by pydelfi backend')
 
             # TARP Expected Coverage Probability
@@ -514,4 +519,6 @@ class PosteriorCoverage(_SampleBasedMetric):
                                                references=references,
                                                metric=metric)
 
-            self._plot_TARP(alpha, ecp, signature)
+            figs.append(self._plot_TARP(alpha, ecp, signature))
+
+        return figs
