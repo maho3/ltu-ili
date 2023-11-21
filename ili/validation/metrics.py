@@ -47,6 +47,17 @@ class _BaseMetric(ABC):
 
 
 class _SampleBasedMetric(_BaseMetric):
+    """Base class for metrics that require sampling from the posterior.
+
+    Args:
+        backend (str): The backend used for sampling ('sbi' or 'pydelfi').
+        output_path (Path): The path to save the output.
+        num_samples (int): The number of samples to generate.
+        sample_method (str, optional): The method used for sampling. Defaults to 'emcee'.
+        sample_params (dict, optional): Additional parameters for the sampling method. Defaults to {}.
+        labels (List[str], optional): The labels for the metric. Defaults to None.
+    """
+
     def __init__(
         self,
         backend: str,
@@ -61,7 +72,18 @@ class _SampleBasedMetric(_BaseMetric):
         self.sample_method = sample_method
         self.sample_params = sample_params
 
-    def _build_sampler(self, posterior) -> _BaseSampler:
+    def _build_sampler(self, posterior: ModelClass) -> _BaseSampler:
+        """Builds the sampler based on the specified sample method.
+
+        Args:
+            posterior (ModelClass): The posterior object to sample from.
+
+        Returns:
+            _BaseSampler: The sampler object.
+
+        Raises:
+            ValueError: If the specified sample method is not supported.
+        """
         if self.sample_method == 'emcee':
             return EmceeSampler(posterior, **self.sample_params)
 
@@ -176,7 +198,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
 class PosteriorSamples(_SampleBasedMetric):
     """
     Class to save samples from posterior at x data (test data) for downstream
-    tasks (e.g. nested sampling) or making custom plots
+    tasks (e.g. nested sampling) or making custom plots.
     """
 
     def _sample_dataset(self, posterior, x):
@@ -223,7 +245,7 @@ class PosteriorSamples(_SampleBasedMetric):
         theta_obs: Optional[np.array] = None
     ):
         """Given a posterior and test data, infer posterior samples of a
-        single test point and save to file.
+        test dataset and save to file.
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
@@ -244,7 +266,6 @@ class PosteriorSamples(_SampleBasedMetric):
 
 
 class PosteriorCoverage(PosteriorSamples):
-
     """Plot rank histogram, posterior coverage, and true-pred diagnostics
     based on rank statistics inferred from posteriors. These are derived
     from sbi posterior metrics originally written by Chirag Modi.
@@ -254,10 +275,11 @@ class PosteriorCoverage(PosteriorSamples):
     Reference: https://arxiv.org/abs/2302.03026
 
     Args:
-        plot_list (list): list of plot types to save
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
         output_path (Path): path where to store outputs
+        plot_list (list): list of plot types to save
+        save_samples (bool): whether to save posterior samples
     """
 
     def __init__(self, plot_list: List[str], save_samples: bool = False, **kwargs):
@@ -269,7 +291,7 @@ class PosteriorCoverage(PosteriorSamples):
         self,
         samples: np.array,
         trues: np.array,
-    ):
+    ) -> np.array:
         """Get the marginal ranks of the true parameters in the posterior samples.
 
         Args:
@@ -283,7 +305,23 @@ class PosteriorCoverage(PosteriorSamples):
         ranks = (samples < trues[None, ...]).sum(axis=0)
         return ranks
 
-    def _plot_ranks_histogram(self, samples, trues, signature, nbins=10):
+    def _plot_ranks_histogram(
+        self, samples: np.ndarray, trues: np.ndarray,
+        signature: str, nbins: int = 10
+    ) -> plt.Figure:
+        """
+        Plot a histogram of ranks for each parameter.
+
+        Args:
+            samples (numpy.ndarray): List of samples.
+            trues (numpy.ndarray): Array of true values.
+            signature (str): Signature for the histogram file name.
+            nbins (int, optional): Number of bins for the histogram. Defaults to 10.
+
+        Returns:
+            matplotlib.figure.Figure: The generated figure.
+
+        """
         ndata, npars = trues.shape
         navg = ndata / nbins
         ranks = self._get_ranks(samples, trues)
@@ -312,7 +350,23 @@ class PosteriorCoverage(PosteriorSamples):
         fig.savefig(filepath, bbox_inches='tight')
         return fig
 
-    def _plot_coverage(self, samples, trues, signature, plotscatter=True):
+    def _plot_coverage(
+        self, samples: np.ndarray, trues: np.ndarray,
+        signature: str, plotscatter: bool = True
+    ) -> plt.Figure:
+        """
+        Plot the coverage of predicted percentiles against empirical percentiles.
+
+        Args:
+            samples (numpy.ndarray): Array of predicted samples.
+            trues (numpy.ndarray): Array of true values.
+            signature (str): Signature for the plot file name.
+            plotscatter (bool, optional): Whether to plot the scatter plot. Defaults to True.
+
+        Returns:
+            matplotlib.figure.Figure: The generated figure.
+
+        """
         ndata, npars = trues.shape
         ranks = self._get_ranks(samples, trues)
 
@@ -350,11 +404,25 @@ class PosteriorCoverage(PosteriorSamples):
         fig.savefig(filepath, bbox_inches='tight')
         return fig
 
-    def _plot_predictions(self, samples, trues, signature):
+    def _plot_predictions(
+        self, samples: np.ndarray, trues: np.ndarray,
+        signature: str
+    ) -> plt.Figure:
+        """
+        Plot the mean and standard deviation of the predicted samples against
+        the true values.
+
+        Args:
+            samples (np.ndarray): Array of predicted samples.
+            trues (np.ndarray): Array of true values.
+            signature (str): Signature for the plot.
+
+        Returns:
+            plt.Figure: The plotted figure.
+        """
         npars = trues.shape[-1]
         mus, stds = samples.mean(axis=0), samples.std(axis=0)
 
-        # plot predictions
         fig, axs = plt.subplots(1, npars, figsize=(npars * 4, 4))
         if npars == 1:
             axs = [axs]
@@ -378,8 +446,29 @@ class PosteriorCoverage(PosteriorSamples):
         fig.savefig(filepath, bbox_inches='tight')
         return fig
 
-    def _plot_TARP(self, alpha, ecp, signature):
-        # plot the TARP metric
+    def _plot_TARP(
+        self, posterior_samples: np.array, theta: np.array,
+        signature: str,
+        references: str = "random", metric: str = "euclidean"
+    ) -> plt.Figure:
+        """
+        Plots the TARP credibility metric for the given posterior samples and theta values.
+
+        Args:
+            posterior_samples (np.array): Array of posterior samples.
+            theta (np.array): Array of theta values.
+            signature (str): Signature for the plot.
+            references (str, optional): Reference type for TARP calculation. Defaults to "random".
+            metric (str, optional): Distance metric for TARP calculation. Defaults to "euclidean".
+
+        Returns:
+            plt.Figure: The generated TARP plot.
+        """
+
+        alpha, ecp = tarp.get_drp_coverage(
+            posterior_samples, theta,
+            references=references, metric=metric)
+
         fig, ax = plt.subplots(1, 1, figsize=(4, 4))
         ax.plot([0, 1], [0, 1], ls='--', color='k')
         ax.plot(alpha, ecp, label='TARP')
@@ -450,13 +539,7 @@ class PosteriorCoverage(PosteriorSamples):
             if self.backend != 'sbi':
                 raise NotImplementedError(
                     'TARP is not yet supported by pydelfi backend')
-
-            # TARP Expected Coverage Probability
-            alpha, ecp = tarp.get_drp_coverage(posterior_samples,
-                                               theta,
-                                               references=references,
-                                               metric=metric)
-
-            figs.append(self._plot_TARP(alpha, ecp, signature))
+            figs.append(self._plot_TARP(posterior_samples, theta, signature,
+                                        references=references, metric=metric))
 
         return figs
