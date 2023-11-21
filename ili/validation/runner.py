@@ -42,7 +42,7 @@ class ValidationRunner:
         backend: str,
         output_path: Path,
         ensemble_mode: Optional[bool] = True,
-        name: Optional[str] = None,
+        name: Optional[str] = "",
         signatures: Optional[List[str]] = [],
     ):
         self.posterior = posterior
@@ -123,7 +123,9 @@ class ValidationRunner:
             posterior (ModelClass): the posterior of interest
         """
         with open(path, "rb") as handle:
-            return pickle.load(handle)
+            posterior = pickle.load(handle)
+        if not hasattr(posterior, 'name'):
+            posterior.name = ''
 
     def __call__(
             self,
