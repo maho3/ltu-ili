@@ -449,7 +449,9 @@ class PosteriorCoverage(PosteriorSamples):
     def _plot_TARP(
         self, posterior_samples: np.array, theta: np.array,
         signature: str,
-        references: str = "random", metric: str = "euclidean"
+        references: str = "random", metric: str = "euclidean",
+        num_alpha_bins: None, num_bootstrap: int = 100,
+        bootstrap: bool = True, norm: bool = True
     ) -> plt.Figure:
         """
         Plots the TARP credibility metric for the given posterior samples and theta values.
@@ -460,18 +462,36 @@ class PosteriorCoverage(PosteriorSamples):
             signature (str): Signature for the plot.
             references (str, optional): Reference type for TARP calculation. Defaults to "random".
             metric (str, optional): Distance metric for TARP calculation. Defaults to "euclidean".
+            bootstrap (bool, optional): Whether to use bootstrapping for TARP calculation. Defaults to False.
+            norm (bool, optional): Whether to normalize the TARP metric. Defaults to True.
 
         Returns:
             plt.Figure: The generated TARP plot.
         """
 
-        alpha, ecp = tarp.get_drp_coverage(
-            posterior_samples, theta,
-            references=references, metric=metric)
+        ecp, alpha = tarp.get_tarp_coverage(
+            posterior_samples,
+            theta,
+            references=references,
+            metric=metric,
+            num_alpha_bins=num_alpha_bins,
+            num_bootstrap=num_bootstrap,
+            norm=norm,
+            bootstrap=bootstrap
+        )
 
         fig, ax = plt.subplots(1, 1, figsize=(4, 4))
         ax.plot([0, 1], [0, 1], ls='--', color='k')
-        ax.plot(alpha, ecp, label='TARP')
+        if bootstrap:
+            ecp_mean = np.mean(ecp, axis=0)
+            ecp_std = np.std(ecp, axis=0)
+            ax.plot(alpha, ecp_mean, label='TARP')
+            ax.fill_between(alpha, ecp_mean - ecp_std, ecp_mean + ecp_std,
+                            alpha=0.2)
+            ax.fill_between(alpha, ecp_mean - 2 * ecp_std, ecp_mean + 2 * ecp_std,
+                            alpha=0.2)
+        else:
+            ax.plot(alpha, ecp, label='TARP')
         ax.legend()
         ax.set_ylabel("Expected Coverage")
         ax.set_xlabel("Credibility Level")
@@ -493,7 +513,11 @@ class PosteriorCoverage(PosteriorSamples):
         plot_list: Optional[list] = ["coverage", "histogram",
                                      "predictions", "tarp"],
         references: str = "random",
-        metric: str = "euclidean"
+        metric: str = "euclidean",
+        num_alpha_bins: Union[int, None] = None,
+        num_bootstrap: int = 100,
+        norm: bool = True,
+        bootstrap: bool = True
     ):
         """Given a posterior and test data, compute the TARP metric and save
         to file.
@@ -512,6 +536,15 @@ class PosteriorCoverage(PosteriorSamples):
                 Defaults to "random".
             metric (str, optional): which metric to use.
                 Defaults to "euclidean".
+            num_alpha_bins (Union[int, None], optional): number of bins to use
+                for the credibility values. If ``None``, then
+                ``n_sims // 10`` bins are used. Defaults to None.
+            num_bootstrap (int, optional): number of bootstrap iterations to
+                perform. Defaults to 100.
+            norm (bool, optional): whether to normalize the metric.
+                Defaults to True.
+            bootstrap (bool, optional): whether to use bootstrapping.
+                Defaults to False.
         """
         # Sample the full dataset
         if self.save_samples:
@@ -540,6 +573,9 @@ class PosteriorCoverage(PosteriorSamples):
                 raise NotImplementedError(
                     'TARP is not yet supported by pydelfi backend')
             figs.append(self._plot_TARP(posterior_samples, theta, signature,
-                                        references=references, metric=metric))
+                                        references=references, metric=metric,
+                                        num_alpha_bins=num_alpha_bins,
+                                        num_bootstrap=num_bootstrap,
+                                        norm=norm, bootstrap=bootstrap))
 
         return figs
