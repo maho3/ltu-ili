@@ -121,7 +121,9 @@ The **embedding_net** configuration allows one to specify additional neural laye
 
 The **train_args** are used to configure the training optimizer and early stopping criterion. All `sbi` models use the Adam optimizer. Lastly, **device** specifies whether to use Pytorch's `cpu` or `cuda` backend, and **output_path** specifies where to save your models after they are done training.
 
-Notes: Newly added `sbi` training engines, such as `MNLE`, don't yet work in our framework. Also, the `nsf` and `made` architectures unfortunately don't work if you're using `cuda` for GPU acceleration (yet!).
+**Notes**: 
+ * Newly added `sbi` training engines, such as `MNLE`, don't yet work in our framework. Also, the `nsf` and `made` architectures unfortunately don't work if you're using `cuda` for GPU acceleration (yet!).
+ * Nicolas Chartier did extensive tests of model design choices for the `sbi` package and their impact on inference, including effects of model architectures, prior vs. proposal distribution, and data vector length. See [this notebook](https://github.com/maho3/ltu-ili/blob/backup_2023-20-11/notebooks/example_quijote_sbi_appendDummy.ipynb) for advice in choosing these hyperparameters.
 
 
 ### SBIRunnerSequential
