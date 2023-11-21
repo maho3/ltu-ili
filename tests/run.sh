@@ -16,6 +16,6 @@ echo "Running pydelfi tests"
 COVERAGE_FILE=.coverage_pydelfi python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
 conda deactivate
 
-coverage combine .coverage_sbi .coverage_pydelfi .coverage_utils
+coverage combine .coverage_sbi .coverage_pydelfi
 coverage xml
 coverage report -m
