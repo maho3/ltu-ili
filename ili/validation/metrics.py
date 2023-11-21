@@ -285,6 +285,7 @@ class PosteriorCoverage(PosteriorSamples):
 
     def _plot_ranks_histogram(self, samples, trues, signature, nbins=10):
         ndata, npars = trues.shape
+        navg = ndata / nbins
         ranks = self._get_ranks(samples, trues)
 
         fig, ax = plt.subplots(1, npars, figsize=(npars * 3, 4))
@@ -300,9 +301,9 @@ class PosteriorCoverage(PosteriorSamples):
             axis.set_xlim(0, ranks.max())
             axis.set_xlabel('rank')
             axis.grid(visible=True)
-            axis.axhline(ndata, color='k')
-            axis.axhline(ndata - ndata ** 0.5, color='k', ls="--")
-            axis.axhline(ndata + ndata ** 0.5, color='k', ls="--")
+            axis.axhline(navg, color='k')
+            axis.axhline(navg - navg ** 0.5, color='k', ls="--")
+            axis.axhline(navg + navg ** 0.5, color='k', ls="--")
 
         if self.output_path is None:
             return fig
