@@ -126,6 +126,7 @@ class ValidationRunner:
             posterior = pickle.load(handle)
         if not hasattr(posterior, 'name'):
             posterior.name = ''
+        return posterior
 
     def __call__(
             self,
