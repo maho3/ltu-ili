@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import tqdm
-from typing import List, Optional
+from typing import List, Optional, Union
 from abc import ABC
 from pathlib import Path
 import logging
@@ -184,7 +184,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
             return fig
         filepath = self.output_path / (signature + "plot_single_posterior.jpg")
         logging.info(f"Saving single posterior plot to {filepath}...")
-        fig.savefig(filepath, bbox_inches='tight')
+        fig.savefig(filepath)
 
         # save single posterior samples if asked
         if self.save_samples:
@@ -347,7 +347,7 @@ class PosteriorCoverage(PosteriorSamples):
             return fig
         filepath = self.output_path / (signature + "ranks_histogram.jpg")
         logging.info(f"Saving ranks histogram to {filepath}...")
-        fig.savefig(filepath, bbox_inches='tight')
+        fig.savefig(filepath)
         return fig
 
     def _plot_coverage(
@@ -401,7 +401,7 @@ class PosteriorCoverage(PosteriorSamples):
             return fig
         filepath = self.output_path / (signature + "plot_coverage.jpg")
         logging.info(f"Saving coverage plot to {filepath}...")
-        fig.savefig(filepath, bbox_inches='tight')
+        fig.savefig(filepath)
         return fig
 
     def _plot_predictions(
@@ -443,35 +443,61 @@ class PosteriorCoverage(PosteriorSamples):
         if self.output_path is None:
             return fig
         filepath = self.output_path / (signature + "plot_predictions.jpg")
-        fig.savefig(filepath, bbox_inches='tight')
+        fig.savefig(filepath)
         return fig
 
     def _plot_TARP(
         self, posterior_samples: np.array, theta: np.array,
         signature: str,
-        references: str = "random", metric: str = "euclidean"
+        references: str = "random", metric: str = "euclidean",
+        bootstrap: Optional[bool] = True, norm: Optional[bool] = True,
+        num_alpha_bins: Optional[int] = None,
+        num_bootstrap: Optional[int] = 100
     ) -> plt.Figure:
         """
-        Plots the TARP credibility metric for the given posterior samples and theta values.
+        Plots the TARP credibility metric for the given posterior samples
+        and theta values. See https://arxiv.org/abs/2302.03026 for details.
 
         Args:
             posterior_samples (np.array): Array of posterior samples.
             theta (np.array): Array of theta values.
             signature (str): Signature for the plot.
-            references (str, optional): Reference type for TARP calculation. Defaults to "random".
-            metric (str, optional): Distance metric for TARP calculation. Defaults to "euclidean".
+            references (str, optional): TARP reference type for TARP calculation. 
+                Defaults to "random".
+            metric (str, optional): TARP distance metric for TARP calculation. 
+                Defaults to "euclidean".
+            bootstrap (bool, optional): Whether to use bootstrapping for TARP error bars. 
+                Defaults to False.
+            norm (bool, optional): Whether to normalize the TARP metric. Defaults to True.
+            num_alpha_bins (int, optional):number of bins to use for the TARP
+                credibility values. Defaults to None.
+            num_bootstrap (int, optional): Number of bootstrap iterations
+                for TARP calculation. Defaults to 100.
 
         Returns:
             plt.Figure: The generated TARP plot.
         """
 
-        alpha, ecp = tarp.get_drp_coverage(
+        ecp, alpha = tarp.get_tarp_coverage(
             posterior_samples, theta,
-            references=references, metric=metric)
+            references=references, metric=metric,
+            norm=norm, bootstrap=bootstrap,
+            num_alpha_bins=num_alpha_bins,
+            num_bootstrap=num_bootstrap
+        )
 
         fig, ax = plt.subplots(1, 1, figsize=(4, 4))
         ax.plot([0, 1], [0, 1], ls='--', color='k')
-        ax.plot(alpha, ecp, label='TARP')
+        if bootstrap:
+            ecp_mean = np.mean(ecp, axis=0)
+            ecp_std = np.std(ecp, axis=0)
+            ax.plot(alpha, ecp_mean, label='TARP', color='b')
+            ax.fill_between(alpha, ecp_mean - ecp_std, ecp_mean + ecp_std,
+                            alpha=0.2, color='b')
+            ax.fill_between(alpha, ecp_mean - 2 * ecp_std, ecp_mean + 2 * ecp_std,
+                            alpha=0.2, color='b')
+        else:
+            ax.plot(alpha, ecp, label='TARP')
         ax.legend()
         ax.set_ylabel("Expected Coverage")
         ax.set_xlabel("Credibility Level")
@@ -479,7 +505,7 @@ class PosteriorCoverage(PosteriorSamples):
         if self.output_path is None:
             return fig
         filepath = self.output_path / (signature + "plot_TARP.jpg")
-        fig.savefig(filepath, bbox_inches='tight')
+        fig.savefig(filepath)
         return fig
 
     def __call__(
@@ -493,7 +519,11 @@ class PosteriorCoverage(PosteriorSamples):
         plot_list: Optional[list] = ["coverage", "histogram",
                                      "predictions", "tarp"],
         references: str = "random",
-        metric: str = "euclidean"
+        metric: str = "euclidean",
+        num_alpha_bins: Union[int, None] = None,
+        num_bootstrap: int = 100,
+        norm: bool = True,
+        bootstrap: bool = True
     ):
         """Given a posterior and test data, compute the TARP metric and save
         to file.
@@ -512,6 +542,15 @@ class PosteriorCoverage(PosteriorSamples):
                 Defaults to "random".
             metric (str, optional): which metric to use.
                 Defaults to "euclidean".
+            num_alpha_bins (Union[int, None], optional): number of bins to use
+                for the credibility values. If ``None``, then
+                ``n_sims // 10`` bins are used. Defaults to None.
+            num_bootstrap (int, optional): number of bootstrap iterations to
+                perform. Defaults to 100.
+            norm (bool, optional): whether to normalize the metric.
+                Defaults to True.
+            bootstrap (bool, optional): whether to use bootstrapping.
+                Defaults to False.
         """
         # Sample the full dataset
         if self.save_samples:
@@ -540,6 +579,9 @@ class PosteriorCoverage(PosteriorSamples):
                 raise NotImplementedError(
                     'TARP is not yet supported by pydelfi backend')
             figs.append(self._plot_TARP(posterior_samples, theta, signature,
-                                        references=references, metric=metric))
+                                        references=references, metric=metric,
+                                        num_alpha_bins=num_alpha_bins,
+                                        num_bootstrap=num_bootstrap,
+                                        norm=norm, bootstrap=bootstrap))
 
         return figs
