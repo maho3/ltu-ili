@@ -19,6 +19,11 @@ metrics:
     module: 'ili.validation.metrics'
     class: 'PosteriorCoverage'
     args:
+      save_samples: True
+      sample_params:
+        num_chains: -1
+        burn_in: 20
+        thin: 1
       num_samples: 100
       sample_method: 'direct'
       plot_list: ["coverage", "histogram", "predictions", "tarp"]
