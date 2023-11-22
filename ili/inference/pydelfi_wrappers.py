@@ -34,6 +34,7 @@ class DelfiWrapper(Delfi):
         self.config_ndes = config_ndes
         self.name = name
         self.num_components = len(config_ndes)
+        self.name = name
         self.prior.sample = self.prior.draw  # aliasing for consistency
 
     def potential(self, theta: np.array, x: np.array):

@@ -121,6 +121,7 @@ class DelfiRunner:
             data=x[0],
             prior=self.prior,
             nde=self.nets,
+            name=self.name,
             results_dir=str(self.output_path)+'/',
             param_names=np.arange(self.n_params).astype(str),
             graph_restore_filename="graph_checkpoint",

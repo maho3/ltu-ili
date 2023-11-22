@@ -6,6 +6,7 @@ import logging
 import pickle
 import time
 import yaml
+import matplotlib as mpl
 from pathlib import Path
 from typing import List, Optional
 from ili.validation.metrics import _BaseMetric
@@ -41,8 +42,8 @@ class ValidationRunner:
         backend: str,
         output_path: Path,
         ensemble_mode: Optional[bool] = True,
-        name: Optional[str] = None,
-        signatures: Optional[List[str]] = None,
+        name: Optional[str] = "",
+        signatures: Optional[List[str]] = [],
     ):
         self.posterior = posterior
         self.metrics = metrics
@@ -79,6 +80,8 @@ class ValidationRunner:
             raise NotImplementedError
         name = posterior_ensemble.name
         output_path = Path(config["output_path"])
+        if "style_path" in config:
+            mpl.style.use(config["style_path"])
         if "ensemble_mode" in config:
             ensemble_mode = config["ensemble_mode"]
         else:
@@ -107,7 +110,7 @@ class ValidationRunner:
             output_path=output_path,
             ensemble_mode=ensemble_mode,
             name=name,
-            signatures=signatures
+            signatures=signatures,
         )
 
     @classmethod
@@ -120,7 +123,10 @@ class ValidationRunner:
             posterior (ModelClass): the posterior of interest
         """
         with open(path, "rb") as handle:
-            return pickle.load(handle)
+            posterior = pickle.load(handle)
+        if not hasattr(posterior, 'name'):
+            posterior.name = ''
+        return posterior
 
     def __call__(
             self,
