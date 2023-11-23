@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 try:
     from typing import OrderedDict
-except:
+except ImportError:
     pass
 
 
@@ -46,7 +46,8 @@ class FCN(nn.Module):
         self.mlp = nn.Sequential(OrderedDict(model))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Forward pass of the neural network, returns the compressed data vector.
+        """Forward pass of the neural network, returns the compressed data
+        vector.
 
         Args:
             x (torch.Tensor): input
