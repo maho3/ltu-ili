@@ -108,6 +108,18 @@
         "research",
         "example"
       ]
+    },
+    {
+      "login": "christopherlovell",
+      "name": "Chris Lovell",
+      "avatar_url": "https://avatars.githubusercontent.com/u/4648092?v=4",
+      "profile": "http://christopherlovell.co.uk",
+      "contributions": [
+        "research",
+        "example",
+        "data",
+        "content"
+      ]
     }
   ],
   "contributorsPerLine": 7,
