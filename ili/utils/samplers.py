@@ -23,7 +23,7 @@ except ModuleNotFoundError:
     ModelClass = DelfiWrapper
 
 
-class _BaseSampler(ABC):
+class _MCMCSampler(ABC):
     """Base sampler class demonstrating the sampler functionality
 
     Args:
@@ -50,7 +50,7 @@ class _BaseSampler(ABC):
         self.burn_in = burn_in
 
 
-class EmceeSampler(_BaseSampler):
+class EmceeSampler(_MCMCSampler):
     """Sampler class for emcee's EnsembleSampler
 
     Args:
@@ -63,7 +63,8 @@ class EmceeSampler(_BaseSampler):
             Defaults to 100
     """
 
-    def sample(self, nsteps: int, x: np.ndarray, progress: bool = False) -> np.ndarray:
+    def sample(self, nsteps: int, x: np.ndarray,
+               progress: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -96,7 +97,7 @@ class EmceeSampler(_BaseSampler):
         return self.sampler.get_chain(discard=self.burn_in, flat=True)
 
 
-class PyroSampler(_BaseSampler):
+class PyroSampler(_MCMCSampler):
     """Sampler class for pyro's samplers. Integrates with pyro through the sbi
     backend
 
@@ -158,7 +159,8 @@ class PyroSampler(_BaseSampler):
             device=posterior._device
         )
 
-    def sample(self, nsteps: int, x: np.ndarray, progress: bool = False) -> np.ndarray:
+    def sample(self, nsteps: int, x: np.ndarray,
+               progress: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -208,11 +210,17 @@ class DirectSampler(ABC):
 
 
 class VISampler(ABC):
-    """Sampler class for variational inference methods
+    """Sampler class for variational inference methods. See 
+    https://sbi-dev.github.io/sbi/reference/#sbi.inference.posteriors.vi_posterior.VIPosterior
+    for more details.
 
     Args:
         posterior (Posterior): posterior object to sample from, must have
             a .potential method specifiying the log posterior
+        dist (str, optional): distribution to use for the variational
+            inference. Defaults to 'maf'.
+        train_kwargs (dict, optional): keyword arguments to pass to the
+            posterior's train method. Defaults to {}.
     """
 
     def __init__(self, posterior: ModelClass,
