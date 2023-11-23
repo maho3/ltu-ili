@@ -46,7 +46,10 @@
         "design",
         "example",
         "doc",
-        "review"
+        "review",
+        "infra",
+        "content",
+        "research"
       ]
     },
     {
