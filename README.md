@@ -1,8 +1,9 @@
 ltu-ili
 =======
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-7-orange.svg?style=flat-square)](#contributors-)
+[allc]: https://img.shields.io/badge/all_contributors-7-orange.svg?style=flat-square 'Number of contributors on All-Contributors'
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
+[![All Contributors][allc]](#contributors-)
 [![unittest](https://github.com/maho3/ltu-ili/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/maho3/ltu-ili/actions/workflows/unit-tests.yml)
 [![codecov](https://codecov.io/gh/maho3/ltu-ili/graph/badge.svg?token=8QNMK453GE)](https://codecov.io/gh/maho3/ltu-ili)
 [![docs](https://readthedocs.org/projects/ltu-ili/badge/?version=latest)](https://ltu-ili.readthedocs.io/en/latest/?badge=latest)
