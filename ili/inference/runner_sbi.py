@@ -220,7 +220,7 @@ class SBIRunner:
         """Train your posterior and save it to file
 
         Args:
-            loader (_BaseLoader): dataloader with stored summary-parameter pairs
+            loader (_BaseLoader): dataloader with stored data-parameter pairs
             seed (int): torch seed for reproducibility
         """
         t0 = time.time()
@@ -293,7 +293,7 @@ class SBIRunnerSequential(SBIRunner):
 
         Args:
             loader (_BaseLoader): data loader with ability to simulate
-                summary-parameter pairs
+                data-parameter pairs
         """
         t0 = time.time()
         x_obs = loader.get_obs_data()

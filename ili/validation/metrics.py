@@ -141,9 +141,9 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
-            x (np.array): tensor of test summaries
+            x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
-            x_obs (np.array, optional): tensor of observed summaries
+            x_obs (np.array, optional): tensor of observed data
             theta_obs (np.array, optional): tensor of true parameters for x_obs
             signature (str, optional): signature for the output file name
         """
@@ -207,7 +207,7 @@ class PosteriorSamples(_SampleBasedMetric):
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
-            x (np.array): tensor of test summaries (ndata, nsummaries)
+            x (np.array): tensor of test data (ndata, *data.shape)
 
         Returns:
             np.array: posterior samples of shape (nsamples, ndata, npars)
@@ -249,9 +249,9 @@ class PosteriorSamples(_SampleBasedMetric):
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
-            x (np.array): tensor of test summaries
+            x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
-            x_obs (np.array, optional): tensor of observed summaries
+            x_obs (np.array, optional): tensor of observed data
             theta_obs (np.array, optional): tensor of true parameters for x_obs
         """
         # Sample the full dataset
@@ -530,7 +530,7 @@ class PosteriorCoverage(PosteriorSamples):
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
-            x (np.array): tensor of test summaries
+            x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): Not used
             theta_obs (np.array, optional): Not used

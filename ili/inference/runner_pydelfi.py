@@ -109,7 +109,7 @@ class DelfiRunner:
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): dataloader with stored summary-parameter pairs
+            loader (BaseLoader): dataloader with stored data-parameter pairs
         """
 
         t0 = time.time()
