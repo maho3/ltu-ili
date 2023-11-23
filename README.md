@@ -1,7 +1,7 @@
 ltu-ili
 =======
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-11-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-12-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 The [Simons Collaboration on Learning the Universe](https://www.learning-the-universe.org/) Implicit Likelihood Inference (LtU-ILI) pipeline is a framework for applying simulation-based inference methods to constrain posteriors on cosmological parameters using astronomical survey data. The code is currently built to analyze spectroscopic surveys of the universe's Large-Scale Structure (LSS), such as SDSS-BOSS.
@@ -44,6 +44,7 @@ If you have comments, questions, or feedback, please [write us an issue](https:/
       <td align="center" valign="top" width="14.28%"><a href="http://christopherlovell.co.uk"><img src="https://avatars.githubusercontent.com/u/4648092?v=4?s=100" width="100px;" alt="Chris Lovell"/><br /><sub><b>Chris Lovell</b></sub></a><br /><a href="#research-christopherlovell" title="Research">🔬</a> <a href="#example-christopherlovell" title="Examples">💡</a> <a href="#data-christopherlovell" title="Data">🔣</a> <a href="#content-christopherlovell" title="Content">🖋</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/shivampcosmo"><img src="https://avatars.githubusercontent.com/u/32287865?v=4?s=100" width="100px;" alt="Shivam Pandey"/><br /><sub><b>Shivam Pandey</b></sub></a><br /><a href="#research-shivampcosmo" title="Research">🔬</a> <a href="#example-shivampcosmo" title="Examples">💡</a></td>
       <td align="center" valign="top" width="14.28%"><a href="http://luciaperez.owlstown.net"><img src="https://avatars.githubusercontent.com/u/26099741?v=4?s=100" width="100px;" alt="L.A. Perez"/><br /><sub><b>L.A. Perez</b></sub></a><br /><a href="#research-laperezNYC" title="Research">🔬</a> <a href="#content-laperezNYC" title="Content">🖋</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://tlmakinen.github.io/"><img src="https://avatars.githubusercontent.com/u/29409312?v=4?s=100" width="100px;" alt="T. Lucas Makinen"/><br /><sub><b>T. Lucas Makinen</b></sub></a><br /><a href="https://github.com/maho3/ltu-ili/commits?author=tlmakinen" title="Code">💻</a> <a href="#research-tlmakinen" title="Research">🔬</a></td>
     </tr>
   </tbody>
 </table>

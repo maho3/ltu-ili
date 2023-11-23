@@ -140,6 +140,16 @@
         "research",
         "content"
       ]
+    },
+    {
+      "login": "tlmakinen",
+      "name": "T. Lucas Makinen",
+      "avatar_url": "https://avatars.githubusercontent.com/u/29409312?v=4",
+      "profile": "https://tlmakinen.github.io/",
+      "contributions": [
+        "code",
+        "research"
+      ]
     }
   ],
   "contributorsPerLine": 7,
