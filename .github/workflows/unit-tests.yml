@@ -89,12 +89,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install coverage pytest
           coverage combine coverage_sbi/.coverage_sbi coverage_pydelfi/.coverage_pydelfi
-          coverage xml
+          coverage xml -o coverage.xml
           coverage report -m
         shell: bash
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
         with:
           files: ${{ github.workspace }}/coverage.xml
-          # fail_ci_if_error: true
+          fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
