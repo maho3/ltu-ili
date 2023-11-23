@@ -97,6 +97,17 @@
         "design",
         "code"
       ]
+    },
+    {
+      "login": "axellapel",
+      "name": "Axel Lapel",
+      "avatar_url": "https://avatars.githubusercontent.com/u/69917993?v=4",
+      "profile": "https://github.com/axellapel",
+      "contributions": [
+        "code",
+        "research",
+        "example"
+      ]
     }
   ],
   "contributorsPerLine": 7,
