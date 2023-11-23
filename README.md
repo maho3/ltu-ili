@@ -1,7 +1,7 @@
 ltu-ili
 =======
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-7-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-8-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 The [Simons Collaboration on Learning the Universe](https://www.learning-the-universe.org/) Implicit Likelihood Inference (LtU-ILI) pipeline is a framework for applying simulation-based inference methods to constrain posteriors on cosmological parameters using astronomical survey data. The code is currently built to analyze spectroscopic surveys of the universe's Large-Scale Structure (LSS), such as SDSS-BOSS.
@@ -38,6 +38,9 @@ If you have comments, questions, or feedback, please [write us an issue](https:/
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/AsianTaco"><img src="https://avatars.githubusercontent.com/u/42298902?v=4?s=100" width="100px;" alt="Simon"/><br /><sub><b>Simon</b></sub></a><br /><a href="https://github.com/maho3/ltu-ili/commits?author=AsianTaco" title="Code">💻</a> <a href="#example-AsianTaco" title="Examples">💡</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://pablo-lemos.github.io"><img src="https://avatars.githubusercontent.com/u/38078898?v=4?s=100" width="100px;" alt="Pablo Lemos"/><br /><sub><b>Pablo Lemos</b></sub></a><br /><a href="#design-Pablo-Lemos" title="Design">🎨</a> <a href="https://github.com/maho3/ltu-ili/commits?author=Pablo-Lemos" title="Code">💻</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://modichirag.github.io/"><img src="https://avatars.githubusercontent.com/u/13356766?v=4?s=100" width="100px;" alt="Chirag Modi"/><br /><sub><b>Chirag Modi</b></sub></a><br /><a href="#design-modichirag" title="Design">🎨</a> <a href="https://github.com/maho3/ltu-ili/commits?author=modichirag" title="Code">💻</a></td>
+    </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/axellapel"><img src="https://avatars.githubusercontent.com/u/69917993?v=4?s=100" width="100px;" alt="Axel Lapel"/><br /><sub><b>Axel Lapel</b></sub></a><br /><a href="https://github.com/maho3/ltu-ili/commits?author=axellapel" title="Code">💻</a> <a href="#research-axellapel" title="Research">🔬</a> <a href="#example-axellapel" title="Examples">💡</a></td>
     </tr>
   </tbody>
 </table>
