@@ -17,7 +17,6 @@ except ModuleNotFoundError:
     pass
 
 
-
 class _BaseLoader(ABC):
     @abstractmethod
     def __len__(self) -> int:
@@ -80,7 +79,7 @@ class NumpyLoader(_BaseLoader):
 
 
 class StaticNumpyLoader(NumpyLoader):
-    """Class to load single numpy files of summaries and parameters
+    """Loads single numpy files of summaries and parameters from file
 
     Args:
         in_dir (str): path to the location of stored data

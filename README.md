@@ -19,16 +19,16 @@ X, Y = load_data()                              # Load training data and paramet
 loader = ili.data.NumpyLoader(X, Y)             # Create a data loader
 
 trainer = ili.inference.SBIRunner(
-  prior=sbi.utils.BoxUniform(low=-1, high=1),   # Define a prior 
-  inference_class=sbi.inference.SNPE,           # Choose an inference method
+  prior = sbi.utils.BoxUniform(low=-1, high=1), # Define a prior 
+  inference_class = sbi.inference.SNPE,         # Choose an inference method
   nets = [sbi.utils.posterior_nn(model='maf')]  # Define a neural network architecture
 )
 
 posterior, _ = trainer(loader)                  # Run training to map data -> parameters
 
-samples = posterior.sample(x[0], (1000,))       # Sample from the posterior for a given input
+samples = posterior.sample(x[0], (1000,))       # Generate 1000 samples from the posterior
 ```
-Beyond this example, LtU-ILI comes with a wide range of customizable complexity, including:
+Beyond this simple example, LtU-ILI comes with a wide range of customizable complexity, including:
   * Posterior-, Likelihood-, and Ratio-Estimation methods for ILI
   * Diversity of neural density estimators (Mixture Density Networks, ResNet-like ratio classifiers, various Conditional Normalizing Flows)
   * Fully-customizable information embedding networks 
