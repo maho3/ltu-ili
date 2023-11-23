@@ -22,22 +22,11 @@ metrics:
     module: 'ili.validation.metrics'
     class: 'PosteriorCoverage'
     args:
-      num_samples: 100
-      sample_method: 'slice_np_vectorized'
+      save_samples: True
+      num_samples: 1000
+      sample_method: 'vi'
       sample_params:
-        num_chains: -1
-        burn_in: 20
-        thin: 1
+        dist: 'maf'
+        n_particles: 32
+        learning_rate: 0.01
       plot_list: ["coverage", "histogram", "predictions", "tarp"]
-
-
-  samples:
-    module: 'ili.validation.metrics'
-    class: 'PosteriorSamples'
-    args:
-      num_samples: 100
-      sample_method: 'slice_np_vectorized'
-      sample_params:
-        num_chains: -1
-        burn_in: 20
-        thin: 1

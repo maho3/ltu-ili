@@ -12,7 +12,7 @@ from abc import ABC
 from pathlib import Path
 import logging
 from ili.utils.samplers import (_BaseSampler, EmceeSampler, PyroSampler,
-                                DirectSampler)
+                                DirectSampler, VISampler)
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
@@ -105,6 +105,8 @@ class _SampleBasedMetric(_BaseMetric):
             else:
                 raise ValueError(
                     'Direct sampling is only available for DirectPosteriors')
+        elif self.sample_method == 'vi':
+            return VISampler(posterior, **self.sample_params)
 
         return PyroSampler(posterior, method=self.sample_method,
                            **self.sample_params)
