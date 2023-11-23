@@ -92,3 +92,9 @@ jobs:
           coverage xml
           coverage report -m
         shell: bash
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ${{ github.workspace }}/coverage.xml
+          # fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
