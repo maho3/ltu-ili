@@ -45,7 +45,7 @@ You can verify that the installation is working by running the toy example
 After the script completes, you should be able to find some metric summaries and plots in the **examples/toy** folder.
 
 ### Quijote example
-You can also download pre-processed Quijote two point correlation function (TPCF) summaries and run example cosmological inference. Quijote TPCF summaries can be found in the LtU Open Storage Network data repository ([https://sdsc.osn.xsede.org/learningtheuniverse](https://sdsc.osn.xsede.org/learningtheuniverse)). See the data access instructions in [DATA.md](DATA.md) for more details.
+You can also download pre-processed Quijote two point correlation function (TPCF) summaries and run example cosmological inference. Quijote TPCF summaries can be found in the LtU Open Storage Network data repository ([https://sdsc.osn.xsede.org/learningtheuniverse](https://sdsc.osn.xsede.org/learningtheuniverse)). Contact Matt Ho (matthew.annam.ho@gmail) for access.
 
 Store this data in a subfolder called `ltu-ili-data/` and run the inference using
 ```bash

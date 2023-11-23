@@ -13,13 +13,16 @@ The [Simons Collaboration on Learning the Universe](https://www.learning-the-uni
 Parts of the ILI pipeline are being developed in forked repositories such as [ili-summarizer](https://github.com/florpi/ili-summarizer).
 
 ## Documentation
-The documentation for this project can be found [at this link](https://ltu-ili.readthedocs.io/en/latest/)
+The documentation for this project can be found [at this link](https://ltu-ili.readthedocs.io/en/latest/).
 
 ## Installing 
 Follow the instructions for installing ltu-ili and running basic examples in [INSTALL.md](INSTALL.md).
 
 ## Getting Started
 To get started, see examples of writing config-based scripts in [examples/](examples/) or a guide to the jupyter notebook interface in [notebooks/tutorial.ipynb](notebooks/tutorial.ipynb).
+
+## References
+We keep an updated repository of interesting papers and resources [at this link](https://hackmd.io/8inFGHxxTmye4wtPaFXRWA).
 
 ## Contributing
 Before contributing, please familiarize yourself with the contribution workflow described in [CONTRIBUTING.md](CONTRIBUTING.md).
