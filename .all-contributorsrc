@@ -54,7 +54,11 @@
       "contributions": [
         "example",
         "doc",
-        "research"
+        "research",
+        "code",
+        "design",
+        "review",
+        "content"
       ]
     },
     {
