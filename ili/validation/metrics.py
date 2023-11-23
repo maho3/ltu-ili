@@ -11,7 +11,7 @@ from typing import List, Optional, Union
 from abc import ABC
 from pathlib import Path
 import logging
-from ili.utils.samplers import (_BaseSampler, EmceeSampler, PyroSampler,
+from ili.utils.samplers import (EmceeSampler, PyroSampler,
                                 DirectSampler, VISampler)
 
 try:
@@ -72,14 +72,14 @@ class _SampleBasedMetric(_BaseMetric):
         self.sample_method = sample_method
         self.sample_params = sample_params
 
-    def _build_sampler(self, posterior: ModelClass) -> _BaseSampler:
+    def _build_sampler(self, posterior: ModelClass) -> ABC:
         """Builds the sampler based on the specified sample method.
 
         Args:
             posterior (ModelClass): The posterior object to sample from.
 
         Returns:
-            _BaseSampler: The sampler object.
+            ABC: The sampler object.
 
         Raises:
             ValueError: If the specified sample method is not supported.
