@@ -9,12 +9,12 @@ metrics:
     module: 'ili.validation.metrics'
     class: 'PlotSinglePosterior'
     args:
-      seed: 12345
+      seed: 123
       save_samples: True
-      num_samples: 188
+      num_samples: 100
       sample_method: 'emcee'
       sample_params:
-        num_chains: 8
+        num_chains: 20
         burn_in: 100
         thin: 10
 

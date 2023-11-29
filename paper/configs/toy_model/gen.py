@@ -4,8 +4,8 @@ import numpy as np
 
 def simulator(params):
     # create toy simulations
-    x = np.arange(10)
-    y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+    x = np.arange(0, 10)
+    y = 3*np.sin(2*params[0]*x) + (params[1]-(params[2]-0.5)**2+0.5) * x ** 2
     y += np.random.randn(len(x))
     return y
 

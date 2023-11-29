@@ -14,7 +14,7 @@ if __name__ == '__main__':
         help="Configuration file to use for model training.")
     parser.add_argument(
         "--cfgdir", type=str,
-        help="Directory to look for config files in.",)
+        default='.',)
     args = parser.parse_args()
     model = args.model
     cfgdir = args.cfgdir

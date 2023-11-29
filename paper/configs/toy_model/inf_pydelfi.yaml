@@ -19,14 +19,14 @@ model:
     - module: 'pydelfi.ndes'
       class: 'MixtureDensityNetwork'
       args: 
-        n_components: 12
-        n_hidden: [64,64]
+        n_components: 6
+        n_hidden: [50,50]
         activations: ['tanh','tanh']
     - module: 'pydelfi.ndes'
       class: 'ConditionalMaskedAutoregressiveFlow'
       args: 
-        n_hiddens: [50,50]
-        n_mades: 2
+        n_hiddens: [50,50,50,50,50,50]
+        n_mades: 6
         act_fun: 'tanh'
     
 train_args:

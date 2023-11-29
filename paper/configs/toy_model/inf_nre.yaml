@@ -11,8 +11,8 @@ embedding_net:
   class: 'FCN'
   args:
     n_summary: 10
-    n_hidden: [64,64]
-    act_fn: "SiLU"
+    n_hidden: [50,50,50]
+    act_fn: "ReLU"
 
 model:
   module: 'sbi.inference'
