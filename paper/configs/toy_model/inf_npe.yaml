@@ -12,7 +12,7 @@ embedding_net:
   args:
     n_summary: 10
     n_hidden: [64,64]
-    act_fn: "SiLU"
+    act_fn: "ReLU"
 
 model:
   module: 'sbi.inference'
@@ -20,10 +20,10 @@ model:
   name: 'toy_SNPE'
   nets:
     - model: 'maf'
-      hidden_features: 50 
-      num_transforms: 5
+      hidden_features: 64 
+      num_transforms: 6
     - model: 'mdn'
-      hidden_features: 50 
+      hidden_features: 64 
       num_components: 6
     
 train_args:

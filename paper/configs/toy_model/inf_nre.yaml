@@ -11,7 +11,7 @@ embedding_net:
   class: 'FCN'
   args:
     n_summary: 10
-    n_hidden: [50,50,50]
+    n_hidden: [64, 64]
     act_fn: "ReLU"
 
 model:
@@ -20,10 +20,10 @@ model:
   name: 'toy_SNRE'
   nets:
     - model: 'resnet'
-      hidden_features: 50
+      hidden_features: 64
       num_blocks: 3
     - model: 'mlp'
-      hidden_features: 50
+      hidden_features: 64
     
 train_args:
   training_batch_size: 32

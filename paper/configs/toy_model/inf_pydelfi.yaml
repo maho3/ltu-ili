@@ -20,12 +20,12 @@ model:
       class: 'MixtureDensityNetwork'
       args: 
         n_components: 6
-        n_hidden: [50,50]
+        n_hidden: [64,64]
         activations: ['tanh','tanh']
     - module: 'pydelfi.ndes'
       class: 'ConditionalMaskedAutoregressiveFlow'
       args: 
-        n_hiddens: [50,50,50,50,50,50]
+        n_hiddens: [64, 64, 64, 64, 64, 64]
         n_mades: 6
         act_fun: 'tanh'
     
