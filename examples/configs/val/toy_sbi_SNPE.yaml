@@ -26,7 +26,7 @@ metrics:
         thin: 1
       num_samples: 100
       sample_method: 'direct'
-      plot_list: ["coverage", "histogram", "predictions", "tarp"]
+      plot_list: ["coverage", "histogram", "predictions", "tarp", "logprob"]
 
 
   samples:
