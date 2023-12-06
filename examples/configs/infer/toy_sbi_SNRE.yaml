@@ -1,4 +1,4 @@
-
+# Specify prior
 prior:
   module: 'ili.utils'
   class: 'Uniform'
@@ -6,19 +6,22 @@ prior:
     low: [0,0,0]
     high: [1,1,1]
 
+# Specify the inference model
 model:
   module: 'sbi.inference'
-  class: 'SNRE'
+  class: 'SNRE'  # Ratio Estimation
+  name: 'toy_SNRE'
   nets:
-    - model: 'resnet'
+    - model: 'resnet'  # Residual Network classifier
       hidden_features: 50
       num_blocks: 3
-    - model: 'mlp'
+    - model: 'mlp'  # Multi-Layer Perceptron classifier
       hidden_features: 50
-    
+
+# Specify the neural training hyperparameters
 train_args:
   training_batch_size: 32
   learning_rate: 0.001
 
-device: 'cpu'
-output_path: './toy'
+device: 'cpu'  # Run on CPU
+output_path: './toy'  # Where to save the posterior

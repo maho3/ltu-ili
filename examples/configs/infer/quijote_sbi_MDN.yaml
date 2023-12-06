@@ -10,7 +10,7 @@ embedding_net:
   module: 'ili.embedding'
   class: 'FCN'
   args:
-    n_summary: 100
+    n_data: 100
     n_hidden: [100,100,100]
     act_fn: "SiLU"
 

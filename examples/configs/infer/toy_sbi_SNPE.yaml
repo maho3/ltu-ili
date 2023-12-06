@@ -1,4 +1,4 @@
-
+# Specify prior
 prior:
   module: 'ili.utils'
   class: 'Uniform'
@@ -6,22 +6,24 @@ prior:
     low: [0,0,0]
     high: [1,1,1]
 
+# Specify the inference model
 model:
   module: 'sbi.inference'
-  class: 'SNPE'
+  class: 'SNPE'  # Posterior Estimation
   name: 'toy_SNPE'
   nets:
-    - model: 'maf'
-      hidden_features: 50 
-      num_transforms: 5
+    - model: 'maf'  # Masked Autoregressive Flow
+      hidden_features: 50
+      num_transforms: 5 
       signature: "maf"
-    - model: 'mdn'
+    - model: 'mdn'  # Mixture Density Network
       hidden_features: 50 
       num_components: 6
-    
+
+# Specify the neural training hyperparameters
 train_args:
   training_batch_size: 32
   learning_rate: 0.001
 
-device: 'cpu'
-output_path: './toy'
+device: 'cpu'  # Run on CPU
+output_path: './toy'  # Where to save the posterior
