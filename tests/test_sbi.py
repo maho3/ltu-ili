@@ -149,7 +149,8 @@ def test_snle(monkeypatch):
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
+    prior = ili.utils.IndependentNormal(
+        loc=[0, 0, 0], scale=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized likelihood inference)
     inference_class = sbi.inference.SNLE

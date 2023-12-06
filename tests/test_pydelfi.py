@@ -49,7 +49,7 @@ def test_toy():
     n_data = 10
 
     # define a prior
-    prior = ili.utils.Uniform(np.zeros(3), np.ones(3))
+    prior = ili.utils.Uniform(low=np.zeros(3), high=np.ones(3))
 
     # define training arguments
     train_args = {
@@ -175,7 +175,7 @@ def test_yaml():
         prior={
             'module': 'ili.utils',
             'class': 'Uniform',
-            'args': {'lower': [0, 0, 0], 'upper': [1, 1, 1]},
+            'args': {'low': [0, 0, 0], 'high': [1, 1, 1]},
         },
         model={
             'module': 'ili.inference.pydelfi_wrappers',
