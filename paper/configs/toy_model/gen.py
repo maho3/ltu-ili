@@ -16,7 +16,7 @@ if __name__ == '__main__':
         os.mkdir("toy")
 
     # simulate data and save as numpy files
-    theta = np.random.rand(2000, 3)  # 200 simulations, 3 parameters
+    theta = np.random.randn(2000, 3)  # 200 simulations, 3 parameters
     x = np.array([simulator(t) for t in theta])
     np.save("toy/theta.npy", theta)
     np.save("toy/x.npy", x)
