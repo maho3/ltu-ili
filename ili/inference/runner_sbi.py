@@ -266,9 +266,14 @@ class SBIRunner:
             summaries.append(model.summary)
 
         # ensemble all trained models, weighted by validation loss
-        weights = torch.tensor(
+        val_logprob = torch.tensor(
             [float(x["best_validation_log_prob"][0]) for x in summaries]
         ).to(self.device)
+        # Subtract maximum loss to improve numerical stability of exp
+        # (cancels in next line)
+        weights = torch.exp(val_logprob - val_logprob.max())
+        weights /= weights.sum()
+
         posterior_ensemble = NeuralPosteriorEnsemble(
             posteriors=posteriors,
             weights=weights)  # raises warning due to bug in sbi
