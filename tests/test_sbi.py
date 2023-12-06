@@ -381,11 +381,11 @@ def test_yaml():
 
     # Yaml file for infer - standard
     data = dict(
-        prior={'module': 'sbi.utils',
-               'class': 'BoxUniform',
+        prior={'module': 'torch.distributions',
+               'class': 'Normal',
                'args': dict(
-                   low=[0, 0, 0],
-                   high=[1, 1, 1],
+                   loc=[0.5, 0.5, 0.5],
+                   scale=[0.5, 0.5, 0.5],
                ),
                },
         model={'module':  'sbi.inference',
