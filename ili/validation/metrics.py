@@ -537,19 +537,21 @@ class PosteriorCoverage(PosteriorSamples):
             kde = gaussian_kde(samples[:, i, :].T, bw_method=bw_method)
             logprobs[i] = kde.logpdf(trues[i, :])
 
-        total = logprobs.sum()
+        mean = logprobs.mean()
         median = np.median(logprobs)
-        logging.info(f"Total logprob: {total:.4e}"
+        logging.info(f"Mean logprob: {mean:.4e}"
                      f"Median logprob: {median:.4e}")
 
         # Plot a histogram of the logprobs
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
         ax.hist(logprobs, bins=20)
-        ax.axvline(median, color="r", linestyle="--")
+        ax.axvline(mean, color="b", linestyle="--", label='mean')
+        ax.axvline(median, color="r", linestyle="--", label='median')
         ax.set_xlabel("Log-likelihood $\mathbb{E}[\log q(\\theta_o | x_o)]$")
         ax.set_ylabel("Counts")
-        ax.set_title(f"Total: {total:.3e}, "
+        ax.set_title(f"Mean: {mean:.3e}, "
                      f"Median: {median:.3e}", fontsize=14)
+        ax.legend()
 
         if self.output_path is None:
             return fig, logprobs
