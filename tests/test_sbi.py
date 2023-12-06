@@ -45,7 +45,8 @@ def test_snpe(monkeypatch):
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    prior = sbi.utils.BoxUniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
+    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
+    prior = sbi.utils.BoxUniform(low=low, high=high)
 
     # define an inference class (we are doing amortized posterior inference)
     inference_class = sbi.inference.SNPE
@@ -148,7 +149,8 @@ def test_snle(monkeypatch):
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    prior = sbi.utils.BoxUniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
+    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
+    prior = sbi.utils.BoxUniform(low=low, high=high)
 
     # define an inference class (we are doing amortized likelihood inference)
     inference_class = sbi.inference.SNLE
@@ -236,7 +238,8 @@ def test_snre():
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    prior = sbi.utils.BoxUniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
+    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
+    prior = sbi.utils.BoxUniform(low=low, high=high)
 
     # define an inference class (we are doing amortized likelihood inference)
     inference_class = sbi.inference.SNRE
@@ -308,7 +311,8 @@ def test_multiround():
     # train a model to infer x -> theta. save it as toy/posterior.pkl
 
     # define a prior
-    prior = sbi.utils.BoxUniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
+    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
+    prior = sbi.utils.BoxUniform(low=low, high=high)
 
     # define an inference class (we are doing amortized posterior inference)
     inference_class = sbi.inference.SNPE_C
@@ -377,11 +381,11 @@ def test_yaml():
 
     # Yaml file for infer - standard
     data = dict(
-        prior={'module': 'sbi.utils',
-               'class': 'BoxUniform',
+        prior={'module': 'torch.distributions',
+               'class': 'Normal',
                'args': dict(
-                   low=[0, 0, 0],
-                   high=[1, 1, 1],
+                   loc=[0.5, 0.5, 0.5],
+                   scale=[0.5, 0.5, 0.5],
                ),
                },
         model={'module':  'sbi.inference',
@@ -539,4 +543,3 @@ def test_yaml():
     ValidationRunner.from_config("./toy/val.yml")
 
     return
-
