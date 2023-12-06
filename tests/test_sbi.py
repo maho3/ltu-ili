@@ -14,6 +14,7 @@ import xarray as xr
 import csv
 import json
 
+import ili
 from ili.dataloaders import (
     NumpyLoader, SBISimulator, StaticNumpyLoader)
 from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential
@@ -45,8 +46,7 @@ def test_snpe(monkeypatch):
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
-    prior = sbi.utils.BoxUniform(low=low, high=high)
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized posterior inference)
     inference_class = sbi.inference.SNPE
@@ -68,7 +68,7 @@ def test_snpe(monkeypatch):
 
     # define an embedding network
     embedding_args = {
-        'n_summary': x.shape[1],
+        'n_data': x.shape[1],
         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
         'act_fn': "SiLU"
     }
@@ -149,8 +149,8 @@ def test_snle(monkeypatch):
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
-    prior = sbi.utils.BoxUniform(low=low, high=high)
+    prior = ili.utils.IndependentNormal(
+        loc=[0, 0, 0], scale=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized likelihood inference)
     inference_class = sbi.inference.SNLE
@@ -238,8 +238,7 @@ def test_snre():
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
-    prior = sbi.utils.BoxUniform(low=low, high=high)
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized likelihood inference)
     inference_class = sbi.inference.SNRE
@@ -311,8 +310,7 @@ def test_multiround():
     # train a model to infer x -> theta. save it as toy/posterior.pkl
 
     # define a prior
-    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
-    prior = sbi.utils.BoxUniform(low=low, high=high)
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized posterior inference)
     inference_class = sbi.inference.SNPE_C
@@ -381,8 +379,8 @@ def test_yaml():
 
     # Yaml file for infer - standard
     data = dict(
-        prior={'module': 'torch.distributions',
-               'class': 'Normal',
+        prior={'module': 'ili.utils',
+               'class': 'IndependentNormal',
                'args': dict(
                    loc=[0.5, 0.5, 0.5],
                    scale=[0.5, 0.5, 0.5],
@@ -418,8 +416,8 @@ def test_yaml():
 
     # Yaml file for infer - multiround
     data = dict(
-        prior={'module': 'sbi.utils',
-               'class': 'BoxUniform',
+        prior={'module': 'ili.utils',
+               'class': 'Uniform',
                'args': dict(
                    low=[0, 0, 0],
                    high=[1, 1, 1],

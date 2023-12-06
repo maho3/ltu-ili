@@ -137,8 +137,8 @@ class ValidationRunner:
         """Run your validation metrics and save them to file
 
         Args:
-            loader (BaseLoader): data loader with stored summary-parameter
-                pairs or has ability to simulate summary-parameter pairs
+            loader (BaseLoader): data loader with stored data-parameter
+                pairs or has ability to simulate data-parameter pairs
         """
         t0 = time.time()
 

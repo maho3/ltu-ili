@@ -45,13 +45,19 @@ class _BaseLoader(ABC):
 
 
 class NumpyLoader(_BaseLoader):
+    """A class for loading in-memory data using numpy arrays.
+
+    Args:
+        x (np.array): Array of data of shape (Ndata, \*data.shape)
+        theta (np.array): Array of parameters of shape (Ndata, \*theta.shape)
+    """
 
     def __init__(self, x, theta) -> None:
         self.x = x
         self.theta = theta
         if len(self.x) != len(self.theta):
             raise Exception(
-                "Stored summaries and parameters are not of same length.")
+                "Stored data and parameters are not of same length.")
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -62,10 +68,10 @@ class NumpyLoader(_BaseLoader):
         return len(self.x)
 
     def get_all_data(self) -> np.array:
-        """Returns all the loaded summaries
+        """Returns all the loaded data
 
         Returns:
-            np.array: summaries
+            np.array: data
         """
         return self.x
 
@@ -79,11 +85,11 @@ class NumpyLoader(_BaseLoader):
 
 
 class StaticNumpyLoader(NumpyLoader):
-    """Class to load single numpy files of summaries and parameters
+    """Loads single numpy files of data and parameters from disk
 
     Args:
         in_dir (str): path to the location of stored data
-        x_file (str): filename of the stored summaries
+        x_file (str): filename of the stored data
         theta_file (str): filename of the stored parameters
     """
 
@@ -99,7 +105,7 @@ class StaticNumpyLoader(NumpyLoader):
 
 
 class SummarizerDatasetLoader(_BaseLoader):
-    """Class to load netCF files of summaries and a csv of parameters
+    """Class to load netCF files of data and a csv of parameters
     Basically a wrapper for ili-summarizer's Dataset, with added
     functionality for loading parameters
 
@@ -107,14 +113,14 @@ class SummarizerDatasetLoader(_BaseLoader):
     Args:
         stage (str): whether to load train, test or val data
         data_dir (str): path to data directory
-        summary_root_file (str): root of summary files
+        data_root_file (str): root of data files
         param_file (str): parameter file name
         train_test_split_file (str): file name where train, test, val
             split idx are stored
         param_names (List[str]): parameters to fit
 
     Raises:
-        Exception: won't work when summaries and parameters don't have
+        Exception: won't work when data and parameters don't have
             same length
     """
 
@@ -122,7 +128,7 @@ class SummarizerDatasetLoader(_BaseLoader):
         self,
         stage: str,
         data_dir: str,
-        summary_root_file: str,
+        data_root_file: str,
         param_file: str,
         train_test_split_file: str,
         param_names: List[str],
@@ -134,7 +140,7 @@ class SummarizerDatasetLoader(_BaseLoader):
         self.data = Dataset(
             nodes=self.nodes,
             path_to_data=self.data_dir,
-            root_file=summary_root_file,
+            root_file=data_root_file,
         )
         self.theta = self.load_parameters(
             param_file=param_file,
@@ -143,7 +149,7 @@ class SummarizerDatasetLoader(_BaseLoader):
         )
         if len(self.data) != len(self.theta):
             raise Exception(
-                "Stored summaries and parameters are not of same length.")
+                "Stored data and parameters are not of same length.")
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -154,10 +160,10 @@ class SummarizerDatasetLoader(_BaseLoader):
         return len(self.nodes)
 
     def get_all_data(self) -> np.array:
-        """Returns all the loaded summaries
+        """Returns all the loaded data
 
         Returns:
-            np.array: summaries
+            np.array: data
         """
         return self.data.load().reshape((len(self), -1))
 
@@ -207,7 +213,7 @@ class SummarizerDatasetLoader(_BaseLoader):
 
 class SBISimulator(_BaseLoader):
     """
-    Class to run simulations of summaries and parameters and save
+    Class to run simulations of data and parameters and save
     results to numpy files. Only works for sbi backend.
 
     Args:
@@ -215,7 +221,7 @@ class SBISimulator(_BaseLoader):
         xobs_file (str): filename used for observed x values
         thetaobs_file (str): filename used for observed parameters
         out_dir (str): path to the location where to save  data
-        x_file (str): filename to use to store summaries
+        x_file (str): filename to use to store data
         theta_file (str): filename to use to store parameters
         num_simulations (int): number of simulations to run at each call
         simulator (callable): function taking the parameters as an
@@ -289,10 +295,10 @@ class SBISimulator(_BaseLoader):
         return theta, x
 
     def get_obs_data(self) -> np.array:
-        """Returns the observed summaries
+        """Returns the observed data
 
         Returns:
-            np.array: summaries
+            np.array: data
         """
         return self.xobs
 
@@ -305,10 +311,10 @@ class SBISimulator(_BaseLoader):
         return self.thetaobs
 
     def get_all_data(self) -> np.array:
-        """Returns all the loaded summaries
+        """Returns all the loaded data
 
         Returns:
-            np.array: summaries
+            np.array: data
         """
         return self.x
 

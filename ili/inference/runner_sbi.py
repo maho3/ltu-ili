@@ -53,8 +53,8 @@ class SBIRunner:
         prior: Independent,
         inference_class: NeuralInference,
         nets: List[Callable],
-        train_args: Dict,
-        output_path: Path,
+        train_args: Dict = {},
+        output_path: Path = None,
         device: str = 'cpu',
         embedding_net: nn.Module = None,
         proposal: Independent = None,
@@ -96,9 +96,6 @@ class SBIRunner:
             config = yaml.safe_load(fd)
 
         # load prior distribution
-        for k, v in config["prior"]["args"].items():
-            # torch distributions only accept tensors
-            config["prior"]["args"][k] = torch.Tensor(v).to(config["device"])
         prior = load_from_config(config["prior"])
 
         # load proposal distributions
@@ -226,7 +223,7 @@ class SBIRunner:
         """Train your posterior and save it to file
 
         Args:
-            loader (_BaseLoader): dataloader with stored summary-parameter pairs
+            loader (_BaseLoader): dataloader with stored data-parameter pairs
             seed (int): torch seed for reproducibility
         """
         t0 = time.time()
@@ -304,7 +301,7 @@ class SBIRunnerSequential(SBIRunner):
 
         Args:
             loader (_BaseLoader): data loader with ability to simulate
-                summary-parameter pairs
+                data-parameter pairs
         """
         t0 = time.time()
         x_obs = loader.get_obs_data()

@@ -1,7 +1,7 @@
 
 prior:
-  module: 'sbi.utils'
-  class: 'BoxUniform'
+  module: 'ili.utils'
+  class: 'Uniform'
   args:
     low: [0.1, 0.5, 0.6]
     high: [0.5, 0.9, 1.0]
@@ -10,7 +10,7 @@ embedding_net:
   module: 'ili.embedding'
   class: 'FCN'
   args:
-    n_summary: 100
+    n_data: 100
     n_hidden: [100,100,100]
     act_fn: "SiLU"
 
