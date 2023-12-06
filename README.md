@@ -43,7 +43,7 @@ For more details on the motivation, design, and theoretical background of this p
 
 
 ## Getting Started 
-To install LtU-ILI, follow instructions in [INSTALL.md](INSTALL.md).
+To install LtU-ILI, follow the instructions in [INSTALL.md](INSTALL.md).
 
 To get started, try out the tutorial for the Jupyter notebook interface in [notebooks/tutorial.ipynb](notebooks/tutorial.ipynb) or the command line interface in [examples/](examples/).
 
