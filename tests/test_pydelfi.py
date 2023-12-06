@@ -49,7 +49,7 @@ def test_toy():
     n_data = 10
 
     # define a prior
-    prior = ili.priors.Uniform(np.zeros(3), np.ones(3))
+    prior = ili.utils.Uniform(np.zeros(3), np.ones(3))
 
     # define training arguments
     train_args = {
@@ -173,7 +173,7 @@ def test_yaml():
         n_params=3,
         n_data=10,
         prior={
-            'module': 'ili.priors',
+            'module': 'ili.utils',
             'class': 'Uniform',
             'args': {'lower': [0, 0, 0], 'upper': [1, 1, 1]},
         },
