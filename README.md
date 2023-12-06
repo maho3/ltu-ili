@@ -3,7 +3,7 @@ LtU-ILI
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [allc]: https://img.shields.io/badge/all_contributors-12-orange.svg?style=flat-square 'Number of contributors on All-Contributors'
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
-[![All Contributors][allc]](#contributors-)
+[![All Contributors][allc]](https://github.com/maho3/ltu-ili/tree/main#contributors-)
 [![unittest](https://github.com/maho3/ltu-ili/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/maho3/ltu-ili/actions/workflows/unit-tests.yml)
 [![codecov](https://codecov.io/gh/maho3/ltu-ili/graph/badge.svg?token=8QNMK453GE)](https://codecov.io/gh/maho3/ltu-ili)
 [![docs](https://readthedocs.org/projects/ltu-ili/badge/?version=latest)](https://ltu-ili.readthedocs.io/en/latest/?badge=latest)
@@ -38,14 +38,14 @@ Beyond this simple example, LtU-ILI comes with a wide range of customizable comp
   * A parallelizable configuration framework for efficient hyperparameter tuning and production runs
 
 
-For more details on the motivation, design, and theoretical background of this project, see the software release paper ([arxiv:XXXXX](.)).
+For more details on the motivation, design, and theoretical background of this project, see the software release paper ([arxiv:XXXXX](https://arxiv.org/)).
 
 
 
 ## Getting Started 
 To install LtU-ILI, follow instructions in [INSTALL.md](INSTALL.md).
 
-To get started, try out the tutorial for the Jupyter notebook interface in [notebooks/tutorial.ipynb](notebooks/tutorial.ipynb) or the command line interface in [examples/](examples/).
+To get started, try out the tutorial for the Jupyter notebook interface in [notebooks/tutorial.ipynb](https://github.com/maho3/ltu-ili/blob/main/notebooks/tutorial.ipynb) or the command line interface in [examples/](https://github.com/maho3/ltu-ili/tree/main/examples).
 
 ## API Documentation
 The documentation for this project can be found [at this link](https://ltu-ili.readthedocs.io/en/latest/).

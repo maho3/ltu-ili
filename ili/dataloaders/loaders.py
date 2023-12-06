@@ -48,8 +48,8 @@ class NumpyLoader(_BaseLoader):
     """A class for loading in-memory data using numpy arrays.
 
     Args:
-        x (np.array): Array of data of shape (Ndata, *data.shape)
-        theta (np.array): Array of parameters of shape (Ndata, *theta.shape)
+        x (np.array): Array of data of shape (Ndata, \*data.shape)
+        theta (np.array): Array of parameters of shape (Ndata, \*theta.shape)
     """
 
     def __init__(self, x, theta) -> None:

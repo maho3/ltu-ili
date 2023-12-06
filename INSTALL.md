@@ -63,4 +63,4 @@ In case you want to use a mixture density network as density estimator instead o
 ```
 
 ## Jupyter Interface
-You can also interact with ltu-ili through an iPython environment such as jupyter. See the [notebooks/tutorial.ipynb](notebooks/tutorial.ipynb) notebook for a guide to the jupyter interface.
+You can also interact with ltu-ili through an iPython environment such as jupyter. See the [notebooks/tutorial.ipynb](https://github.com/maho3/ltu-ili/blob/main/notebooks/tutorial.ipynb) notebook for a guide to the jupyter interface.
