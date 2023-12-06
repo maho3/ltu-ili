@@ -79,14 +79,6 @@ Samplers
    :undoc-members:
    :special-members: __call__
 
-
-Cosmology
-~~~~~~~~~
-.. automodule:: utils.cosmology
-   :members:
-   :undoc-members:
-   :special-members: __call__
-
 Import Utilities
 ~~~~~~~~~~~~~~~~
 .. automodule:: utils.import_utils

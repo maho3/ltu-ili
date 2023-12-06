@@ -68,7 +68,7 @@ def test_snpe(monkeypatch):
 
     # define an embedding network
     embedding_args = {
-        'n_summary': x.shape[1],
+        'n_data': x.shape[1],
         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
         'act_fn': "SiLU"
     }

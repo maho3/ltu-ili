@@ -1,7 +1,8 @@
 
-n_params: 3
-n_data: 10
+n_params: 3  # Number of parameters to be inferred
+n_data: 10  # Dimesionality of input data
 
+# Specify prior
 prior:
   module: 'pydelfi.priors'
   class: 'Uniform'
@@ -9,12 +10,13 @@ prior:
     lower: [0,0,0]
     upper: [1,1,1]
 
+# Specify the inference model
 model:
   module: 'ili.inference.pydelfi_wrappers'
-  class: 'DelfiWrapper'
+  class: 'DelfiWrapper'  # Likelihood Estimation with pydelfi
   name: 'toy_pydelfi'
   kwargs:
-    nwalkers: 20
+    nwalkers: 20  # Number of walkers for MCMC
   nets:
     - module: 'pydelfi.ndes'
       class: 'MixtureDensityNetwork'
@@ -28,9 +30,10 @@ model:
         n_hiddens: [50,50]
         n_mades: 2
         act_fun: 'tanh'
-    
+
+# Specify the neural training hyperparameters
 train_args:
   batch_size: 32
   epochs: 300
 
-output_path: 'toy'
+output_path: 'toy'  # Where to save the posterior

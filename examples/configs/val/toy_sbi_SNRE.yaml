@@ -1,16 +1,16 @@
 backend: 'sbi'  # sbi or pydelfi backend
 
-posterior_path: './toy/toy_SNLE_posterior.pkl'  # Path to posterior model
+posterior_path: './toy/toy_SNRE_posterior.pkl'  # Path to posterior model
 output_path: './toy'  # Where to save the metrics
-labels: ['t1', 't2', 't3']  # Names of the parameters
+labels: ['t1', 't2', 't3']  # Where to save the metrics
 
 # If True, run validation for all networks as one ensemble posterior
 # If False, run validation for each network separately
 ensemble_mode: True
 
 metrics:
-  # Plot an example posterior for a single input
   single_example:
+    # Plot an example posterior for a single input
     module: 'ili.validation.metrics'
     class: 'PlotSinglePosterior'
     args:

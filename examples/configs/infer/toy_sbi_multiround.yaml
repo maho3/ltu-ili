@@ -1,4 +1,4 @@
-
+# Specify prior (same as initial proposal distribution)
 prior:
   module: 'sbi.utils'
   class: 'BoxUniform'
@@ -6,23 +6,25 @@ prior:
     low: [0,0,0]
     high: [1,1,1]
 
+# Specify the inference model
 model:
   module: 'sbi.inference'
-  class: 'SNPE_C'
+  class: 'SNPE_C'  # Posterior Estimation
   name: "toy_mr"
   nets:
-    - model: 'maf'
+    - model: 'maf'  # Masked Autoregressive Flow
       hidden_features: 100 
       num_transforms: 2
       signature: "maf_mr"
-    - model: 'mdn'
+    - model: 'mdn'  # Mixture Density Network
       hidden_features: 50 
       num_components: 4
     
+# Specify the neural training hyperparameters
 train_args:
   training_batch_size: 32
   learning_rate: 0.001
-  num_round: 2
+  num_round: 2  # number of rounds of simulations
 
-device: 'cpu'
-output_path: './toy'
+device: 'cpu'  # Run on CPU
+output_path: './toy'  # Where to save the posterior

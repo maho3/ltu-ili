@@ -12,7 +12,8 @@ from ili.utils import load_class, load_from_config
 
 
 class DelfiWrapper(Delfi):
-    """Wrapper for pydelfi.delfi.Delfi which adds some necessary
+    """Trainer for a neural posterior ensemble using the pydelfi package.
+    Wrapper for pydelfi.delfi.Delfi which adds some necessary
     functionality and interface.
 
     Args:
@@ -37,8 +38,9 @@ class DelfiWrapper(Delfi):
         self.prior.sample = self.prior.draw  # aliasing for consistency
 
     def potential(self, theta: np.array, x: np.array):
-        """Modification of Delfi.log_prob designed to conform with the
-        form of sbi.utils.posterior_ensemble
+        """Returns the log posterior probability of a data vector given
+        parameters. Modification of Delfi.log_prob designed to conform
+        with the form of sbi.utils.posterior_ensemble
 
         Args:
             theta (np.array): parameter vector
@@ -56,7 +58,8 @@ class DelfiWrapper(Delfi):
         show_progress_bars=False,
         burn_in_chain=1000
     ) -> np.array:
-        """Modification of Delfi.emcee_sample designed to conform with the
+        """Samples from the posterior distribution using MCMC rejection.
+        Modification of Delfi.emcee_sample designed to conform with the
         form of sbi.utils.posterior_ensemble
 
         Args:
@@ -107,7 +110,7 @@ class DelfiWrapper(Delfi):
         n_params: int,
         n_data: int,
     ) -> List[Callable]:
-        """Load the inference model
+        """Initialize the neural density estimators from configuration yamls.
 
         Args:
             config_ndes(List[Dict]): list with configurations for each neural

@@ -1,4 +1,4 @@
-in_dir: './toy'
+in_dir: './toy'  # where to find the data
 
-x_file: 'x.npy'
-theta_file: 'theta.npy'
+x_file: 'x.npy'  # file name of the data
+theta_file: 'theta.npy'  # file name of the parameters
