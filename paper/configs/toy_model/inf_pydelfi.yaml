@@ -3,8 +3,8 @@ n_params: 3
 n_data: 10
 
 prior:
-  module: 'pydelfi.priors'
-  class: 'Uniform'
+  module: 'ili.utils'
+  class: 'IndependentNormal'
   args:
     lower: [0,0,0]
     upper: [1,1,1]

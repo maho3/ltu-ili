@@ -1,7 +1,7 @@
 
 prior:
-  module: 'torch.distributions'
-  class: 'Normal'
+  module: 'ili.utils'
+  class: 'IndependentNormal'
   args:
     loc: [0,0,0]
     scale: [1,1,1]
@@ -10,7 +10,7 @@ embedding_net:
   module: 'ili.embedding'
   class: 'FCN'
   args:
-    n_summary: 10
+    n_data: 10
     n_hidden: [64, 64]
     act_fn: "ReLU"
 

@@ -1,7 +1,7 @@
 
 prior:
-  module: 'torch.distributions'
-  class: 'Normal'
+  module: 'ili.utils'
+  class: 'IndependentNormal'
   args:
     loc: [0,0,0]
     scale: [1,1,1]
