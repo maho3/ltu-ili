@@ -5,6 +5,8 @@ import tensorflow as tf
 from pathlib import Path
 import yaml
 import pydelfi
+
+import ili
 from ili.validation.metrics import PlotSinglePosterior
 from ili.inference.pydelfi_wrappers import DelfiWrapper
 from ili.validation.runner import ValidationRunner
@@ -48,7 +50,7 @@ def test_toy():
     n_data = 10
 
     # define a prior
-    prior = pydelfi.priors.Uniform(np.zeros(3), np.ones(3))
+    prior = ili.utils.Uniform(np.zeros(3), np.ones(3))
 
     # define training arguments
     train_args = {
@@ -64,7 +66,7 @@ def test_toy():
          },
         {'module': 'pydelfi.ndes',
          'class': 'ConditionalMaskedAutoregressiveFlow',
-         'args': {'n_hiddens': [50, 50], 'n_mades':2, 'act_fun':'tanh'}
+         'args': {'n_hiddens': [50, 50], 'n_mades': 2, 'act_fun': 'tanh'}
          }
     ]
     inference_class = DelfiWrapper
@@ -137,11 +139,11 @@ def test_yaml():
     config_ndes = [
         {'module': 'pydelfi.ndes', 'class': 'MixtureDensityNetwork',
          'args': {'n_components': 12, 'n_hidden': [64, 64],
-                  'activations':['tanh', 'tanh']}
+                  'activations': ['tanh', 'tanh']}
          },
         {'module': 'pydelfi.ndes',
          'class': 'ConditionalMaskedAutoregressiveFlow',
-         'args': {'n_hiddens': [50, 50], 'n_mades':2, 'act_fun':'tanh'}
+         'args': {'n_hiddens': [50, 50], 'n_mades': 2, 'act_fun': 'tanh'}
          }
     ]
 
@@ -172,9 +174,9 @@ def test_yaml():
         n_params=3,
         n_data=10,
         prior={
-            'module': 'pydelfi.priors',
+            'module': 'ili.utils',
             'class': 'Uniform',
-            'args': {'lower': [0, 0, 0], 'upper': [1, 1, 1]},
+            'args': {'low': [0, 0, 0], 'high': [1, 1, 1]},
         },
         model={
             'module': 'ili.inference.pydelfi_wrappers',
@@ -216,4 +218,3 @@ def test_yaml():
     ValidationRunner.from_config("./toy_pydelfi/val.yml")
 
     return
-

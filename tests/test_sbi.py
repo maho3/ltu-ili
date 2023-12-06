@@ -14,6 +14,7 @@ import xarray as xr
 import csv
 import json
 
+import ili
 from ili.dataloaders import (
     NumpyLoader, SBISimulator, StaticNumpyLoader)
 from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential
@@ -45,7 +46,7 @@ def test_snpe(monkeypatch):
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    prior = sbi.utils.BoxUniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
+    prior = ili.utils.Uniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
 
     # define an inference class (we are doing amortized posterior inference)
     inference_class = sbi.inference.SNPE
@@ -148,7 +149,7 @@ def test_snle(monkeypatch):
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    prior = sbi.utils.BoxUniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
+    prior = ili.utils.Uniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
 
     # define an inference class (we are doing amortized likelihood inference)
     inference_class = sbi.inference.SNLE
@@ -236,7 +237,7 @@ def test_snre():
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    prior = sbi.utils.BoxUniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
+    prior = ili.utils.Uniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
 
     # define an inference class (we are doing amortized likelihood inference)
     inference_class = sbi.inference.SNRE
@@ -308,7 +309,7 @@ def test_multiround():
     # train a model to infer x -> theta. save it as toy/posterior.pkl
 
     # define a prior
-    prior = sbi.utils.BoxUniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
+    prior = ili.utils.Uniform(low=(0, 0, 0), high=(1, 1, 1), device=device)
 
     # define an inference class (we are doing amortized posterior inference)
     inference_class = sbi.inference.SNPE_C
@@ -377,8 +378,8 @@ def test_yaml():
 
     # Yaml file for infer - standard
     data = dict(
-        prior={'module': 'sbi.utils',
-               'class': 'BoxUniform',
+        prior={'module': 'ili.utils',
+               'class': 'Uniform',
                'args': dict(
                    low=[0, 0, 0],
                    high=[1, 1, 1],
@@ -414,8 +415,8 @@ def test_yaml():
 
     # Yaml file for infer - multiround
     data = dict(
-        prior={'module': 'sbi.utils',
-               'class': 'BoxUniform',
+        prior={'module': 'ili.utils',
+               'class': 'Uniform',
                'args': dict(
                    low=[0, 0, 0],
                    high=[1, 1, 1],
@@ -539,4 +540,3 @@ def test_yaml():
     ValidationRunner.from_config("./toy/val.yml")
 
     return
-
