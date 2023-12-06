@@ -85,7 +85,7 @@ class NumpyLoader(_BaseLoader):
 
 
 class StaticNumpyLoader(NumpyLoader):
-    """Loads single numpy files of data and parameters from file
+    """Loads single numpy files of data and parameters from disk
 
     Args:
         in_dir (str): path to the location of stored data
