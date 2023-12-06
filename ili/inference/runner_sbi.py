@@ -95,12 +95,13 @@ class SBIRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
 
-        # torch distributions only accept tensors
+        # load prior distribution
         for k, v in config["prior"]["args"].items():
+            # torch distributions only accept tensors
             config["prior"]["args"][k] = torch.Tensor(v).to(config["device"])
-
-        # load prior and proposal distributions
         prior = load_from_config(config["prior"])
+
+        # load proposal distributions
         proposal = None
         if "proposal" in config:
             for k, v in config["proposal"]["args"].items():
