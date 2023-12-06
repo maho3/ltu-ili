@@ -1,6 +1,6 @@
 
 prior:
-  module: 'sbi.utils'
+  module: 'ili.utils'
   class: 'BoxUniform'
   args:
     low: [0.1, 0.5, 0.6]

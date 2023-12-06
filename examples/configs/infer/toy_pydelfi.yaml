@@ -3,7 +3,7 @@ n_params: 3
 n_data: 10
 
 prior:
-  module: 'pydelfi.priors'
+  module: 'ili.utils'
   class: 'Uniform'
   args:
     lower: [0,0,0]
