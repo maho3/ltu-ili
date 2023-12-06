@@ -96,17 +96,11 @@ class SBIRunner:
             config = yaml.safe_load(fd)
 
         # load prior distribution
-        for k, v in config["prior"]["args"].items():
-            # torch distributions only accept tensors
-            config["prior"]["args"][k] = torch.Tensor(v).to(config["device"])
         prior = load_from_config(config["prior"])
 
         # load proposal distributions
         proposal = None
         if "proposal" in config:
-            for k, v in config["proposal"]["args"].items():
-                config["proposal"]["args"][k] = torch.Tensor(v).to(
-                    config["device"])
             proposal = load_from_config(config["proposal"])
 
         # load embedding net

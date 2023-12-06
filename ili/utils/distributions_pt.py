@@ -10,26 +10,29 @@ distributions in torch.distributions, so we wrap them here.
 
 
 import torch
+from torch.distributions import Independent
 from .import_utils import load_class
 
-# sbi has nicely wrapped torch's Uniform distribution
-from sbi.utils import BoxUniform as Uniform
-
-# Load Independent base class
-from torch.distributions import Independent
 
 # These distributions will be loaded and wrapped
 dist_names = [
-    'Normal', 'Beta', 'Cauchy', 'Chi2', 'Exponential', 'FisherSnedecor',
-    'Gamma', 'Gumbel', 'HalfCauchy', 'HalfNormal', 'Laplace',
+    'Uniform', 'Normal', 'Beta', 'Cauchy', 'Chi2', 'Exponential',
+    'FisherSnedecor', 'Gamma', 'Gumbel', 'HalfCauchy', 'HalfNormal', 'Laplace',
     'LogNormal', 'Pareto', 'StudentT', 'VonMises', 'Weibull', 'Dirichlet'
 ]
 
 
 class CustomIndependent(Independent):
-    def __init__(self, *args, **kwargs):
-        dist = self.Distribution(*args, **kwargs)
-        return super().__init__(dist, 1)
+    def __init__(self, device='cpu', *args, **kwargs):
+        # Convert args and kwargs to torch tensors
+        args = [torch.as_tensor(v, dtype=torch.float32, device=device)
+                for v in args]
+        kwargs = {k: torch.as_tensor(v, dtype=torch.float32, device=device)
+                  for k, v in kwargs.items()}
+
+        self.device = device
+        self.dist = self.Distribution(*args, **kwargs)
+        return super().__init__(self.dist, 1)
 
 
 # Load and wrap distributions
@@ -44,6 +47,7 @@ locals().update(dist_dict)
 # dist_names, then we have a 'IndependentNormal' class parameterized by a
 # loc and scale vector
 
+Uniform = IndependentUniform  # Uniform is always independent
 
 # load multivariate, continuous distributions
 # this is done for API convenience, but we don't wrap them
