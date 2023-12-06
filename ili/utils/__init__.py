@@ -12,4 +12,4 @@ try:
         MultivariateNormal, Dirichlet, LowRankMultivariateNormal
     )
 except ImportError:
-    from .distributions_tf import Uniform, TruncatedGaussian
+    from .distributions_tf import Uniform, TruncatedGaussian, IndependentNormal
