@@ -1,10 +1,10 @@
 
 prior:
-  module: 'sbi.utils'
-  class: 'BoxUniform'
+  module: 'torch.distributions'
+  class: 'Normal'
   args:
-    low: [0,0,0]
-    high: [1,1,1]
+    loc: [0,0,0]
+    scale: [1,1,1]
 
 embedding_net:
   module: 'ili.embedding'
