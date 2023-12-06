@@ -15,7 +15,7 @@ from .import_utils import load_class
 # sbi has nicely wrapped torch's Uniform distribution
 from sbi.utils import BoxUniform as Uniform
 
-# load univariate, continuous distributions
+# Load Independent base class
 from torch.distributions import Independent
 
 # These distributions will be loaded and wrapped
@@ -32,16 +32,17 @@ class CustomIndependent(Independent):
         return super().__init__(dist, 1)
 
 
+# Load and wrap distributions
 dist_dict = {}
 for name in dist_names:
     dist = load_class('torch.distributions', name)
     dist_dict['Independent'+name] = \
         type('Independent'+name, (CustomIndependent,), {'Distribution': dist})
-
 locals().update(dist_dict)
 # Now, for all distributions in dist_names, we have a custom Independent
 # version that can handle vectorized inputs. For example, if 'Normal' is in
-# dist_names, then we have a 'IndependentNormal' class
+# dist_names, then we have a 'IndependentNormal' class parameterized by a
+# loc and scale vector
 
 
 # load multivariate, continuous distributions
