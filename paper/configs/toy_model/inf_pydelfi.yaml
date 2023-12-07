@@ -6,8 +6,8 @@ prior:
   module: 'ili.utils'
   class: 'IndependentNormal'
   args:
-    lower: [0,0,0]
-    upper: [1,1,1]
+    loc: [0,0,0]
+    scale: [1,1,1]
 
 model:
   module: 'ili.inference.pydelfi_wrappers'

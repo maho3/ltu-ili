@@ -1,0 +1,33 @@
+backend: 'sbi'
+
+posterior_path: './xray/xray_SNPE_posterior.pkl'
+output_path: './xray'
+labels: ['logM500c']
+
+ensemble_mode: True
+
+metrics:
+  single_example:
+    module: 'ili.validation.metrics'
+    class: 'PlotSinglePosterior'
+    args:
+      seed: 123
+      save_samples: True
+      num_samples: 1500
+      sample_method: 'direct'
+
+  coverages:
+    module: 'ili.validation.metrics'
+    class: 'PosteriorCoverage'
+    args:
+      num_samples: 100
+      sample_method: 'direct'
+      plot_list: ["coverage", "histogram", "predictions", "tarp"]
+
+
+  # samples:
+  #   module: 'ili.validation.metrics'
+  #   class: 'PosteriorSamples'
+  #   args:
+  #     num_samples: 100
+  #     sample_method: 'direct'
