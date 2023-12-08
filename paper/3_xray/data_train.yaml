@@ -1,0 +1,4 @@
+in_dir: './xray'
+
+x_file: 'x_train.npy'
+theta_file: 'theta_train.npy'
