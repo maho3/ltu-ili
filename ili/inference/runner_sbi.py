@@ -25,7 +25,28 @@ default_config = (
 )
 
 
-class SBIRunner:
+class _BaseRunner():
+    def __init__(
+        self,
+        prior: Independent,
+        inference_class: NeuralInference,
+        train_args: Dict = {},
+        output_path: Path = None,
+        device: str = 'cpu',
+        name: Optional[str] = "",
+    ):
+        self.prior = prior
+        self.inference_class = inference_class
+        self.train_args = train_args
+        self.device = device
+        self.name = name
+        self.output_path = output_path
+        if self.output_path is not None:
+            self.output_path = Path(self.output_path)
+            self.output_path.mkdir(parents=True, exist_ok=True)
+
+
+class SBIRunner(_BaseRunner):
     """Class to train posterior inference models using the sbi package
 
     Args:
@@ -61,12 +82,16 @@ class SBIRunner:
         name: Optional[str] = "",
         signatures: Optional[List[str]] = None,
     ):
-        self.prior = prior
+        super().__init__(
+            prior=prior,
+            inference_class=inference_class,
+            train_args=train_args,
+            output_path=output_path,
+            device=device,
+            name=name,
+        )
         self.proposal = proposal
-        self.inference_class = inference_class
-        self.class_name = inference_class.__name__
         self.nets = nets
-        self.device = device
         self.embedding_net = embedding_net
         self.train_args = train_args
         if "num_round" in train_args:
@@ -74,12 +99,7 @@ class SBIRunner:
             self.train_args.pop("num_round")
         else:
             self.num_rounds = 1
-        self.output_path = output_path
-        if self.output_path is not None:
-            self.output_path = Path(self.output_path)
-            self.output_path.mkdir(parents=True, exist_ok=True)
         self.signatures = signatures
-        self.name = name
         if self.signatures is None:
             self.signatures = [""]*len(self.nets)
 
@@ -391,27 +411,8 @@ class SBIRunnerSequential(SBIRunner):
             f"It took {time.time() - t0} seconds to train all models.")
 
 
-class ABCRunner():
+class ABCRunner(_BaseRunner):
     """Class to run ABC inference models using the sbi package"""
-
-    def __init__(
-        self,
-        prior: Independent,
-        inference_class: NeuralInference,
-        train_args: Dict = {},
-        output_path: Path = None,
-        device: str = 'cpu',
-        name: Optional[str] = "",
-    ):
-        self.prior = prior
-        self.inference_class = inference_class
-        self.train_args = train_args
-        self.device = device
-        self.name = name
-        self.output_path = output_path
-        if self.output_path is not None:
-            self.output_path = Path(self.output_path)
-            self.output_path.mkdir(parents=True, exist_ok=True)
 
     @classmethod
     def from_config(cls, config_path: Path) -> "ABCRunner":
@@ -437,10 +438,10 @@ class ABCRunner():
         # load logistics
         train_args = config["train_args"]
         output_path = Path(config["output_path"])
+        name = ""
         if "name" in config["model"]:
             name = config["model"]["name"]+"_"
-        else:
-            name = ""
+
         return cls(
             prior=prior,
             inference_class=inference_class,
