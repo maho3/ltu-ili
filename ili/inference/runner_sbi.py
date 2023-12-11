@@ -389,3 +389,95 @@ class SBIRunnerSequential(SBIRunner):
             pickle.dump(posterior_ensemble, f)
         logging.info(
             f"It took {time.time() - t0} seconds to train all models.")
+
+
+class ABCRunner():
+    """Class to run ABC inference models using the sbi package"""
+
+    def __init__(
+        self,
+        prior: Independent,
+        inference_class: NeuralInference,
+        train_args: Dict = {},
+        output_path: Path = None,
+        device: str = 'cpu',
+        name: Optional[str] = "",
+    ):
+        self.prior = prior
+        self.inference_class = inference_class
+        self.train_args = train_args
+        self.device = device
+        self.name = name
+        self.output_path = output_path
+        if self.output_path is not None:
+            self.output_path = Path(self.output_path)
+            self.output_path.mkdir(parents=True, exist_ok=True)
+
+    @classmethod
+    def from_config(cls, config_path: Path) -> "ABCRunner":
+        """Create an sbi runner from a yaml config file
+
+        Args:
+            config_path (Path, optional): path to config file
+        Returns:
+            SBIRunner: the sbi runner specified by the config file
+        """
+        with open(config_path, "r") as fd:
+            config = yaml.safe_load(fd)
+
+        # load prior distribution
+        prior = load_from_config(config["prior"])
+
+        # load inference class
+        inference_class = load_class(
+            module_name=config["model"]["module"],
+            class_name=config["model"]["class"],
+        )
+
+        # load logistics
+        train_args = config["train_args"]
+        output_path = Path(config["output_path"])
+        if "name" in config["model"]:
+            name = config["model"]["name"]+"_"
+        else:
+            name = ""
+        return cls(
+            prior=prior,
+            inference_class=inference_class,
+            device=config["device"],
+            train_args=train_args,
+            output_path=output_path,
+            name=name,
+        )
+
+    def __call__(self, loader: _BaseLoader, seed: int = None):
+        """Train your posterior and save it to file
+
+        Args:
+            loader (_BaseLoader): dataloader with stored data-parameter pairs
+            seed (int): torch seed for reproducibility
+        """
+        t0 = time.time()
+
+        logging.info(f"MODEL INFERENCE CLASS: {self.inference_class.__name__}")
+
+        x_obs = loader.get_obs_data()
+
+        # setup and train each architecture
+        model = self.inference_class(
+            prior=self.prior,
+            simulator=loader.simulator
+        )
+        samples = model(x_obs, return_summary=False, **self.train_args)
+
+        # save model
+
+        # save if output path is specified
+        if self.output_path is not None:
+            str_p = self.name + "samples.pkl"
+            with open(self.output_path / str_p, "wb") as handle:
+                pickle.dump(samples, handle)
+
+        logging.info(
+            f"It took {time.time() - t0} seconds to run the model.")
+        return samples
