@@ -53,8 +53,8 @@ class SBIRunner:
         prior: Independent,
         inference_class: NeuralInference,
         nets: List[Callable],
-        train_args: Dict,
-        output_path: Path,
+        train_args: Dict = {},
+        output_path: Path = None,
         device: str = 'cpu',
         embedding_net: nn.Module = None,
         proposal: Independent = None,
@@ -95,13 +95,19 @@ class SBIRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
 
-        # load prior and proposal distributions
-        config['prior']['args']['device'] = config['device']
+        # load prior distribution
+        for k, v in config["prior"]["args"].items():
+            # torch distributions only accept tensors
+            config["prior"]["args"][k] = torch.Tensor(v).to(config["device"])
         prior = load_from_config(config["prior"])
+
+        # load proposal distributions
+        proposal = None
         if "proposal" in config:
+            for k, v in config["proposal"]["args"].items():
+                config["proposal"]["args"][k] = torch.Tensor(v).to(
+                    config["device"])
             proposal = load_from_config(config["proposal"])
-        else:
-            proposal = None
 
         # load embedding net
         if "embedding_net" in config:
@@ -220,7 +226,7 @@ class SBIRunner:
         """Train your posterior and save it to file
 
         Args:
-            loader (_BaseLoader): dataloader with stored summary-parameter pairs
+            loader (_BaseLoader): dataloader with stored data-parameter pairs
             seed (int): torch seed for reproducibility
         """
         t0 = time.time()
@@ -259,9 +265,14 @@ class SBIRunner:
             summaries.append(model.summary)
 
         # ensemble all trained models, weighted by validation loss
-        weights = torch.tensor(
+        val_logprob = torch.tensor(
             [float(x["best_validation_log_prob"][0]) for x in summaries]
         ).to(self.device)
+        # Subtract maximum loss to improve numerical stability of exp
+        # (cancels in next line)
+        weights = torch.exp(val_logprob - val_logprob.max())
+        weights /= weights.sum()
+
         posterior_ensemble = NeuralPosteriorEnsemble(
             posteriors=posteriors,
             weights=weights,
@@ -295,7 +306,7 @@ class SBIRunnerSequential(SBIRunner):
 
         Args:
             loader (_BaseLoader): data loader with ability to simulate
-                summary-parameter pairs
+                data-parameter pairs
         """
         t0 = time.time()
         x_obs = loader.get_obs_data()

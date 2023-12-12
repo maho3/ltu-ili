@@ -13,7 +13,7 @@ from ili.utils import load_class, load_from_config
 
 
 class DelfiRunner:
-    """Class to train posterior inference models using the pyDELFI package
+    """Class to train posterior inference models using the pydelfi package
 
     Args:
         prior (Independent): prior on the parameters
@@ -109,7 +109,7 @@ class DelfiRunner:
         """Train your posterior and save it to file
 
         Args:
-            loader (BaseLoader): dataloader with stored summary-parameter pairs
+            loader (BaseLoader): dataloader with stored data-parameter pairs
         """
 
         t0 = time.time()

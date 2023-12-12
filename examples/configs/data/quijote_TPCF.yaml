@@ -1,6 +1,6 @@
 data_dir: './ltu-ili-data/quijote'
 
-summary_root_file: 'tpcf/z_0.50/quijote'
+data_root_file: 'tpcf/z_0.50/quijote'
 param_file: 'latin_hypercube_params.txt'
 train_test_split_file: 'quijote_train_test_val.json'
 
