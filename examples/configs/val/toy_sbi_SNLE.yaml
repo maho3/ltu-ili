@@ -30,14 +30,7 @@ metrics:
       num_samples: 1000
       sample_method: 'vi'
       sample_params:
-<<<<<<< HEAD
         dist: 'maf'
         n_particles: 32
         learning_rate: 0.01
       plot_list: ["coverage", "histogram", "predictions", "tarp"]
-=======
-        num_chains: -1  # use all available cores
-        burn_in: 20
-        thin: 1
-      plot_list: ["coverage", "histogram", "predictions", "tarp"]
->>>>>>> main
