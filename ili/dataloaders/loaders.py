@@ -57,7 +57,8 @@ class NumpyLoader(_BaseLoader):
         self.theta = theta
         if len(self.x) != len(self.theta):
             raise Exception(
-                "Stored data and parameters are not of same length.")
+                f"Stored data ({self.x.shape}) and parameters ({self.theta.shape})"
+                "are not of same length.")
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -251,8 +252,9 @@ class SBISimulator(_BaseLoader):
         self.xobs = np.load(self.xobs_path)
         self.thetaobs = np.load(self.thetaobs_path)
 
-        self.theta = None
-        self.x = None
+        if os.path.isfile(self.x_path):
+            self.x = np.load(self.x_path)
+            self.theta = np.load(self.theta_path)
 
     def __len__(self) -> int:
         """Returns the total number of data points produced when called

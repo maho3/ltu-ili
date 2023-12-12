@@ -13,7 +13,7 @@ metrics:
     args:
       seed: 123
       save_samples: True
-      num_samples: 1500
+      num_samples: 10000
       sample_method: 'direct'
 
   # coverages:

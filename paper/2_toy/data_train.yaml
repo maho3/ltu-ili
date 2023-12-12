@@ -1,0 +1,9 @@
+in_dir: './toy'  # where to find initial data
+out_dir: './toy'  # where to save new simulations
+
+xobs_file: 'x_obs.npy'  # the observed data around which to center simulations
+thetaobs_file: 'theta_obs.npy'  # only if true parameters are known
+
+x_file: 'x.npy'  # file name of the initial data
+theta_file: 'theta.npy'  # file name of the initial parameters
+num_simulations: 400  # number of simulations to generate per round

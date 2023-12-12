@@ -24,7 +24,7 @@ model:
   name: 'xray_SNPE'
   nets:
     - model: 'maf'
-      hidden_features: 64 
+      hidden_features: 8
       num_transforms: 6
     - model: 'maf'
       hidden_features: 8 

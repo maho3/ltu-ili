@@ -1,18 +1,10 @@
 
 prior:
   module: 'ili.utils'
-  class: 'IndependentNormal'
+  class: 'Uniform'
   args:
-    loc: [0,0,0]
-    scale: [1,1,1]
-
-embedding_net:
-  module: 'ili.embedding'
-  class: 'FCN'
-  args:
-    n_data: 10
-    n_hidden: [64,64]
-    act_fn: "ReLU"
+    low: [0,0,0]
+    high: [1,1,1]
 
 model:
   module: 'sbi.inference'
@@ -22,13 +14,14 @@ model:
     - model: 'maf'
       hidden_features: 64 
       num_transforms: 6
-    - model: 'mdn'
+    - model: 'maf'
       hidden_features: 64 
-      num_components: 6
+      num_transforms: 6
     
 train_args:
   training_batch_size: 32
-  learning_rate: 0.001
+  learning_rate: 0.0001
+  num_round: 2  # number of rounds of simulations
 
 device: 'cpu'
 output_path: './toy'
