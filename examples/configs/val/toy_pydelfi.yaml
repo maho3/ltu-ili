@@ -1,16 +1,17 @@
-backend: 'pydelfi'
+backend: 'pydelfi'  # sbi or pydelfi backend
 
-meta_path: './toy/toy_pydelfi_posterior.pkl'
-output_path: './toy'
-labels: ['t1', 't2', 't3']
+meta_path: './toy/toy_pydelfi_posterior.pkl'  # Path to posterior model
+output_path: './toy'  # Where to save the metrics
+labels: ['t1', 't2', 't3']  # Names of the parameters
 
 metrics:
+  # Plot an example posterior for a single input
   single_example:
     module: 'ili.validation.metrics'
     class: 'PlotSinglePosterior'
     args:
       num_samples: 1000
-      sample_method: 'emcee'
+      sample_method: 'emcee'  # MCMC slice sampling (emcee backend)
       sample_params:
         num_chains: 10
         burn_in: 100

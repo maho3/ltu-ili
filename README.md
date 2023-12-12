@@ -1,27 +1,63 @@
-ltu-ili
+LtU-ILI
 =======
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-12-orange.svg?style=flat-square)](#contributors-)
+[allc]: https://img.shields.io/badge/all_contributors-12-orange.svg?style=flat-square 'Number of contributors on All-Contributors'
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
+[![All Contributors][allc]](https://github.com/maho3/ltu-ili/tree/main#contributors-)
+[![unittest](https://github.com/maho3/ltu-ili/actions/workflows/unit-tests.yml/badge.svg)](https://github.com/maho3/ltu-ili/actions/workflows/unit-tests.yml)
+[![codecov](https://codecov.io/gh/maho3/ltu-ili/graph/badge.svg?token=8QNMK453GE)](https://codecov.io/gh/maho3/ltu-ili)
+[![docs](https://readthedocs.org/projects/ltu-ili/badge/?version=latest)](https://ltu-ili.readthedocs.io/en/latest/?badge=latest)
 
-The [Simons Collaboration on Learning the Universe](https://www.learning-the-universe.org/) Implicit Likelihood Inference (LtU-ILI) pipeline is a framework for applying simulation-based inference methods to constrain posteriors on cosmological parameters using astronomical survey data. The code is currently built to analyze spectroscopic surveys of the universe's Large-Scale Structure (LSS), such as SDSS-BOSS.
+The Learning the Universe Implicit Likelihood Inference (LtU-ILI) pipeline is a framework for performing robust, ML-enabled statistical inference for astronomical applications. The pipeline supports and implements the various methodologies of implicit likelihood inference (also called simulation-based inference or likelihood-free inference), i.e. the practice of learning to represent Bayesian posteriors using neural networks trained on simulations (see [this paper](https://arxiv.org/abs/1911.01429) for a review).
 
-Parts of the ILI pipeline are being developed in forked repositories such as [ili-summarizer](https://github.com/florpi/ili-summarizer).
+The major design principles of LtU-ILI are accessiblility, modularity, and generalizablity. For any training set of data-parameter pairs (including those with image- or graph-like inputs), one can use state-of-the-art methods to build neural networks to construct tight, well-calibrated Bayesian posteriors on unobserved parameters with well-calibrated uncertainty quantification. The pipeline is quick and easy to set up; here's an example of training a [Masked Autoregressive Flow (MAF)](https://arxiv.org/abs/1705.07057) network to predict a univariate posterior:
 
-## Documentation
-The documentation for this project can be found [at this link](https://ltu-ili.readthedocs.io/en/latest/)
+```python
+...  # Imports
 
-## Installing 
-Follow the instructions for installing ltu-ili and running basic examples in [INSTALL.md](INSTALL.md).
+X, Y = load_data()                              # Load training data and parameters
+loader = ili.data.NumpyLoader(X, Y)             # Create a data loader
 
-## Getting Started
-To get started, see examples of writing config-based scripts in [examples/](examples/) or a guide to the jupyter notebook interface in [notebooks/tutorial.ipynb](notebooks/tutorial.ipynb).
+trainer = ili.inference.SBIRunner(
+  prior = sbi.utils.BoxUniform(low=-1, high=1), # Define a prior 
+  inference_class = sbi.inference.SNPE,         # Choose an inference method
+  nets = [sbi.utils.posterior_nn(model='maf')]  # Define a neural network architecture
+)
+
+posterior, _ = trainer(loader)                  # Run training to map data -> parameters
+
+samples = posterior.sample(x[0], (1000,))       # Generate 1000 samples from the posterior
+```
+Beyond this simple example, LtU-ILI comes with a wide range of customizable complexity, including:
+  * Posterior-, Likelihood-, and Ratio-Estimation methods for ILI
+  * Diversity of neural density estimators (Mixture Density Networks, ResNet-like ratio classifiers, various Conditional Normalizing Flows)
+  * Fully-customizable information embedding networks 
+  * A unified interface for multiple ILI backends ([sbi](https://github.com/sbi-dev/sbi), [pydelfi](https://github.com/justinalsing/pydelfi))
+  * Various marginal and multivariate posterior coverage metrics
+  * Jupyter and command line interfaces
+  * A parallelizable configuration framework for efficient hyperparameter tuning and production runs
+
+
+For more details on the motivation, design, and theoretical background of this project, see the software release paper ([arxiv:XXXXX](https://arxiv.org/)).
+
+
+
+## Getting Started 
+To install LtU-ILI, follow the instructions in [INSTALL.md](INSTALL.md).
+
+To get started, try out the tutorial for the Jupyter notebook interface in [notebooks/tutorial.ipynb](https://github.com/maho3/ltu-ili/blob/main/notebooks/tutorial.ipynb) or the command line interface in [examples/](https://github.com/maho3/ltu-ili/tree/main/examples).
+
+## API Documentation
+The documentation for this project can be found [at this link](https://ltu-ili.readthedocs.io/en/latest/).
+
+## References
+We keep an updated repository of relevant interesting papers and resources [at this link](https://hackmd.io/8inFGHxxTmye4wtPaFXRWA).
 
 ## Contributing
 Before contributing, please familiarize yourself with the contribution workflow described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Contact
-If you have comments, questions, or feedback, please [write us an issue](https://github.com/maho3/ltu-ili/issues). The current leads of the LtU ILI working group are Benjamin Wandelt (benwandelt@gmail.com) and Matthew Ho (matthew.annam.ho@gmail.com)
+If you have comments, questions, or feedback, please [write us an issue](https://github.com/maho3/ltu-ili/issues). The current leads of the Learning the Universe ILI working group are Benjamin Wandelt (benwandelt@gmail.com) and Matthew Ho (matthew.annam.ho@gmail.com).
 
 ## Contributors
 
@@ -62,5 +98,6 @@ If you have comments, questions, or feedback, please [write us an issue](https:/
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 ## Acknowledgements
-This work was supported by the Simons Collaboration on "Learning the Universe".
+
+This work is supported by the Simons Foundation through the [Simons Collaboration on Learning the Universe](https://www.learning-the-universe.org/).
 
