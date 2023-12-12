@@ -217,6 +217,19 @@ def test_snle(monkeypatch):
         x=x, theta=theta
     )
 
+    metric = PlotSinglePosterior(
+        backend='sbi', output_path=None, num_samples=nsamples,
+        sample_method='vi',
+        sample_params={'dist': 'maf',
+                       'n_particles': 32, 'learning_rate': 0.01},
+        labels=[f'$\\theta_{i}$' for i in range(3)]
+    )
+    fig = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_obs=theta[ind],
+        x=x, theta=theta
+    )
+
     return
 
 

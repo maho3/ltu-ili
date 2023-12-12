@@ -12,8 +12,8 @@ from abc import ABC
 from pathlib import Path
 from scipy.stats import gaussian_kde
 import logging
-from ili.utils.samplers import (_BaseSampler, EmceeSampler, PyroSampler,
-                                DirectSampler)
+from ili.utils.samplers import (EmceeSampler, PyroSampler,
+                                DirectSampler, VISampler)
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
@@ -73,14 +73,14 @@ class _SampleBasedMetric(_BaseMetric):
         self.sample_method = sample_method
         self.sample_params = sample_params
 
-    def _build_sampler(self, posterior: ModelClass) -> _BaseSampler:
+    def _build_sampler(self, posterior: ModelClass) -> ABC:
         """Builds the sampler based on the specified sample method.
 
         Args:
             posterior (ModelClass): The posterior object to sample from.
 
         Returns:
-            _BaseSampler: The sampler object.
+            ABC: The sampler object.
 
         Raises:
             ValueError: If the specified sample method is not supported.
@@ -106,6 +106,8 @@ class _SampleBasedMetric(_BaseMetric):
             else:
                 raise ValueError(
                     'Direct sampling is only available for DirectPosteriors')
+        elif self.sample_method == 'vi':
+            return VISampler(posterior, **self.sample_params)
 
         return PyroSampler(posterior, method=self.sample_method,
                            **self.sample_params)
