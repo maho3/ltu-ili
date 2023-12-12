@@ -118,7 +118,7 @@ def test_snpe(monkeypatch):
     metric = PosteriorCoverage(
         backend='sbi', output_path=None, num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
-        plot_list=["tarp", "predictions", "coverage", "histogram"]
+        plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"]
     )
     fig = metric(
         posterior=posterior,
@@ -209,6 +209,19 @@ def test_snle(monkeypatch):
         backend='sbi', output_path=None, num_samples=nsamples,
         sample_method='slice_np_vectorized',
         sample_params={'num_chains': 2, 'burn_in': 1, 'thin': 1},
+        labels=[f'$\\theta_{i}$' for i in range(3)]
+    )
+    fig = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_obs=theta[ind],
+        x=x, theta=theta
+    )
+
+    metric = PlotSinglePosterior(
+        backend='sbi', output_path=None, num_samples=nsamples,
+        sample_method='vi',
+        sample_params={'dist': 'maf',
+                       'n_particles': 32, 'learning_rate': 0.01},
         labels=[f'$\\theta_{i}$' for i in range(3)]
     )
     fig = metric(

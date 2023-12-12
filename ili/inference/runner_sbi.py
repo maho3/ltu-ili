@@ -292,7 +292,9 @@ class SBIRunner(_BaseRunner):
 
         posterior_ensemble = NeuralPosteriorEnsemble(
             posteriors=posteriors,
-            weights=weights)  # raises warning due to bug in sbi
+            weights=weights,
+            theta_transform=posteriors[0].theta_transform
+        )  # raises warning due to bug in sbi
         posterior_ensemble.name = self.name
         posterior_ensemble.signatures = self.signatures
 
