@@ -37,6 +37,7 @@ class _BaseRunner():
     ):
         self.prior = prior
         self.inference_class = inference_class
+        self.class_name = inference_class.__name__
         self.train_args = train_args
         self.device = device
         self.name = name
