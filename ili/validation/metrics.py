@@ -10,6 +10,7 @@ import tqdm
 from typing import List, Optional, Union
 from abc import ABC
 from pathlib import Path
+from scipy.stats import gaussian_kde
 import logging
 from ili.utils.samplers import (_BaseSampler, EmceeSampler, PyroSampler,
                                 DirectSampler)
@@ -508,6 +509,66 @@ class PosteriorCoverage(PosteriorSamples):
         fig.savefig(filepath)
         return fig
 
+    def _calc_true_logprob(
+        self, samples: np.array, trues: np.array,
+        signature: str, bw_method: str = "scott"
+    ) -> np.array:
+        """Calculate the probability of the true parameters under the
+        learned posterior.
+
+        Notes:
+            This is implemented by using a Gaussian KDE as a variational
+            distribution for the posterior, constructed from the samples. If
+            there are not enough samples, not enough test points, or there are
+            sharp priors, the KDE may be inaccurate.
+
+        Args:
+            samples (np.array): posterior samples of shape (nsamples, ndata, npars)
+            trues (np.array): true parameters of shape (ndata, npars)
+            signature (str): signature for the output file name
+            bw_method (str, optional): bandwidth method for the KDE.
+
+        Returns:
+            np.array: model likelihood of each test data point; shape (ndata,)
+        """
+        nsamples, ndata, npars = samples.shape
+
+        # Calculate the KDE for each test data point
+        logprobs = np.zeros(ndata)
+        for i in range(ndata):
+            kde = gaussian_kde(samples[:, i, :].T, bw_method=bw_method)
+            logprobs[i] = kde.logpdf(trues[i, :])
+
+        mean = logprobs.mean()
+        median = np.median(logprobs)
+        logging.info(f"Mean logprob: {mean:.4e}"
+                     f"Median logprob: {median:.4e}")
+
+        # Plot a histogram of the logprobs
+        fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+        ax.hist(logprobs, bins=20)
+        ax.axvline(mean, color="b", linestyle="--", label='mean')
+        ax.axvline(median, color="r", linestyle="--", label='median')
+        ax.set_xlabel("Log-likelihood $\mathbb{E}[\log q(\\theta_o | x_o)]$")
+        ax.set_ylabel("Counts")
+        ax.set_title(f"Mean: {mean:.3e}, "
+                     f"Median: {median:.3e}", fontsize=14)
+        ax.legend()
+
+        if self.output_path is None:
+            return fig, logprobs
+
+        # Save the logprobs
+        filepath = self.output_path / (signature + "true_logprobs.npy")
+        logging.info(f"Saving true logprobs to {filepath}...")
+        np.save(filepath, logprobs)
+
+        # Save the plot
+        filepath = self.output_path / (signature + "plot_true_logprobs.jpg")
+        logging.info(f"Saving true logprobs plot to {filepath}...")
+        fig.savefig(filepath)
+        return fig, logprobs
+
     def __call__(
         self,
         posterior: ModelClass,
@@ -517,7 +578,8 @@ class PosteriorCoverage(PosteriorSamples):
         theta_obs: Optional[np.array] = None,
         signature: Optional[str] = "",
         plot_list: Optional[list] = ["coverage", "histogram",
-                                     "predictions", "tarp"],
+                                     "predictions", "tarp",
+                                     "logprob"],
         references: str = "random",
         metric: str = "euclidean",
         num_alpha_bins: Union[int, None] = None,
@@ -571,6 +633,8 @@ class PosteriorCoverage(PosteriorSamples):
         if "predictions" in plot_list:
             figs.append(self._plot_predictions(
                 posterior_samples, theta, signature))
+        if "logprob" in plot_list:
+            self._calc_true_logprob(posterior_samples, theta, signature)
 
         # Specifically for TARP
         if "tarp" in plot_list:

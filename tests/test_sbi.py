@@ -118,7 +118,7 @@ def test_snpe(monkeypatch):
     metric = PosteriorCoverage(
         backend='sbi', output_path=None, num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
-        plot_list=["tarp", "predictions", "coverage", "histogram"]
+        plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"]
     )
     fig = metric(
         posterior=posterior,
