@@ -525,6 +525,8 @@ class PosteriorCoverage(PosteriorSamples):
         Args:
             samples (np.array): posterior samples of shape (nsamples, ndata, npars)
             trues (np.array): true parameters of shape (ndata, npars)
+            signature (str): signature for the output file name
+            bw_method (str, optional): bandwidth method for the KDE.
 
         Returns:
             np.array: model likelihood of each test data point; shape (ndata,)
