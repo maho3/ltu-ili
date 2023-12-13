@@ -370,7 +370,7 @@ class SBIRunnerSequential(SBIRunner):
                 theta, x = torch.Tensor(theta).to(
                     self.device), torch.Tensor(x).to(self.device)
 
-            posteriors, val_logprob = [], []
+            posteriors, summaries = [], []
             for i in range(len(self.nets)):
                 logging.info(
                     f"Training model {n+1} out of "
@@ -384,32 +384,42 @@ class SBIRunnerSequential(SBIRunner):
                     )
                 posteriors.append(
                     all_model[i].build_posterior(density_estimator))
-                val_logprob.append(
-                    all_model[i].summary["best_validation_log_prob"][-1])
+                summaries.append(all_model[i].summary)
 
-            val_logprob = torch.tensor([float(vl) for vl in val_logprob])
+            val_logprob = torch.tensor(
+                [float(x["best_validation_log_prob"][0]) for x in summaries]
+            ).to(self.device)
             # Subtract maximum loss to improve numerical stability of exp
             # (cancels in next line)
-            val_logprob = torch.exp(val_logprob - val_logprob.max())
-            val_logprob /= val_logprob.sum()
+            weights = torch.exp(val_logprob - val_logprob.max())
+            weights /= weights.sum()
 
             posterior_ensemble = NeuralPosteriorEnsemble(
                 posteriors=posteriors,
-                weights=val_logprob)  # raises warning due to bug in sbi
+                weights=weights)  # raises warning due to bug in sbi
+            posterior_ensemble.name = self.name
             posterior_ensemble.signatures = self.signatures
 
             logging.info(f"Network signatures: {self.signatures}")
 
             str_p = self.name + f"posterior_{rnd}.pkl"
-            with open(self.output_path / str_p, "wb") as f:
-                pickle.dump(posterior_ensemble, f)
+            str_s = self.name + f"summary_{rnd}.json"
+            with open(self.output_path / str_p, "wb") as handle:
+                pickle.dump(posterior_ensemble, handle)
+            with open(self.output_path / str_s, "w") as handle:
+                json.dump(summaries, handle)
+
             proposal = posterior_ensemble.set_default_x(x_obs)
             logging.info(
                 f"It took {time.time()-t1} seconds to complete round {rnd+1}.")
 
-        str_p = self.name + "posterior.pkl"
-        with open(self.output_path / str_p, "wb") as f:
-            pickle.dump(posterior_ensemble, f)
+        if self.output_path is not None:
+            str_p = self.name + "posterior.pkl"
+            str_s = self.name + "summary.json"
+            with open(self.output_path / str_p, "wb") as handle:
+                pickle.dump(posterior_ensemble, handle)
+            with open(self.output_path / str_s, "w") as handle:
+                json.dump(summaries, handle)
         logging.info(
             f"It took {time.time() - t0} seconds to train all models.")
 

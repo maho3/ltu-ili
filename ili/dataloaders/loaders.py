@@ -2,6 +2,7 @@
 Module for loading data into the ltu-ili pipeline.
 """
 
+import os
 import yaml
 from abc import ABC, abstractmethod
 from typing import Any, List, Tuple, Optional
@@ -255,6 +256,9 @@ class SBISimulator(_BaseLoader):
         if os.path.isfile(self.x_path):
             self.x = np.load(self.x_path)
             self.theta = np.load(self.theta_path)
+        else:
+            self.x = None
+            self.theta = None
 
     def __len__(self) -> int:
         """Returns the total number of data points produced when called

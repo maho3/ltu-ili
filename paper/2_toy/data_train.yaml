@@ -6,4 +6,4 @@ thetaobs_file: 'theta_obs.npy'  # only if true parameters are known
 
 x_file: 'x.npy'  # file name of the initial data
 theta_file: 'theta.npy'  # file name of the initial parameters
-num_simulations: 400  # number of simulations to generate per round
+num_simulations: 1000  # number of simulations to generate per round

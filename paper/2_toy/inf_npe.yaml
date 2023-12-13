@@ -1,10 +1,10 @@
 
 prior:
   module: 'ili.utils'
-  class: 'Uniform'
+  class: 'IndependentNormal'
   args:
-    low: [0,0,0]
-    high: [1,1,1]
+    loc: [0,0,0]
+    scale: [1,1,1]
 
 model:
   module: 'sbi.inference'
@@ -17,11 +17,14 @@ model:
     - model: 'maf'
       hidden_features: 64 
       num_transforms: 6
+    # - model: 'mdn'
+    #   hidden_features: 64 
+    #   num_components: 5
     
 train_args:
   training_batch_size: 32
-  learning_rate: 0.0001
-  num_round: 2  # number of rounds of simulations
+  learning_rate: 0.00001
+  num_round: 5  # number of rounds of simulations
 
 device: 'cpu'
 output_path: './toy'
