@@ -17,7 +17,7 @@ import json
 import ili
 from ili.dataloaders import (
     NumpyLoader, SBISimulator, StaticNumpyLoader)
-from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential
+from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential, ABCRunner
 from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
 from ili.validation.runner import ValidationRunner
 from ili.embedding import FCN
@@ -118,7 +118,7 @@ def test_snpe(monkeypatch):
     metric = PosteriorCoverage(
         backend='sbi', output_path=None, num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
-        plot_list=["tarp", "predictions", "coverage", "histogram"]
+        plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"]
     )
     fig = metric(
         posterior=posterior,
@@ -217,6 +217,19 @@ def test_snle(monkeypatch):
         x=x, theta=theta
     )
 
+    metric = PlotSinglePosterior(
+        backend='sbi', output_path=None, num_samples=nsamples,
+        sample_method='vi',
+        sample_params={'dist': 'maf',
+                       'n_particles': 32, 'learning_rate': 0.01},
+        labels=[f'$\\theta_{i}$' for i in range(3)]
+    )
+    fig = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_obs=theta[ind],
+        x=x, theta=theta
+    )
+
     return
 
 
@@ -307,7 +320,7 @@ def test_multiround():
                               simulator,
                               )
 
-    # train a model to infer x -> theta. save it as toy/posterior.pkl
+    # train an SBI sequential model to infer x -> theta
 
     # define a prior
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
@@ -343,6 +356,24 @@ def test_multiround():
     )
 
     # train the model
+    runner(loader=all_loader)
+
+    # sample an ABC model to infer x -> theta
+    train_args = {
+        'num_simulations': 1000,
+        'quantile': 0.1,
+    }
+
+    # define an inference class (we are doing approximate bayesian computation)
+    inference_class = sbi.inference.MCABC
+
+    runner = ABCRunner(
+        prior=prior,
+        inference_class=inference_class,
+        device=device,
+        train_args=train_args,
+        output_path='./toy',
+    )
     runner(loader=all_loader)
 
     return

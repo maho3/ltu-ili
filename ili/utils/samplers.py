@@ -13,17 +13,17 @@ try:
     import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
-    from sbi.inference.posteriors import DirectPosterior, MCMCPosterior
+    from sbi.inference.posteriors import (
+        DirectPosterior, MCMCPosterior, VIPosterior)
     from sbi.inference.potentials.posterior_based_potential import (
-        posterior_estimator_based_potential,
-    )
+        posterior_estimator_based_potential)
     ModelClass = NeuralPosterior
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
 
 
-class _BaseSampler(ABC):
+class _MCMCSampler(ABC):
     """Base sampler class demonstrating the sampler functionality
 
     Args:
@@ -50,7 +50,7 @@ class _BaseSampler(ABC):
         self.burn_in = burn_in
 
 
-class EmceeSampler(_BaseSampler):
+class EmceeSampler(_MCMCSampler):
     """Sampler class for emcee's EnsembleSampler
 
     Args:
@@ -63,7 +63,8 @@ class EmceeSampler(_BaseSampler):
             Defaults to 100
     """
 
-    def sample(self, nsteps: int, x: np.ndarray, progress: bool = False) -> np.ndarray:
+    def sample(self, nsteps: int, x: np.ndarray,
+               progress: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -96,7 +97,7 @@ class EmceeSampler(_BaseSampler):
         return self.sampler.get_chain(discard=self.burn_in, flat=True)
 
 
-class PyroSampler(_BaseSampler):
+class PyroSampler(_MCMCSampler):
     """Sampler class for pyro's samplers. Integrates with pyro through the sbi
     backend
 
@@ -158,7 +159,8 @@ class PyroSampler(_BaseSampler):
             device=posterior._device
         )
 
-    def sample(self, nsteps: int, x: np.ndarray, progress: bool = False) -> np.ndarray:
+    def sample(self, nsteps: int, x: np.ndarray,
+               progress: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -205,3 +207,78 @@ class DirectSampler(ABC):
             (nsteps,), x=torch.Tensor(x).to(self.posterior._device),
             show_progress_bars=progress
         ).detach().cpu().numpy()
+
+
+class VISampler(ABC):
+    """Sampler class for variational inference methods. See 
+    https://sbi-dev.github.io/sbi/reference/#sbi.inference.posteriors.vi_posterior.VIPosterior
+    for more details.
+
+    Args:
+        posterior (Posterior): posterior object to sample from, must have
+            a .potential method specifiying the log posterior
+        dist (str, optional): distribution to use for the variational
+            inference. Defaults to 'maf'.
+        train_kwargs (dict, optional): keyword arguments to pass to the
+            posterior's train method. Defaults to {}.
+    """
+
+    def __init__(self, posterior: ModelClass,
+                 dist: str = 'maf', **train_kwargs) -> None:
+        if isinstance(posterior, DirectPosterior):
+            posterior = self._Direct_to_VI(posterior)
+        elif isinstance(posterior, NeuralPosteriorEnsemble):
+            posterior = VIPosterior(
+                potential_fn=posterior.potential_fn,
+                prior=posterior.prior,
+                theta_transform=posterior.theta_transform,
+                device=posterior._device
+            )
+        super().__init__()
+        self.posterior = posterior
+        self.dist = dist
+        self.train_kwargs = train_kwargs
+
+    def _Direct_to_VI(self, posterior: ModelClass) -> ModelClass:
+        """Converts a DirectPosterior to a VIPosterior, which is required
+        for sampling with variational inference.
+
+        Args:
+            posterior (DirectPosterior): posterior object to convert
+
+        Returns:
+            VIPosterior: converted posterior object
+        """
+        potential_fn, theta_transform = posterior_estimator_based_potential(
+            posterior.posterior_estimator,
+            posterior.prior,
+            x_o=None,
+            enable_transform=True,
+        )
+        return VIPosterior(
+            potential_fn=potential_fn,
+            prior=posterior.prior,
+            theta_transform=theta_transform,
+            device=posterior._device
+        )
+
+    def sample(self, nsteps: int, x: np.ndarray,
+               progress: bool = False) -> np.ndarray:
+        """
+        Sample nsteps samples from the posterior, evaluated at data x.
+
+        Args:
+            nsteps (int): number of samples to draw
+            x (np.ndarray): data to evaluate the posterior at
+            progress (bool, optional): whether to show progress bar.
+                Defaults to False.
+        """
+        x = torch.Tensor(x).to(self.posterior._device)
+        self.posterior.set_default_x(x)
+        self.posterior.set_q(self.dist)
+        self.posterior.train(
+            show_progress_bar=progress,
+            quality_control=False,
+            **self.train_kwargs
+        )
+        return self.posterior.sample((nsteps,)).detach().cpu().numpy()
