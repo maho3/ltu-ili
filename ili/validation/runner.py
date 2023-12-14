@@ -145,7 +145,7 @@ class ValidationRunner:
         # load data
         x_test = loader.get_all_data()
         theta_test = loader.get_all_parameters()
-        if hasattr(loader, 'simulate'):
+        if loader.xobs is not None:
             x_obs = loader.get_obs_data()
             theta_obs = loader.get_obs_parameters()
 

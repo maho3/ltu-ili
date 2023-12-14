@@ -53,9 +53,11 @@ class NumpyLoader(_BaseLoader):
         theta (np.array): Array of parameters of shape (Ndata, \*theta.shape)
     """
 
-    def __init__(self, x, theta) -> None:
+    def __init__(self, x, theta, xobs, thetaobs) -> None:
         self.x = x
         self.theta = theta
+        self.xobs = xobs
+        self.thetaobs = thetaobs
         if len(self.x) != len(self.theta):
             raise Exception(
                 f"Stored data ({self.x.shape}) and parameters ({self.theta.shape})"
@@ -85,6 +87,22 @@ class NumpyLoader(_BaseLoader):
         """
         return self.theta
 
+    def get_obs_data(self) -> np.array:
+        """Returns the observed data
+
+        Returns:
+            np.array: data
+        """
+        return self.xobs
+
+    def get_obs_parameters(self):
+        """Returns the observed parameters
+
+        Returns:
+            np.array: parameters
+        """
+        return self.thetaobs
+
 
 class StaticNumpyLoader(NumpyLoader):
     """Loads single numpy files of data and parameters from disk
@@ -95,7 +113,8 @@ class StaticNumpyLoader(NumpyLoader):
         theta_file (str): filename of the stored parameters
     """
 
-    def __init__(self, in_dir: str, x_file: str, theta_file: str):
+    def __init__(self, in_dir: str, x_file: str, theta_file: str,
+                 xobs_file: str = None, thetaobs_file: str = None):
         self.in_dir = Path(in_dir)
         self.x_path = self.in_dir / x_file
         self.theta_path = self.in_dir / theta_file
@@ -103,7 +122,18 @@ class StaticNumpyLoader(NumpyLoader):
         x = np.load(self.x_path)
         theta = np.load(self.theta_path)
 
-        super().__init__(x=x, theta=theta)
+        if xobs_file is not None:
+            self.xobs_path = self.in_dir / xobs_file
+            self.xobs = np.load(self.xobs_path)
+        else:
+            self.xobs = None
+
+        if thetaobs_file is not None:
+            self.thetaobs_path = self.in_dir / thetaobs_file
+            self.thetaobs = np.load(self.thetaobs_path)
+
+        super().__init__(x=x, theta=theta,
+                         xobs=self.xobs, thetaobs=self.thetaobs)
 
 
 class SummarizerDatasetLoader(_BaseLoader):
