@@ -375,6 +375,10 @@ def test_prior():
         ili.utils.IndependentTruncatedNormal(
             loc=[0, 0, 0], scale=[1, 1, 1], low=[0, 0, 0], high=[1, 1, 1],
             device=device),
+        ili.utils.Dirichlet(concentration=[1, 1, 1], device=device),
+        ili.utils.LowRankMultivariateNormal(
+            loc=[0, 0, 0], cov_factor=np.diag([1, 2, 3]), cov_diag=[1, 1, 1],
+            device=device),
     ]
 
     for p in priors:
