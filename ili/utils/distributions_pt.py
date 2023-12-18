@@ -27,7 +27,7 @@ dist_names = [
 
 
 class CustomIndependent(Independent):
-    def __init__(self, device='cpu', *args, **kwargs):
+    def __init__(self, *args, device='cpu', **kwargs):
         # Convert args and kwargs to torch tensors
         args = [torch.as_tensor(v, dtype=torch.float32, device=device)
                 for v in args]
