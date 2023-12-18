@@ -9,6 +9,10 @@ distributions in torch.distributions, so we wrap them here.
 """
 
 
+from torch.distributions.utils import broadcast_all
+from torch.distributions import constraints, Distribution
+from numbers import Number
+import math
 import torch
 from torch.distributions import Independent
 from .import_utils import load_class
@@ -54,3 +58,41 @@ Uniform = IndependentUniform  # Uniform is always independent
 from torch.distributions import (  # noqa
     MultivariateNormal, Dirichlet, LowRankMultivariateNormal
 )
+
+# redefining these to not require torch tensors as inputs
+
+
+class MultivariateNormal(MultivariateNormal):
+    def __init__(self, device='cpu', *args, **kwargs):
+        # Convert args and kwargs to torch tensors
+        args = [torch.as_tensor(v, dtype=torch.float32, device=device)
+                for v in args]
+        kwargs = {k: torch.as_tensor(v, dtype=torch.float32, device=device)
+                  for k, v in kwargs.items()}
+
+        self.device = device
+        return super().__init__(*args, **kwargs)
+
+
+class Dirichlet(Dirichlet):
+    def __init__(self, device='cpu', *args, **kwargs):
+        # Convert args and kwargs to torch tensors
+        args = [torch.as_tensor(v, dtype=torch.float32, device=device)
+                for v in args]
+        kwargs = {k: torch.as_tensor(v, dtype=torch.float32, device=device)
+                  for k, v in kwargs.items()}
+
+        self.device = device
+        return super().__init__(*args, **kwargs)
+
+
+class LowRankMultivariateNormal(LowRankMultivariateNormal):
+    def __init__(self, device='cpu', *args, **kwargs):
+        # Convert args and kwargs to torch tensors
+        args = [torch.as_tensor(v, dtype=torch.float32, device=device)
+                for v in args]
+        kwargs = {k: torch.as_tensor(v, dtype=torch.float32, device=device)
+                  for k, v in kwargs.items()}
+
+        self.device = device
+        return super().__init__(*args, **kwargs)

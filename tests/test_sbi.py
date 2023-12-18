@@ -348,6 +348,75 @@ def test_multiround():
     return
 
 
+def test_prior():
+    """Test the prior classes."""
+
+    # create the same synthetic catalog as the previous example
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
+
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+
+    # make a dataloader
+    loader = NumpyLoader(x=x, theta=theta)
+
+    # define a prior
+    priors = [
+        ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device),
+        ili.utils.IndependentNormal(
+            loc=[0, 0, 0], scale=[1, 1, 1], device=device),
+        ili.utils.MultivariateNormal(
+            loc=[0, 0, 0], covariance_matrix=np.diag([1, 2, 3]), device=device),
+    ]
+
+    for p in priors:
+        # define an inference class (we are doing amortized posterior inference)
+        inference_class = sbi.inference.SNPE
+
+        # instantiate your neural networks to be used as an ensemble
+        nets = [
+            sbi.utils.posterior_nn(
+                model='maf', hidden_features=50, num_transforms=5),
+        ]
+
+        train_args = {'training_batch_size': 32,
+                      'learning_rate': 0.001, 'max_num_epochs': 5}
+
+        # initialize the trainer
+        runner = SBIRunner(
+            prior=p,
+            inference_class=inference_class,
+            nets=nets,
+            device=device,
+            embedding_net=None,
+            train_args=train_args,
+            proposal=None,
+            output_path=Path('./toy')
+        )
+
+        # train the model. this outputs a posterior model and training logs
+        posterior, summaries = runner(loader=loader)
+
+        # choose a random input
+        ind = np.random.randint(len(theta))
+
+        nsamples = 20
+
+        # generate samples from the posterior using accept/reject sampling
+        samples = posterior.sample(
+            (nsamples,), torch.Tensor(x[ind]).to(device))
+
+        # calculate the log_prob for each sample
+        log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
+
+    return
+
+
 def test_yaml():
     """Test SNPE/SNLE/SNRE inference classes instantiation
     with yaml config files."""
