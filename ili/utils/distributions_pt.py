@@ -74,18 +74,6 @@ class MultivariateNormal(MultivariateNormal):
         return super().__init__(*args, **kwargs)
 
 
-class Dirichlet(Dirichlet):
-    def __init__(self, device='cpu', *args, **kwargs):
-        # Convert args and kwargs to torch tensors
-        args = [torch.as_tensor(v, dtype=torch.float32, device=device)
-                for v in args]
-        kwargs = {k: torch.as_tensor(v, dtype=torch.float32, device=device)
-                  for k, v in kwargs.items()}
-
-        self.device = device
-        return super().__init__(*args, **kwargs)
-
-
 class LowRankMultivariateNormal(LowRankMultivariateNormal):
     def __init__(self, device='cpu', *args, **kwargs):
         # Convert args and kwargs to torch tensors

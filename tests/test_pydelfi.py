@@ -13,6 +13,7 @@ from ili.inference.runner_pydelfi import DelfiRunner
 from ili.dataloaders import StaticNumpyLoader, NumpyLoader
 import os
 import numpy as np
+from numpy import testing
 
 
 def test_toy():
@@ -218,6 +219,40 @@ def test_prior():
         tf.reset_default_graph()
 
     return
+
+
+def test_custom_priors():
+    from ili.utils import IndependentNormal, MultivariateTruncatedNormal, IndependentTruncatedNormal
+    from scipy.stats import norm, multivariate_normal
+
+    tf.keras.backend.clear_session()
+    # IndependentNormal
+    loc = np.zeros(3)
+    scale = np.ones(3)
+    prior = IndependentNormal(loc=loc, scale=scale)
+    testing.assert_array_equal(prior.draw().shape, loc.shape)
+    testing.assert_allclose(prior.logpdf(loc), np.sum(
+        norm.logpdf(loc, loc=loc, scale=scale)))
+    testing.assert_allclose(prior.pdf(loc), np.prod(
+        norm.pdf(loc, loc=loc, scale=scale)))
+
+    # MultivariateTruncatedNormal
+    loc = np.zeros(3)
+    covariance_matrix = np.diag(np.ones(3))
+    low = np.zeros(3)
+    high = np.ones(3)
+    prior = MultivariateTruncatedNormal(
+        loc=loc, covariance_matrix=covariance_matrix, low=low, high=high)
+    testing.assert_array_equal(prior.draw().shape, loc.shape)
+
+    # IndependentTruncatedNormal
+    loc = np.zeros(3)
+    scale = np.ones(3)
+    low = np.zeros(3)
+    high = np.ones(3)
+    prior = IndependentTruncatedNormal(
+        loc=loc, scale=scale, low=low, high=high)
+    testing.assert_array_equal(prior.draw().shape, loc.shape)
 
 
 def test_yaml():

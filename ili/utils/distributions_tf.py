@@ -33,6 +33,8 @@ class IndependentNormal():
 
 
 class MultivariateTruncatedNormal(TruncatedGaussian):
+    """Note the pdf and logpdf as implemented in pydelfi are not normalized."""
+
     def __init__(self, loc, covariance_matrix, low, high, device='cpu'):
         self.loc = loc
         self.covariance_matrix = covariance_matrix
@@ -43,6 +45,8 @@ class MultivariateTruncatedNormal(TruncatedGaussian):
 
 
 class IndependentTruncatedNormal(MultivariateTruncatedNormal):
+    """Note the pdf and logpdf as implemented in pydelfi are not normalized."""
+
     def __init__(self, loc, scale, low, high, device='cpu'):
         self.loc = loc
         self.scale = scale
