@@ -284,8 +284,9 @@ class SBISimulator(_BaseLoader):
         self.thetaobs = np.load(self.thetaobs_path)
 
         if os.path.isfile(self.x_path):
-            self.x = np.load(self.x_path)
-            self.theta = np.load(self.theta_path)
+            pass  # TODO: undo the comment
+            # self.x = np.load(self.x_path)
+            # self.theta = np.load(self.theta_path)
         else:
             self.x = None
             self.theta = None
@@ -326,8 +327,11 @@ class SBISimulator(_BaseLoader):
         else:
             self.theta = np.concatenate((self.theta, theta))
             self.x = np.concatenate((self.x, x))
-        np.save(self.theta_path, self.theta)
-        np.save(self.x_path, self.x)
+
+        # TODO: do we want to save these here?
+        # np.save(self.theta_path, self.theta)
+        # np.save(self.x_path, self.x)
+
         return theta, x
 
     def get_obs_data(self) -> np.array:

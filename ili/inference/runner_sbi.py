@@ -404,10 +404,11 @@ class SBIRunnerSequential(SBIRunner):
 
             str_p = self.name + f"posterior_{rnd}.pkl"
             str_s = self.name + f"summary_{rnd}.json"
-            with open(self.output_path / str_p, "wb") as handle:
-                pickle.dump(posterior_ensemble, handle)
-            with open(self.output_path / str_s, "w") as handle:
-                json.dump(summaries, handle)
+            # TODO: undo me
+            # with open(self.output_path / str_p, "wb") as handle:
+            #     pickle.dump(posterior_ensemble, handle)
+            # with open(self.output_path / str_s, "w") as handle:
+            #     json.dump(summaries, handle)
 
             proposal = posterior_ensemble.set_default_x(x_obs)
             logging.info(

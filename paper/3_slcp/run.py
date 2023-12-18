@@ -2,7 +2,6 @@ from os.path import join
 import argparse
 from ili.dataloaders import SBISimulator, StaticNumpyLoader
 from ili.validation.runner import ValidationRunner
-from gen import simulator
 
 
 if __name__ == '__main__':
@@ -10,31 +9,36 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="Run SBI inference for toy data.")
     parser.add_argument(
-        "--model", type=str,
-        default="npe",
-        help="Configuration file to use for model training.")
+        '--data', type=str)
     parser.add_argument(
-        "--cfgdir", type=str,
-        default='.',)
+        "--inf", type=str)
+    parser.add_argument(
+        "--val", type=str)
     args = parser.parse_args()
-    model = args.model
-    cfgdir = args.cfgdir
+    data = args.data
+    model = args.inf
+    val = args.val
+
+    print(f"Configuration:\n\t{data}\n\t{model}\n\t{val}")
 
     # reload all simulator examples as a dataloader
-    train_loader = SBISimulator.from_config(join(cfgdir, "data_train.yaml"))
-    train_loader.set_simulator(simulator)
+    if 'seq' in data:
+        loader = SBISimulator.from_config(data)
+        loader.set_simulator(simulator)
+    else:
+        loader = StaticNumpyLoader.from_config(data)
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl
     if model == 'pydelfi':
         from ili.inference.runner_pydelfi import DelfiRunner as Runner
-    else:
+    if 'seq' in data:
         from ili.inference.runner_sbi import SBIRunnerSequential as Runner
-    runner = Runner.from_config(join(cfgdir, f"inf_{model}.yaml"))
-    runner(loader=train_loader)
+    else:
+        from ili.inference.runner_sbi import SBIRunner as Runner
+    runner = Runner.from_config(model)
+    runner(loader=loader)
 
     # use the trained posterior model to predict on a single example from
     # the test set
-    test_loader = StaticNumpyLoader.from_config(join(cfgdir, "data_test.yaml"))
-    val_runner = ValidationRunner.from_config(
-        join(cfgdir, f"val_{model}.yaml"))
-    val_runner(loader=test_loader)
+    val_runner = ValidationRunner.from_config(val)
+    val_runner(loader=loader)
