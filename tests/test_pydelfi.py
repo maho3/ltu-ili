@@ -10,7 +10,7 @@ from ili.validation.metrics import PlotSinglePosterior
 from ili.inference.pydelfi_wrappers import DelfiWrapper
 from ili.validation.runner import ValidationRunner
 from ili.inference.runner_pydelfi import DelfiRunner
-from ili.dataloaders import StaticNumpyLoader
+from ili.dataloaders import StaticNumpyLoader, NumpyLoader
 import os
 import numpy as np
 
@@ -123,6 +123,99 @@ def test_toy():
         burn_in_chain=20,
     )
     assert samples.shape[1] == len(theta0)
+
+    return
+
+
+def test_prior():
+
+    tf.keras.backend.clear_session()
+
+    def simulator(params):
+        # create toy simulations
+        x = np.arange(10)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += np.random.randn(len(x))
+        return y
+
+    # construct a working directory
+    if not os.path.isdir("toy_pydelfi"):
+        os.mkdir("toy_pydelfi")
+    if os.path.isfile('./toy_pydelfi/prior_posterior.pkl'):
+        os.remove('./toy_pydelfi/prior_posterior.pkl')
+
+    # simulate data and save as numpy files
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+    np.save("toy_pydelfi/theta.npy", theta)
+    np.save("toy_pydelfi/x.npy", x)
+
+    # reload all simulator examples as a dataloader
+    all_loader = NumpyLoader(x=x, theta=theta,)
+
+    n_params = 3
+    n_data = 10
+
+    # define a set of priors to test
+    priors = [
+        ili.utils.Uniform(low=np.zeros(3), high=np.ones(3)),
+        ili.utils.IndependentNormal(loc=np.zeros(3), scale=np.ones(3)),
+        ili.utils.IndependentTruncatedNormal(
+            loc=np.zeros(3), scale=np.ones(3), low=np.zeros(3), high=np.ones(3)
+        )
+    ]
+
+    # define training arguments
+    train_args = {
+        'batch_size': 32,
+        'epochs': 5,
+    }
+
+    # instantiate your neural networks to be used as an ensemble
+    config_ndes = [
+        {'module': 'pydelfi.ndes', 'class': 'MixtureDensityNetwork',
+         'args': {'n_components': 12, 'n_hidden': [64, 64],
+                  'activations': ['tanh', 'tanh']}
+         },
+    ]
+    inference_class = DelfiWrapper
+
+    # for each prior to test
+    for p in priors:
+        nets = inference_class.load_ndes(
+            n_params=n_params,
+            n_data=n_data,
+            config_ndes=config_ndes,
+        )
+
+        # train a model to infer x -> theta. save it as toy_pydelfi/posterior.pkl
+        runner = DelfiRunner(
+            n_params=n_params,
+            n_data=n_data,
+            config_ndes=config_ndes,
+            prior=p,
+            inference_class=inference_class,
+            nets=nets,
+            engine_kwargs={'nwalkers': 20},
+            train_args=train_args,
+            output_path=Path('toy_pydelfi'),
+            name='prior_'
+        )
+        runner(loader=all_loader)
+
+        posterior = DelfiWrapper.load_engine(
+            './toy_pydelfi/prior_posterior.pkl')
+        # Check sampling of the DelfiWrapper
+        theta0 = np.zeros(3)+0.5
+        x0 = simulator(theta0)
+        samples = posterior.sample(
+            sample_shape=100,
+            x=x0,
+            show_progress_bars=False,
+            burn_in_chain=20,
+        )
+        assert samples.shape[1] == len(theta0)
+        tf.reset_default_graph()
 
     return
 

@@ -5,7 +5,8 @@ and make their configuration easier in the sbi interface.
 
 import numpy as np
 from scipy.stats import norm
-from pydelfi.priors import Uniform, TruncatedGaussian
+from pydelfi.priors import Uniform
+from pydelfi.priors import TruncatedGaussian
 
 
 class Uniform(Uniform):
@@ -29,3 +30,22 @@ class IndependentNormal():
 
     def pdf(self, x):
         return np.prod(norm.pdf(x, loc=self.loc, scale=self.scale))
+
+
+class MultivariateTruncatedNormal(TruncatedGaussian):
+    def __init__(self, loc, covariance_matrix, low, high, device='cpu'):
+        self.loc = loc
+        self.covariance_matrix = covariance_matrix
+        self.low = low
+        self.high = high
+        super().__init__(mean=loc, C=covariance_matrix,
+                         lower=low, upper=high)
+
+
+class IndependentTruncatedNormal(MultivariateTruncatedNormal):
+    def __init__(self, loc, scale, low, high, device='cpu'):
+        self.loc = loc
+        self.scale = scale
+        self.low = low
+        self.high = high
+        super().__init__(loc, np.diag(scale**2), low, high)
