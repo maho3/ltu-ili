@@ -9,7 +9,8 @@ try:
         IndependentHalfNormal, IndependentLaplace,
         IndependentLogNormal, IndependentPareto, IndependentStudentT,
         IndependentVonMises, IndependentWeibull, IndependentDirichlet,
-        MultivariateNormal, Dirichlet, LowRankMultivariateNormal
+        MultivariateNormal, Dirichlet, LowRankMultivariateNormal,
+        IndependentTruncatedNormal
     )
 except ImportError:
     from .distributions_tf import (

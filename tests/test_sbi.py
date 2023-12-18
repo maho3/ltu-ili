@@ -372,6 +372,9 @@ def test_prior():
             loc=[0, 0, 0], scale=[1, 1, 1], device=device),
         ili.utils.MultivariateNormal(
             loc=[0, 0, 0], covariance_matrix=np.diag([1, 2, 3]), device=device),
+        ili.utils.IndependentTruncatedNormal(
+            loc=[0, 0, 0], scale=[1, 1, 1], low=[0, 0, 0], high=[1, 1, 1],
+            device=device),
     ]
 
     for p in priors:
