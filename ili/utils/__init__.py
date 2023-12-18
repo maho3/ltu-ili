@@ -9,7 +9,7 @@ try:
         IndependentHalfNormal, IndependentLaplace,
         IndependentLogNormal, IndependentPareto, IndependentStudentT,
         IndependentVonMises, IndependentWeibull, IndependentDirichlet,
-        MultivariateNormal, Dirichlet, LowRankMultivariateNormal,
+        MultivariateNormal, LowRankMultivariateNormal,
         IndependentTruncatedNormal
     )
 except ImportError:

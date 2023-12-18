@@ -22,7 +22,7 @@ from .import_utils import load_class
 dist_names = [
     'Uniform', 'Normal', 'Beta', 'Cauchy', 'Chi2', 'Exponential',
     'FisherSnedecor', 'Gamma', 'Gumbel', 'HalfCauchy', 'HalfNormal', 'Laplace',
-    'LogNormal', 'Pareto', 'StudentT', 'VonMises', 'Weibull', 'Dirichlet'
+    'LogNormal', 'Pareto', 'StudentT', 'VonMises', 'Weibull'
 ]
 
 
@@ -56,7 +56,7 @@ Uniform = IndependentUniform  # Uniform is always independent
 # load multivariate, continuous distributions
 # this is done for API convenience, but we don't wrap them
 from torch.distributions import (  # noqa
-    MultivariateNormal, Dirichlet, LowRankMultivariateNormal
+    MultivariateNormal, LowRankMultivariateNormal
 )
 
 # redefining these to not require torch tensors as inputs

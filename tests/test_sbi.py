@@ -2,6 +2,7 @@ import warnings  # noqa
 warnings.filterwarnings('ignore')  # noqa
 
 import numpy as np
+from numpy import testing
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
@@ -13,6 +14,7 @@ from pathlib import Path
 import xarray as xr
 import csv
 import json
+import unittest
 
 import ili
 from ili.dataloaders import (
@@ -375,7 +377,6 @@ def test_prior():
         ili.utils.IndependentTruncatedNormal(
             loc=[0, 0, 0], scale=[1, 1, 1], low=[0, 0, 0], high=[1, 1, 1],
             device=device),
-        ili.utils.Dirichlet(concentration=[1, 1, 1], device=device),
         ili.utils.LowRankMultivariateNormal(
             loc=[0, 0, 0], cov_factor=np.diag([1, 2, 3]), cov_diag=[1, 1, 1],
             device=device),
@@ -422,6 +423,29 @@ def test_prior():
         log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
 
     return
+
+
+def test_custom_priors():
+    from ili.utils.distributions_pt import _UnivariateTruncatedNormal
+
+    loc, scale, low, high, value = 0.0, 1.0, -1.0, 1.0, 0.5
+    dist = _UnivariateTruncatedNormal(loc, scale, low, high)
+    cdf = dist.cdf(value)
+    testing.assert_almost_equal(cdf.item(), 0.780453, decimal=5)
+    icdf = dist.icdf(value)
+    np.testing.assert_almost_equal(icdf.item(), 0.0, decimal=5)
+    log_prob = dist.log_prob(value)
+    testing.assert_almost_equal(log_prob.item(), -0.66222, decimal=5)
+
+    # Test IndependentTruncatedNormal
+    loc, scale, low, high, value = \
+        [0.0, 0.0], [1.0, 1.0], [-1.0, -1.0], [1.0, 1.0], [0.5, 0.1]
+    dist = ili.utils.IndependentTruncatedNormal(loc, scale, low, high)
+    log_prob = dist.log_prob(torch.Tensor(value))
+    testing.assert_almost_equal(log_prob.item(), -1.20445, decimal=5)
+    sample = dist.sample()[:, 0]
+    testing.assert_array_less(sample.numpy(), high)
+    testing.assert_array_less(low, sample.numpy())
 
 
 def test_yaml():
