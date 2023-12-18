@@ -133,13 +133,7 @@ class _TruncatedStandardNormal(Distribution):
         )
         if self.a.dtype != self.b.dtype:
             raise ValueError("Truncation bounds types are different")
-        if any(
-            (self.a >= self.b)
-            .view(
-                -1,
-            )
-            .tolist()
-        ):
+        if any((self.a >= self.b).view(-1,).tolist()):
             raise ValueError("Incorrect truncation range")
         eps = self.eps
         self._dtype_min_gt_0 = eps
@@ -240,6 +234,7 @@ class _UnivariateTruncatedNormal(_TruncatedStandardNormal):
         a = (a - self.loc) / self.scale
         b = (b - self.loc) / self.scale
         super().__init__(a, b, validate_args=validate_args)
+        self.base = _TruncatedStandardNormal(a, b, validate_args=validate_args)
         self._log_scale = self.scale.log()
         self._mean = self._mean * self.scale + self.loc
         self._variance = self._variance * self.scale**2
@@ -256,7 +251,7 @@ class _UnivariateTruncatedNormal(_TruncatedStandardNormal):
         return value * self.scale + self.loc
 
     def cdf(self, value):
-        return super().cdf(self._to_std_rv(value))
+        return self.base.cdf(self._to_std_rv(value))
 
     def icdf(self, value):
         sample = self._from_std_rv(super().icdf(value))
@@ -273,7 +268,7 @@ class _UnivariateTruncatedNormal(_TruncatedStandardNormal):
 
     def log_prob(self, value):
         value = self._to_std_rv(value)
-        return super().log_prob(value) - self._log_scale
+        return self.base.log_prob(value) - self._log_scale
 
 
 # Define IndependentTruncatedNormal as a class for multivariate priors
