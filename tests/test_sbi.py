@@ -2,6 +2,7 @@ import warnings  # noqa
 warnings.filterwarnings('ignore')  # noqa
 
 import numpy as np
+from numpy import testing
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
@@ -13,7 +14,9 @@ from pathlib import Path
 import xarray as xr
 import csv
 import json
+import unittest
 
+import ili
 from ili.dataloaders import (
     NumpyLoader, SBISimulator, StaticNumpyLoader)
 from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential
@@ -45,8 +48,7 @@ def test_snpe(monkeypatch):
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
-    prior = sbi.utils.BoxUniform(low=low, high=high)
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized posterior inference)
     inference_class = sbi.inference.SNPE
@@ -149,8 +151,8 @@ def test_snle(monkeypatch):
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
-    prior = sbi.utils.BoxUniform(low=low, high=high)
+    prior = ili.utils.IndependentNormal(
+        loc=[0, 0, 0], scale=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized likelihood inference)
     inference_class = sbi.inference.SNLE
@@ -251,8 +253,7 @@ def test_snre():
     loader = NumpyLoader(x=x, theta=theta)
 
     # define a prior
-    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
-    prior = sbi.utils.BoxUniform(low=low, high=high)
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized likelihood inference)
     inference_class = sbi.inference.SNRE
@@ -324,8 +325,7 @@ def test_multiround():
     # train a model to infer x -> theta. save it as toy/posterior.pkl
 
     # define a prior
-    low, high = torch.zeros(3).to(device), torch.ones(3).to(device)
-    prior = sbi.utils.BoxUniform(low=low, high=high)
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized posterior inference)
     inference_class = sbi.inference.SNPE_C
@@ -363,6 +363,104 @@ def test_multiround():
     return
 
 
+def test_prior():
+    """Test the prior classes."""
+
+    # create the same synthetic catalog as the previous example
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
+
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+
+    # make a dataloader
+    loader = NumpyLoader(x=x, theta=theta)
+
+    # define a prior
+    priors = [
+        ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device),
+        ili.utils.IndependentNormal(
+            loc=[0, 0, 0], scale=[1, 1, 1], device=device),
+        ili.utils.MultivariateNormal(
+            loc=[0, 0, 0], covariance_matrix=np.diag([1, 2, 3]), device=device),
+        ili.utils.IndependentTruncatedNormal(
+            loc=[0, 0, 0], scale=[1, 1, 1], low=[0, 0, 0], high=[1, 1, 1],
+            device=device),
+        ili.utils.LowRankMultivariateNormal(
+            loc=[0, 0, 0], cov_factor=np.diag([1, 2, 3]), cov_diag=[1, 1, 1],
+            device=device),
+    ]
+
+    for p in priors:
+        # define an inference class (we are doing amortized posterior inference)
+        inference_class = sbi.inference.SNPE
+
+        # instantiate your neural networks to be used as an ensemble
+        nets = [
+            sbi.utils.posterior_nn(
+                model='maf', hidden_features=50, num_transforms=5),
+        ]
+
+        train_args = {'training_batch_size': 32,
+                      'learning_rate': 0.001, 'max_num_epochs': 5}
+
+        # initialize the trainer
+        runner = SBIRunner(
+            prior=p,
+            inference_class=inference_class,
+            nets=nets,
+            device=device,
+            embedding_net=None,
+            train_args=train_args,
+            proposal=None,
+            output_path=Path('./toy')
+        )
+
+        # train the model. this outputs a posterior model and training logs
+        posterior, summaries = runner(loader=loader)
+
+        # choose a random input
+        ind = np.random.randint(len(theta))
+
+        nsamples = 20
+
+        # generate samples from the posterior using accept/reject sampling
+        samples = posterior.sample(
+            (nsamples,), torch.Tensor(x[ind]).to(device))
+
+        # calculate the log_prob for each sample
+        log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
+
+    return
+
+
+def test_custom_priors():
+    from ili.utils.distributions_pt import _UnivariateTruncatedNormal
+
+    loc, scale, low, high, value = 0.0, 1.0, -1.0, 1.0, 0.5
+    dist = _UnivariateTruncatedNormal(loc, scale, low, high)
+    cdf = dist.cdf(value)
+    testing.assert_almost_equal(cdf.item(), 0.780453, decimal=5)
+    icdf = dist.icdf(value)
+    np.testing.assert_almost_equal(icdf.item(), 0.0, decimal=5)
+    log_prob = dist.log_prob(value)
+    testing.assert_almost_equal(log_prob.item(), -0.66222, decimal=5)
+
+    # Test IndependentTruncatedNormal
+    loc, scale, low, high, value = \
+        [0.0, 0.0], [1.0, 1.0], [-1.0, -1.0], [1.0, 1.0], [0.5, 0.1]
+    dist = ili.utils.IndependentTruncatedNormal(loc, scale, low, high)
+    log_prob = dist.log_prob(torch.Tensor(value))
+    testing.assert_almost_equal(log_prob.item(), -1.20445, decimal=5)
+    sample = dist.sample()[:, 0]
+    testing.assert_array_less(sample.numpy(), high)
+    testing.assert_array_less(low, sample.numpy())
+
+
 def test_yaml():
     """Test SNPE/SNLE/SNRE inference classes instantiation
     with yaml config files."""
@@ -394,8 +492,8 @@ def test_yaml():
 
     # Yaml file for infer - standard
     data = dict(
-        prior={'module': 'torch.distributions',
-               'class': 'Normal',
+        prior={'module': 'ili.utils',
+               'class': 'IndependentNormal',
                'args': dict(
                    loc=[0.5, 0.5, 0.5],
                    scale=[0.5, 0.5, 0.5],
@@ -431,8 +529,8 @@ def test_yaml():
 
     # Yaml file for infer - multiround
     data = dict(
-        prior={'module': 'sbi.utils',
-               'class': 'BoxUniform',
+        prior={'module': 'ili.utils',
+               'class': 'Uniform',
                'args': dict(
                    low=[0, 0, 0],
                    high=[1, 1, 1],

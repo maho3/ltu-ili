@@ -4,11 +4,11 @@ n_data: 10  # Dimesionality of input data
 
 # Specify prior
 prior:
-  module: 'pydelfi.priors'
+  module: 'ili.utils'
   class: 'Uniform'
   args:
-    lower: [0,0,0]
-    upper: [1,1,1]
+    low: [0,0,0]
+    high: [1,1,1]
 
 # Specify the inference model
 model:
