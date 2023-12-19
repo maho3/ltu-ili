@@ -8,7 +8,7 @@ try:
         IndependentGamma, IndependentGumbel, IndependentHalfCauchy,
         IndependentHalfNormal, IndependentLaplace,
         IndependentLogNormal, IndependentPareto, IndependentStudentT,
-        IndependentVonMises, IndependentWeibull, IndependentDirichlet,
+        IndependentVonMises, IndependentWeibull,
         MultivariateNormal, LowRankMultivariateNormal,
         IndependentTruncatedNormal
     )
