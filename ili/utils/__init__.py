@@ -8,8 +8,12 @@ try:
         IndependentGamma, IndependentGumbel, IndependentHalfCauchy,
         IndependentHalfNormal, IndependentLaplace,
         IndependentLogNormal, IndependentPareto, IndependentStudentT,
-        IndependentVonMises, IndependentWeibull, IndependentDirichlet,
-        MultivariateNormal, Dirichlet, LowRankMultivariateNormal
+        IndependentVonMises, IndependentWeibull,
+        MultivariateNormal, LowRankMultivariateNormal,
+        IndependentTruncatedNormal
     )
 except ImportError:
-    from .distributions_tf import Uniform, TruncatedGaussian, IndependentNormal
+    from .distributions_tf import (
+        Uniform, IndependentNormal,
+        MultivariateTruncatedNormal, IndependentTruncatedNormal
+    )

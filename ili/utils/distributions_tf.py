@@ -29,3 +29,26 @@ class IndependentNormal():
 
     def pdf(self, x):
         return np.prod(norm.pdf(x, loc=self.loc, scale=self.scale))
+
+
+class MultivariateTruncatedNormal(TruncatedGaussian):
+    """Note the pdf and logpdf as implemented in pydelfi are not normalized."""
+
+    def __init__(self, loc, covariance_matrix, low, high, device='cpu'):
+        self.loc = loc
+        self.covariance_matrix = covariance_matrix
+        self.low = low
+        self.high = high
+        super().__init__(mean=loc, C=covariance_matrix,
+                         lower=low, upper=high)
+
+
+class IndependentTruncatedNormal(MultivariateTruncatedNormal):
+    """Note the pdf and logpdf as implemented in pydelfi are not normalized."""
+
+    def __init__(self, loc, scale, low, high, device='cpu'):
+        self.loc = loc
+        self.scale = scale
+        self.low = low
+        self.high = high
+        super().__init__(loc, np.diag(scale**2), low, high)
