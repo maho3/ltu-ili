@@ -119,18 +119,20 @@ class StaticNumpyLoader(NumpyLoader):
         self.x_path = self.in_dir / x_file
         self.theta_path = self.in_dir / theta_file
 
-        x = np.load(self.x_path)
-        theta = np.load(self.theta_path)
+        x = np.load(self.x_path, allow_pickle=True)
+        theta = np.load(self.theta_path, allow_pickle=True)
 
         if xobs_file is not None:
             self.xobs_path = self.in_dir / xobs_file
-            self.xobs = np.load(self.xobs_path)
+            self.xobs = np.load(self.xobs_path, allow_pickle=True)
         else:
             self.xobs = None
 
         if thetaobs_file is not None:
             self.thetaobs_path = self.in_dir / thetaobs_file
-            self.thetaobs = np.load(self.thetaobs_path)
+            self.thetaobs = np.load(self.thetaobs_path, allow_pickle=True)
+        else:
+            self.thetaobs = None
 
         super().__init__(x=x, theta=theta,
                          xobs=self.xobs, thetaobs=self.thetaobs)
