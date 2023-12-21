@@ -17,6 +17,9 @@ import torch
 from torch.distributions import Independent
 from .import_utils import load_class
 
+# Not used directly, but raises error if tried loading with wrong backend
+import sbi
+
 
 # These distributions will be loaded and wrapped
 dist_names = [

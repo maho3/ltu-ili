@@ -74,13 +74,19 @@ class EmceeSampler(_MCMCSampler):
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
         """
-        theta0 = np.stack([self.posterior.prior.sample().cpu()
-                          for i in range(self.num_chains)])
+        theta0 = [self.posterior.prior.sample()
+                          for i in range(self.num_chains)]
+        if not isinstance(theta0[0], np.ndarray):
+            theta0 = [t.cpu() for t in theta0]
+        theta0 = np.stack(theta0)
 
         def log_target(t, x):
-            return np.array(self.posterior.potential(
+            res = self.posterior.potential(
                 t.astype(np.float32), x.astype(np.float32)
-            ).cpu())
+            )
+            if hasattr(res, 'cpu'):
+                res = np.array(res.cpu())
+            return res
 
         self.sampler = emcee.EnsembleSampler(
             self.num_chains,
