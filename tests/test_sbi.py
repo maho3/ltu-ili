@@ -20,7 +20,8 @@ import ili
 from ili.dataloaders import (
     NumpyLoader, SBISimulator, StaticNumpyLoader, SummarizerDatasetLoader)
 from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential, ABCRunner
-from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
+from ili.validation.metrics import (
+    PlotSinglePosterior, PosteriorCoverage, PosteriorSamples)
 from ili.validation.runner import ValidationRunner
 from ili.embedding import FCN
 
@@ -28,10 +29,11 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Device:', device)
 
 
-def test_snpe(monkeypatch):
+# def test_snpe(monkeypatch):
+def test_snpe():
     """Test the SNPE inference class with a simple toy model."""
 
-    monkeypatch.setattr(plt, 'show', lambda: None)
+    # monkeypatch.setattr(plt, 'show', lambda: None)
 
     # create synthetic catalog
     def simulator(params):
@@ -107,7 +109,8 @@ def test_snpe(monkeypatch):
     # use ltu-ili's built-in validation metrics to plot the posterior
     metric = PlotSinglePosterior(
         backend='sbi', output_path=None, num_samples=nsamples,
-        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)]
+        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
+        seed=1, save_samples=True
     )
     fig = metric(
         posterior=posterior,
@@ -127,7 +130,51 @@ def test_snpe(monkeypatch):
         x_obs=x[ind], theta_obs=theta[ind],
         x=x, theta=theta
     )
-
+    
+    # repeat but save to file
+    metric = PosteriorCoverage(
+        backend='sbi', output_path=Path('./toy'), num_samples=nsamples,
+        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
+        plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"],
+        save_samples=True,
+    )
+    fig = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_obs=theta[ind],
+        x=x, theta=theta
+    )
+    
+    # get samples using emcee with the PosteriorSamples class
+    nsamp = 2
+    nchain = 6
+    ntest = 1
+    metric = PosteriorSamples(backend='sbi', output_path=None,
+        num_samples=nsamp, sample_method='emcee', 
+        labels=[f'$\\theta_{i}$' for i in range(3)],
+        sample_params={'num_chains':nchain},
+     )
+    samples = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_obs=theta[ind],
+        x=x[:ntest], theta=theta[:ntest,:],
+        skip_initial_state_check=True,
+    )
+    unittest.TestCase().assertIsInstance(samples, np.ndarray)
+    unittest.TestCase().assertListEqual(list(samples.shape), [nsamp*nchain,ntest,3])
+    
+    # get samples using direct method with PosteriorSamples class
+    metric = PosteriorSamples(backend='sbi', output_path=Path('./toy'),
+        num_samples=nsamp, sample_method='direct', 
+        labels=[f'$\\theta_{i}$' for i in range(3)],
+     )
+    samples = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_obs=theta[ind],
+        x=x[:ntest], theta=theta[:ntest,:],
+    )
+    unittest.TestCase().assertIsInstance(samples, np.ndarray)
+    unittest.TestCase().assertListEqual(list(samples.shape), [nsamp,ntest,3])
+    
     return
 
 
@@ -865,7 +912,7 @@ def test_loaders():
             return super(NpEncoder, self).default(obj)
     with open('./toy/summarizer_train_test_split.json', 'w') as f:
         json.dump(split, f, cls=NpEncoder)
-
+        
     # check calling the dataloader
     loader = SummarizerDatasetLoader(
         stage='train',
@@ -902,3 +949,5 @@ def test_loaders():
     np.testing.assert_almost_equal(theta[i1:,:], p, decimal=5)    
     
     return
+
+test_snpe()

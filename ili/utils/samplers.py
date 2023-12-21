@@ -41,7 +41,7 @@ class _MCMCSampler(ABC):
             posterior: ModelClass,
             num_chains: int = -1,
             thin: int = 10,
-            burn_in: int = 100
+            burn_in: int = 100,
     ) -> None:
         super().__init__()
         self.posterior = posterior
@@ -64,7 +64,7 @@ class EmceeSampler(_MCMCSampler):
     """
 
     def sample(self, nsteps: int, x: np.ndarray,
-               progress: bool = False) -> np.ndarray:
+               progress: bool = False, **kwargs) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -74,25 +74,27 @@ class EmceeSampler(_MCMCSampler):
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
         """
-        theta0 = np.stack([self.posterior.prior.sample()
+        theta0 = np.stack([self.posterior.prior.sample().cpu()
                           for i in range(self.num_chains)])
 
         def log_target(t, x):
             return np.array(self.posterior.potential(
                 t.astype(np.float32), x.astype(np.float32)
-            ))
+            ).cpu())
+
         self.sampler = emcee.EnsembleSampler(
             self.num_chains,
             theta0.shape[-1],
             log_target,
             vectorize=False,
-            args=(x,)
+            args=(x,),
         )
         self.sampler.run_mcmc(
             theta0,
             self.burn_in + nsteps,
             thin_by=self.thin,
             progress=progress,
+            **kwargs
         )
         return self.sampler.get_chain(discard=self.burn_in, flat=True)
 

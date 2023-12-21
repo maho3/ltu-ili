@@ -204,7 +204,7 @@ class PosteriorSamples(_SampleBasedMetric):
     tasks (e.g. nested sampling) or making custom plots.
     """
 
-    def _sample_dataset(self, posterior, x):
+    def _sample_dataset(self, posterior, x, **kwargs):
         """Sample from posterior for all datapoints within a
         test dataset.
 
@@ -231,7 +231,7 @@ class PosteriorSamples(_SampleBasedMetric):
             try:
                 # Sample posterior P(theta | x[ii])
                 posterior_samples[:, ii] = sampler.sample(
-                    self.num_samples, x=x[ii], progress=False)
+                    self.num_samples, x=x[ii], progress=False, **kwargs)
             except Warning as w:
                 logging.warning("WARNING\n", w)
                 continue
@@ -245,7 +245,8 @@ class PosteriorSamples(_SampleBasedMetric):
         signature: Optional[str] = "",
         # here for debugging purpose, otherwise error in runner.py line 123
         x_obs: Optional[np.array] = None,
-        theta_obs: Optional[np.array] = None
+        theta_obs: Optional[np.array] = None,
+        **kwargs
     ):
         """Given a posterior and test data, infer posterior samples of a
         test dataset and save to file.
@@ -258,7 +259,7 @@ class PosteriorSamples(_SampleBasedMetric):
             theta_obs (np.array, optional): tensor of true parameters for x_obs
         """
         # Sample the full dataset
-        posterior_samples = self._sample_dataset(posterior, x)
+        posterior_samples = self._sample_dataset(posterior, x, **kwargs)
 
         if self.output_path is None:
             return posterior_samples
