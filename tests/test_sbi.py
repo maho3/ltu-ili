@@ -18,7 +18,7 @@ import unittest
 
 import ili
 from ili.dataloaders import (
-    NumpyLoader, SBISimulator, StaticNumpyLoader)
+    NumpyLoader, SBISimulator, StaticNumpyLoader, SummarizerDatasetLoader)
 from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential, ABCRunner
 from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
 from ili.validation.runner import ValidationRunner
@@ -321,7 +321,12 @@ def test_multiround():
                               400,
                               simulator,
                               )
-
+    unittest.TestCase().assertEqual(len(all_loader), 400)
+    np.testing.assert_almost_equal(
+        np.squeeze(all_loader.get_obs_parameters()), 
+        np.squeeze(theta0)
+    )
+    
     # train an SBI sequential model to infer x -> theta
 
     # define a prior
@@ -664,7 +669,7 @@ def test_yaml():
     np.save("toy/x.npy", x)
 
     # Test objects
-    StaticNumpyLoader.from_config("./toy/data.yml")
+    StaticNumpyLoader.from_config("./toy/data.yml", stage='train')
     SBIRunner.from_config("./toy/infer_snpe.yml")
     SBIRunner.from_config("./toy/infer_snle.yml")
     SBIRunner.from_config("./toy/infer_snre.yml")
@@ -700,4 +705,200 @@ def test_yaml():
 
     ValidationRunner.from_config("./toy/val.yml")
 
+    return
+
+def test_loaders():
+    """Additional tests for data loaders."""
+    
+    from typing import Dict, Optional
+    
+    # -------
+    # NumpyLoader
+    
+    # Exception if data and parameters of different size
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.random.rand(190)  # 190 simulations
+    try:
+        NumpyLoader(x, theta)
+    except Exception as e:
+        pass
+    
+    # Check length attribute
+    x = np.random.rand(theta.shape[0])
+    loader = NumpyLoader(x, theta)
+    unittest.TestCase().assertEqual(len(x), len(loader))
+    
+    # -------
+    # SummarizerDatasetLoader
+    
+    if not os.path.isdir("toy"):
+        os.mkdir("toy")
+
+    # create the same synthetic catalog as the previous example
+    def simulator(params):
+        # create toy 'simulations'
+        x = np.arange(10)
+        y = params @ np.array([np.sin(x), x ** 2, x])
+        y += np.random.randn(len(x))
+        return y
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    
+    class Catalogue:
+        def __init__(
+            self,
+            pos: np.array,
+            vel: np.array,
+            redshift: float,
+            boxsize: float,
+            cosmo_dict: Dict[str, float],
+            name: str,
+            mass: Optional[np.array] = None,
+            mesh: bool = True,
+            n_mesh: Optional[int] = 360,
+        ):
+            self.pos = pos % boxsize  
+            self.vel = vel
+            self.mass = mass
+            self.redshift = redshift
+            self.boxsize = boxsize
+            self.cosmo_dict = cosmo_dict
+            self.name = name
+            
+        def __str__(self,)->str:
+            return self.name
+            
+
+    # make catalogues
+    all_cat = [Catalogue(
+        pos=np.ones((10, 3)),
+        vel=np.ones((10, 3)),
+        redshift=0.,
+        boxsize=1000.,
+        cosmo_dict={'t0': theta[i, 0], 't1': theta[i, 1], 't2': theta[i, 2]},
+        name=f'cat_node{i}',
+        mass=None,
+        mesh=False,
+        n_mesh=50
+    ) for i in range(theta.shape[0])]
+
+    # define the summary
+    class SimpleSummary():
+
+        def __init__(self, bins):
+            self.bins = bins
+
+        def __str__(self,):
+            return 'simple_summary'
+
+        def __call__(self, catalogue: Catalogue) -> np.array:
+            """ Given a catalogue, compute our simple summary
+            Args:
+                catalogue (Catalogue):  catalogue to summarize
+            Returns:
+                np.array: the probability of finding N tracers inside random spheres
+            """
+            t = [catalogue.cosmo_dict[f't{i}'] for i in range(3)]
+            return np.array([self.bins, simulator(t)])
+
+        def to_dataset(self, summary: np.array) -> xr.DataArray:
+            """ Convert a tpcf array into an xarray dataset
+            with coordinates
+            Args:
+                summary (np.array): summary to convert
+            Returns:
+                xr.DataArray: dataset array
+            """
+            radii = [t[0] for t in summary]
+            p_N = np.array([t[1] for t in summary])
+            return xr.DataArray(
+                p_N,
+                dims=('r',),
+                coords={
+                    'r': radii,
+                },
+            )
+        
+        def store_summary(self, filename: str, summary: np.array):
+            """Store summary as xarray dataset
+
+            Args:
+                filename (str): where to store 
+                summary (np.array): summary to store
+            """
+            ds = self.to_dataset(summary)
+            ds.to_netcdf(filename)
+
+    # make and save summaries
+    summary = SimpleSummary(np.arange(10))
+    if not os.path.isdir(Path('./toy') / f"{str(summary)}"):
+        os.mkdir(Path('./toy') / f"{str(summary)}")
+    for cat in all_cat:
+        s = summary(cat)
+        summary.store_summary(
+            Path('./toy') / f"{str(summary)}/{str(cat)}.nc", s
+        )
+
+    # save the parameters
+    with open('./toy/summarizer_params.txt', 'w') as f:
+        writer = csv.writer(f, delimiter=' ')
+        writer.writerow(['t0', 't1', 't2'])
+        for t in theta:
+            writer.writerow(t)
+
+    # save the test-train split
+    i0 = theta.shape[0]//2
+    i1 = 2 * theta.shape[0]//3
+    split = {
+        "train": list(np.arange(i0)),
+        "val": list(np.arange(i0, i1)),
+        "test": list(np.arange(i1, theta.shape[0]))
+    }
+
+    class NpEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            if isinstance(obj, np.floating):
+                return float(obj)
+            if isinstance(obj, np.ndarray):
+                return obj.tolist()
+            return super(NpEncoder, self).default(obj)
+    with open('./toy/summarizer_train_test_split.json', 'w') as f:
+        json.dump(split, f, cls=NpEncoder)
+
+    # check calling the dataloader
+    loader = SummarizerDatasetLoader(
+        stage='train',
+        data_dir='./toy',
+        data_root_file=f'{str(summary)}/cat',
+        param_file='summarizer_params.txt',
+        train_test_split_file='summarizer_train_test_split.json',
+        param_names=['t0', 't1', 't2'],
+    )
+    
+    unittest.TestCase().assertEqual(i0, len(loader))
+    d = loader.get_all_data()
+    p = loader.get_all_parameters()
+    unittest.TestCase().assertIsInstance(d, np.ndarray)
+    unittest.TestCase().assertIsInstance(p, np.ndarray)
+    np.testing.assert_almost_equal(theta[:i0,:], p, decimal=5)
+    
+    d = loader.get_nodes_for_stage('train', 'summarizer_train_test_split.json')
+    unittest.TestCase().assertListEqual(d, list(np.arange(i0)))
+    p = loader.load_parameters('summarizer_params.txt', d, ['t0', 't1', 't2'])
+    unittest.TestCase().assertIsInstance(p, np.ndarray)
+    np.testing.assert_almost_equal(theta[:i0,:], p, decimal=5)
+        
+    d = loader.get_nodes_for_stage('val', 'summarizer_train_test_split.json')
+    unittest.TestCase().assertListEqual(d, list(np.arange(i0,i1)))
+    p = loader.load_parameters('summarizer_params.txt', d, ['t0', 't1', 't2'])
+    unittest.TestCase().assertIsInstance(p, np.ndarray)
+    np.testing.assert_almost_equal(theta[i0:i1,:], p, decimal=5)
+    
+    d = loader.get_nodes_for_stage('test', 'summarizer_train_test_split.json')
+    unittest.TestCase().assertListEqual(d, list(np.arange(i1,theta.shape[0])))
+    p = loader.load_parameters('summarizer_params.txt', d, ['t0', 't1', 't2'])
+    unittest.TestCase().assertIsInstance(p, np.ndarray)
+    np.testing.assert_almost_equal(theta[i1:,:], p, decimal=5)    
+    
     return
