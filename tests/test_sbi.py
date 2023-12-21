@@ -147,7 +147,7 @@ def test_snpe(monkeypatch):
         x=x, theta=theta
     )
     
-    # get samples using emcee with the PosteriorSamples class
+    # # get samples using emcee with the PosteriorSamples class
     nsamp = 2
     nchain = 6
     ntest = 1
@@ -169,6 +169,20 @@ def test_snpe(monkeypatch):
     metric = PosteriorSamples(backend='sbi', output_path=Path('./toy'),
         num_samples=nsamp, sample_method='direct', 
         labels=[f'$\\theta_{i}$' for i in range(3)],
+     )
+    samples = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_obs=theta[ind],
+        x=x[:ntest], theta=theta[:ntest,:],
+    )
+    unittest.TestCase().assertIsInstance(samples, np.ndarray)
+    unittest.TestCase().assertListEqual(list(samples.shape), [nsamp,ntest,3])
+    
+    # get samples using pyro with the PosteriorSamples class
+    metric = PosteriorSamples(backend='sbi', output_path=None,
+        num_samples=nsamp, sample_method='slice_np_vectorized', 
+        labels=[f'$\\theta_{i}$' for i in range(3)],
+        sample_params={'num_chains':nchain},
      )
     samples = metric(
         posterior=posterior,
