@@ -1,0 +1,23 @@
+# Specify prior (same as initial proposal distribution)
+prior:
+  module: 'ili.utils'
+  class: 'Uniform'
+  args:
+    low: [0,0,0]
+    high: [1,1,1]
+
+# Specify the inference model
+model:
+  module: 'sbi.inference'
+  class: 'MCABC'  # ABC inference
+  name: "toy_abc"
+  num_workers: 8  # Number of parallel workers
+    
+# Specify the neural training hyperparameters
+train_args:
+  num_simulations: 1000000  # Number of simulations to run
+  quantile: 0.01  # Quantile for the distance threshold
+
+
+device: 'cpu'  # Run on CPU
+output_path: './toy'  # Where to save the posterior

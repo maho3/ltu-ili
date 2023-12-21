@@ -5,8 +5,7 @@ and make their configuration easier in the sbi interface.
 
 import numpy as np
 from scipy.stats import norm
-from pydelfi.priors import Uniform
-from pydelfi.priors import TruncatedGaussian
+from pydelfi.priors import Uniform, TruncatedGaussian
 
 
 class Uniform(Uniform):

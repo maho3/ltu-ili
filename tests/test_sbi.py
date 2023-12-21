@@ -19,7 +19,7 @@ import unittest
 import ili
 from ili.dataloaders import (
     NumpyLoader, SBISimulator, StaticNumpyLoader)
-from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential
+from ili.inference.runner_sbi import SBIRunner, SBIRunnerSequential, ABCRunner
 from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
 from ili.validation.runner import ValidationRunner
 from ili.embedding import FCN
@@ -322,7 +322,7 @@ def test_multiround():
                               simulator,
                               )
 
-    # train a model to infer x -> theta. save it as toy/posterior.pkl
+    # train an SBI sequential model to infer x -> theta
 
     # define a prior
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
@@ -358,6 +358,24 @@ def test_multiround():
     )
 
     # train the model
+    runner(loader=all_loader)
+
+    # sample an ABC model to infer x -> theta
+    train_args = {
+        'num_simulations': 1000,
+        'quantile': 0.1,
+    }
+
+    # define an inference class (we are doing approximate bayesian computation)
+    inference_class = sbi.inference.MCABC
+
+    runner = ABCRunner(
+        prior=prior,
+        inference_class=inference_class,
+        device=device,
+        train_args=train_args,
+        output_path='./toy',
+    )
     runner(loader=all_loader)
 
     return
@@ -462,7 +480,7 @@ def test_custom_priors():
 
 
 def test_yaml():
-    """Test SNPE/SNLE/SNRE inference classes instantiation
+    """Test SNPE/SNLE/SNRE/ABC inference classes instantiation
     with yaml config files."""
 
     if not os.path.isdir("toy"):
@@ -551,6 +569,30 @@ def test_yaml():
         output_path='./toy'
     )
     with open('./toy/infer_multi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+        
+    # Yaml file for infer - ABC
+    data = dict(
+        prior={'module': 'ili.utils',
+               'class': 'Uniform',
+               'args': dict(
+                   low=[0, 0, 0],
+                   high=[1, 1, 1],
+               ),
+               },
+        model={'module':  'sbi.inference',
+               'class': 'MCABC',
+               'name': 'toy_abc',
+               'num_workers': 8,
+              },
+        train_args=dict(
+            num_simulations=1000000,
+            quantile=0.01,
+        ),
+        device='cpu',
+        output_path='./toy',
+    )
+    with open('./toy/infer_abc.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for validation
@@ -647,6 +689,11 @@ def test_yaml():
     loader.set_simulator(simulator)
     run_seq = SBIRunnerSequential.from_config("./toy/infer_multi.yml")
     run_seq(loader=loader)
+    
+    # -------
+    # Run for ABC
+    
+    ABCRunner.from_config("./toy/infer_abc.yml")
 
     # -------
     # Run validation
