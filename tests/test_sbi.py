@@ -512,7 +512,8 @@ def test_prior():
 
 
 def test_custom_priors():
-    from ili.utils.distributions_pt import _UnivariateTruncatedNormal
+    from ili.utils.distributions_pt import (
+        _UnivariateTruncatedNormal, _TruncatedStandardNormal)
 
     loc, scale, low, high, value = 0.0, 1.0, -1.0, 1.0, 0.5
     dist = _UnivariateTruncatedNormal(loc, scale, low, high)
@@ -532,7 +533,37 @@ def test_custom_priors():
     sample = dist.sample()[:, 0]
     testing.assert_array_less(sample.numpy(), high)
     testing.assert_array_less(low, sample.numpy())
-
+    
+    # Test _TruncatedStandardNormal
+    low, high = torch.FloatTensor([0.0, 0.0]), torch.FloatTensor([1.0, 1.0])
+    dist = _TruncatedStandardNormal(low, high, validate_args=True)
+    testing.assert_array_less(dist.mean, high)
+    testing.assert_(torch.all(dist.variance >= 0))
+    testing.assert_(torch.allclose(dist.support.lower_bound, low))
+    testing.assert_(torch.allclose(dist.support.upper_bound, high))
+    unittest.TestCase().assertEqual(low.shape, dist.auc.shape)
+    unittest.TestCase().assertEqual(low.shape, dist.entropy().shape)
+    value = torch.rand(100,len(low)) * (high - low) + low
+    cdf = dist.cdf(value)
+    testing.assert_(torch.all(cdf <= 1.0))
+    testing.assert_(torch.all(cdf >= 0.0))
+    unittest.TestCase().assertEqual(cdf.shape, value.shape)
+    lp = dist.log_prob(value)
+    unittest.TestCase().assertEqual(lp.shape, value.shape)
+    dist =  _TruncatedStandardNormal(low[0], high[0])
+    try:
+        _TruncatedStandardNormal(high, low)  # bounds in wrong order
+        success = False
+    except Exception as e:
+        success = True
+    unittest.TestCase().assertTrue(success)
+    try:
+        _TruncatedStandardNormal(low.float(), high.double())  # bounds wrong type
+        success = False
+    except Exception as e:
+        success = True
+    unittest.TestCase().assertTrue(success)
+    
 
 def test_yaml():
     """Test SNPE/SNLE/SNRE/ABC inference classes instantiation
@@ -770,8 +801,10 @@ def test_loaders():
     x = np.random.rand(190)  # 190 simulations
     try:
         NumpyLoader(x, theta)
+        success = False
     except Exception as e:
-        pass
+        success = True
+    unittest.TestCase().assertTrue(success)
     
     # Check length attribute
     x = np.random.rand(theta.shape[0])
