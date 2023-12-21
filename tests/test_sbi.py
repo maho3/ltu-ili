@@ -29,11 +29,14 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Device:', device)
 
 
-# def test_snpe(monkeypatch):
-def test_snpe():
+def test_snpe(monkeypatch):
     """Test the SNPE inference class with a simple toy model."""
 
-    # monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, 'show', lambda: None)
+    
+    # construct a working directory
+    if not os.path.isdir("toy"):
+        os.mkdir("toy")
 
     # create synthetic catalog
     def simulator(params):
@@ -949,5 +952,3 @@ def test_loaders():
     np.testing.assert_almost_equal(theta[i1:,:], p, decimal=5)    
     
     return
-
-test_snpe()
