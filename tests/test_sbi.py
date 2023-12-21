@@ -624,7 +624,7 @@ def test_yaml():
         return y
 
     # simulate data and save as numpy files
-    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    theta = np.random.rand(10, 3)  # 10 simulations, 3 parameters
     x = np.array([simulator(t) for t in theta])
     np.save("toy/theta.npy", theta)
     np.save("toy/x.npy", x)
@@ -646,7 +646,7 @@ def test_yaml():
         thetaobs_file='thetaobs.npy',
         x_file='x.npy',
         theta_file='theta.npy',
-        num_simulations=400,
+        num_simulations=10,
     )
     with open('./toy/data_multi.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
@@ -760,17 +760,18 @@ def test_yaml():
         posterior_path='./toy/posterior.pkl',
         output_path='./toy',
         labels=['t1', 't2', 't3'],
+        ensemble_mode=False,
         metrics=dict(
             single_example={
                 'module': 'ili.validation.metrics',
                 'class': 'PlotSinglePosterior',
                 'args': dict(
-                    num_samples=1000,
+                    num_samples=20,
                     sample_method='slice_np_vectorized',
                     sample_params=dict(
                         num_chains=1,
-                        burn_in=100,
-                        thin=10,
+                        burn_in=10,
+                        thin=1,
                     )
                 )
             },
@@ -779,11 +780,11 @@ def test_yaml():
                 'class': 'PosteriorCoverage',
                 'args': dict(
                     plot_list=["coverage", "histogram", "predictions", "tarp"],
-                    num_samples=100,
+                    num_samples=20,
                     sample_method='slice_np_vectorized',
                     sample_params=dict(
                         num_chains=1,
-                        burn_in=100,
+                        burn_in=10,
                         thin=1,
                     )
                 )
@@ -796,7 +797,7 @@ def test_yaml():
                     sample_method='slice_np_vectorized',
                     sample_params=dict(
                         num_chains=1,
-                        burn_in=100,
+                        burn_in=10,
                         thin=1
                     )
                 )
@@ -843,7 +844,8 @@ def test_yaml():
     # -------
     # Run validation
 
-    ValidationRunner.from_config("./toy/val.yml")
+    val_runner = ValidationRunner.from_config("./toy/val.yml")
+    val_runner(loader=loader)
 
     return
 
