@@ -669,7 +669,7 @@ def test_yaml():
     np.save("toy/x.npy", x)
 
     # Test objects
-    StaticNumpyLoader.from_config("./toy/data.yml", stage='train')
+    StaticNumpyLoader.from_config("./toy/data.yml")
     SBIRunner.from_config("./toy/infer_snpe.yml")
     SBIRunner.from_config("./toy/infer_snle.yml")
     SBIRunner.from_config("./toy/infer_snre.yml")
