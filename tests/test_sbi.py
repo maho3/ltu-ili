@@ -122,7 +122,6 @@ def test_snpe(monkeypatch):
     )
     fig = metric(
         posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
         x=x, theta=theta
     )
 
@@ -139,7 +138,7 @@ def test_snpe(monkeypatch):
         x=x, theta=theta
     )
     
-    # repeat but save to file
+    # repeat but save to file and do tarp without bootstrapping
     metric = PosteriorCoverage(
         backend='sbi', output_path=Path('./toy'), num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
@@ -149,7 +148,7 @@ def test_snpe(monkeypatch):
     fig = metric(
         posterior=posterior,
         x_obs=x[ind], theta_obs=theta[ind],
-        x=x, theta=theta
+        x=x, theta=theta, bootstrap=False,
     )
     
     # get samples using emcee with the PosteriorSamples class
@@ -206,100 +205,125 @@ def test_snle(monkeypatch):
     monkeypatch.setattr(plt, 'show', lambda: None)
 
     # create the same synthetic catalog as the previous example
-    def simulator(params):
+    def simulator_0(params):
         # create toy simulations
         x = np.linspace(0, 10, 20)
         y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
         y += 1*np.random.randn(len(x))
         return y
+    
+    # here use only one parameter
+    def simulator_1(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x)
+        y += 1*np.random.randn(len(x))
+        return y
+    
+    for npar, simulator in zip([3, 1], [simulator_0, simulator_1]):
+        
+        print("SIMULATOR", npar)
 
-    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
-    x = np.array([simulator(t) for t in theta])
+        theta = np.atleast_2d(np.random.rand(200, npar))  # 200 simulations, npar parameters
+        x = np.array([simulator(t) for t in theta])
 
-    # make a dataloader
-    loader = NumpyLoader(x=x, theta=theta)
+        # make a dataloader
+        loader = NumpyLoader(x=x, theta=theta)
 
-    # define a prior
-    prior = ili.utils.IndependentNormal(
-        loc=[0, 0, 0], scale=[1, 1, 1], device=device)
+        # define a prior
+        prior = ili.utils.IndependentNormal(
+            loc=[0]*npar, scale=[1]*npar, device=device)
 
-    # define an inference class (we are doing amortized likelihood inference)
-    inference_class = sbi.inference.SNLE
+        # define an inference class (we are doing amortized likelihood inference)
+        inference_class = sbi.inference.SNLE
 
-    # instantiate your neural networks to be used as an ensemble
-    nets = [
-        sbi.utils.likelihood_nn(
-            model='maf', hidden_features=50, num_transforms=5),
-        sbi.utils.likelihood_nn(
-            model='made', hidden_features=50, num_transforms=5)
-    ]
+        # instantiate your neural networks to be used as an ensemble
+        nets = [
+            sbi.utils.likelihood_nn(
+                model='maf', hidden_features=50, num_transforms=5),
+            sbi.utils.likelihood_nn(
+                model='made', hidden_features=50, num_transforms=5)
+        ]
 
-    # define training arguments
-    train_args = {
-        'training_batch_size': 32,
-        'learning_rate': 1e-4,
-        'max_num_epochs': 5
-    }
+        # define training arguments
+        train_args = {
+            'training_batch_size': 32,
+            'learning_rate': 1e-4,
+            'max_num_epochs': 5
+        }
 
-    # initialize the trainer
-    runner = SBIRunner(
-        prior=prior,
-        inference_class=inference_class,
-        nets=nets,
-        device=device,
-        embedding_net=None,
-        train_args=train_args,
-        proposal=None,
-        output_path=None  # no output path, so nothing will be saved to file
-    )
+        # initialize the trainer
+        runner = SBIRunner(
+            prior=prior,
+            inference_class=inference_class,
+            nets=nets,
+            device=device,
+            embedding_net=None,
+            train_args=train_args,
+            proposal=None,
+            output_path=None  # no output path, so nothing will be saved to file
+        )
 
-    # train the model. this outputs a posterior model and training logs
-    posterior, summaries = runner(loader=loader, seed=1)
+        # train the model. this outputs a posterior model and training logs
+        posterior, summaries = runner(loader=loader, seed=1)
 
-    signatures = posterior.signatures
+        signatures = posterior.signatures
 
-    # choose a random input
-    ind = np.random.randint(len(theta))
+        # choose a random input
+        ind = np.random.randint(len(theta))
 
-    nsamples = 20
+        nsamples = 20
 
-    # generate samples from the posterior using MCMC
-    samples = posterior.sample(
-        (nsamples,), x[ind],
-        method='slice_np_vectorized', num_chains=2
-    ).detach().cpu().numpy()
+        # generate samples from the posterior using MCMC
+        samples = posterior.sample(
+            (nsamples,), x[ind],
+            method='slice_np_vectorized', num_chains=2
+        ).detach().cpu().numpy()
 
-    # calculate the potential (prop. to log_prob) for each sample
-    log_prob = posterior.log_prob(
-        nsamples,
-        x[ind]
-    ).detach().cpu().numpy()
+        # calculate the potential (prop. to log_prob) for each sample
+        log_prob = posterior.log_prob(
+            nsamples,
+            x[ind]
+        ).detach().cpu().numpy()
 
-    # use ltu-ili's built-in validation metrics to plot the posterior
-    metric = PlotSinglePosterior(
-        backend='sbi', output_path=None, num_samples=nsamples,
-        sample_method='slice_np_vectorized',
-        sample_params={'num_chains': 2, 'burn_in': 1, 'thin': 1},
-        labels=[f'$\\theta_{i}$' for i in range(3)]
-    )
-    fig = metric(
-        posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
-        x=x, theta=theta
-    )
+        # use ltu-ili's built-in validation metrics to plot the posterior
+        metric = PlotSinglePosterior(
+            backend='sbi', output_path=Path('./toy'), num_samples=nsamples,
+            sample_method='slice_np_vectorized',
+            sample_params={'num_chains': 2, 'burn_in': 1, 'thin': 1},
+            labels=[f'$\\theta_{i}$' for i in range(npar)],
+            seed=1, save_samples=True,
+        )
+        fig = metric(
+            posterior=posterior,
+            x_obs=x[ind], theta_obs=theta[ind],
+            x=x, theta=theta
+        )
 
-    metric = PlotSinglePosterior(
-        backend='sbi', output_path=None, num_samples=nsamples,
-        sample_method='vi',
-        sample_params={'dist': 'maf',
-                       'n_particles': 32, 'learning_rate': 0.01},
-        labels=[f'$\\theta_{i}$' for i in range(3)]
-    )
-    fig = metric(
-        posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
-        x=x, theta=theta
-    )
+        metric = PlotSinglePosterior(
+            backend='sbi', output_path=None, num_samples=nsamples,
+            sample_method='vi',
+            sample_params={'dist': 'maf',
+                           'n_particles': 32, 'learning_rate': 0.01},
+            labels=[f'$\\theta_{i}$' for i in range(npar)]
+        )
+        fig = metric(
+            posterior=posterior,
+            x_obs=x[ind], theta_obs=theta[ind],
+            x=x, theta=theta
+        )
+        
+        if npar == 1:
+            metric = PosteriorCoverage(
+                backend='sbi', output_path=None, num_samples=nsamples,
+                sample_method='vi', labels=[f'$\\theta_{i}$' for i in range(npar)],
+                plot_list=["predictions", "coverage", "histogram"]
+            )
+            metric(
+                posterior=posterior,
+                x_obs=x[ind], theta_obs=theta[ind],
+                x=x[:2], theta=theta[:2]
+            )
 
     return
 

@@ -310,6 +310,7 @@ def test_yaml():
             'class': 'DelfiWrapper',
             'kwargs': {'nwalkers': 20},
             'nets': config_ndes,
+            'name': 'test_pydelfi',
         },
         train_args={'batch_size': 32, 'epochs': 5},
         output_path='toy_pydelfi',
