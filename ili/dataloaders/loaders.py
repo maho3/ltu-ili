@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 import json
 import pandas as pd
+import logging
+import os
 from ili.utils import Dataset
 
 try:
@@ -251,8 +253,13 @@ class SBISimulator(_BaseLoader):
         self.xobs = np.load(self.xobs_path)
         self.thetaobs = np.load(self.thetaobs_path)
 
-        self.theta = None
-        self.x = None
+        if os.path.isfile(self.x_path) and os.path.isfile(self.theta_path):
+            logging.info("Loading initial data from file")
+            self.theta = np.load(self.theta_path)
+            self.x = np.load(self.x_path)
+        else:
+            self.theta = None
+            self.x = None
 
     def __len__(self) -> int:
         """Returns the total number of data points produced when called

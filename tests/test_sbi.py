@@ -100,7 +100,12 @@ def test_snpe(monkeypatch):
 
     # choose a random input
     ind = np.random.randint(len(theta))
-
+    
+    # Check the forward of the embedding network
+    r = embedding_net.forward(torch.FloatTensor(x))
+    unittest.TestCase().assertIsInstance(r, torch.Tensor)
+    unittest.TestCase().assertEqual(r.shape[0], x.shape[0])
+    
     nsamples = 20
 
     # generate samples from the posterior using accept/reject sampling
@@ -147,7 +152,7 @@ def test_snpe(monkeypatch):
         x=x, theta=theta
     )
     
-    # # get samples using emcee with the PosteriorSamples class
+    # get samples using emcee with the PosteriorSamples class
     nsamp = 2
     nchain = 6
     ntest = 1
@@ -380,8 +385,8 @@ def test_multiround():
                               'xobs.npy',
                               'thetaobs.npy',
                               './toy',
-                              'x.npy',
-                              'theta.npy',
+                              'x_mr.npy',
+                              'theta_mr.npy',
                               400,
                               simulator,
                               )
@@ -585,6 +590,20 @@ def test_yaml():
 
     if not os.path.isdir("toy"):
         os.mkdir("toy")
+        
+    # Run for single round
+    def simulator(params):
+        # create toy simulations
+        x = np.arange(10)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += np.random.randn(len(x))
+        return y
+
+    # simulate data and save as numpy files
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+    np.save("toy/theta.npy", theta)
+    np.save("toy/x.npy", x)
 
     # Yaml file for data - standard
     data = dict(
@@ -608,9 +627,16 @@ def test_yaml():
     with open('./toy/data_multi.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
-    # Yaml file for infer - standard
+    # Yaml file for infer - standard    
     data = dict(
         prior={'module': 'ili.utils',
+               'class': 'IndependentNormal',
+               'args': dict(
+                   loc=[0.5, 0.5, 0.5],
+                   scale=[0.5, 0.5, 0.5],
+               ),
+               },
+        proposal={'module': 'ili.utils',
                'class': 'IndependentNormal',
                'args': dict(
                    loc=[0.5, 0.5, 0.5],
@@ -622,13 +648,22 @@ def test_yaml():
                'nets': [
                    dict(model='maf', hidden_features=50, num_transforms=5),
                    dict(model='mdn', hidden_features=50, num_transforms=2)],
+               'name': 'test_snpe'
                },
         train_args=dict(
             training_batch_size=32,
             learning_rate=0.001,
         ),
+        embedding_net={'module':'ili.embedding',
+                       'class':'FCN',
+                       'args':{
+                            'n_data': x.shape[1],
+                            'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
+                            'act_fn': "SiLU",
+                       },
+        },
         device='cpu',
-        output_path='./toy'
+        output_path='./toy',
     )
     with open('./toy/infer_snpe.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
@@ -748,20 +783,6 @@ def test_yaml():
         yaml.dump(data, outfile, default_flow_style=False)
 
     # -------
-    # Run for single round
-
-    def simulator(params):
-        # create toy simulations
-        x = np.arange(10)
-        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
-        y += np.random.randn(len(x))
-        return y
-
-    # simulate data and save as numpy files
-    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
-    x = np.array([simulator(t) for t in theta])
-    np.save("toy/theta.npy", theta)
-    np.save("toy/x.npy", x)
 
     # Test objects
     StaticNumpyLoader.from_config("./toy/data.yml")
