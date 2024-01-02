@@ -192,13 +192,13 @@ class SBIRunner(_BaseRunner):
         """
         # determine the correct model type
         def _build_model(embedding_net, model_args):
-            if "SNPE" in class_name:
+            if "NPE" in class_name:
                 return sbi.utils.posterior_nn(
                     embedding_net=embedding_net, **model_args)
-            elif "SNLE" in class_name or "MNLE" in class_name:
+            elif "NLE" in class_name:
                 return sbi.utils.likelihood_nn(
                     embedding_net=embedding_net, **model_args)
-            elif "SNRE" in class_name or "BNRE" in class_name:
+            elif "NRE" in class_name:
                 return sbi.utils.classifier_nn(
                     embedding_net_x=embedding_net, **model_args)
             else:
@@ -209,70 +209,39 @@ class SBIRunner(_BaseRunner):
         return [_build_model(embedding_net, model_args)
                 for model_args in posteriors_config]
 
-    def _setup_SNPE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
-        """Instantiate and train an amoritized posterior SNPE model."""
-        model = self.inference_class(
-            prior=self.prior,
-            density_estimator=net,
-            device=self.device,
-        )
-        model = model.append_simulations(theta, x, proposal=self.proposal)
-        return model
-
-    def _setup_SNLE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
-        """Instantiate and train a likelihood estimation SNLE model."""
-        model = self.inference_class(
-            prior=self.prior,
-            density_estimator=net,
-            device=self.device,
-        )
-        model = model.append_simulations(theta, x)
-        return model
-
-    def _setup_SNRE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
-        """Instantiate and train a ratio estimation SNRE model."""
-        model = self.inference_class(
-            prior=self.prior,
-            classifier=net,
-            device=self.device,
-        )
-        model = model.append_simulations(theta, x)
-        return model
-
-    def __call__(self, loader: _BaseLoader, seed: int = None):
-        """Train your posterior and save it to file
-
-        Args:
-            loader (_BaseLoader): dataloader with stored data-parameter pairs
-            seed (int): torch seed for reproducibility
-        """
-        t0 = time.time()
-        x = torch.Tensor(loader.get_all_data()).to(self.device)
-        theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
-
-        logging.info(f"MODEL INFERENCE CLASS: {self.class_name}")
-
-        # instantiate embedding_net architecture, if necessary
-        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
-
-        # setup and train each architecture
-        posteriors, summaries = [], []
-        for n, net in enumerate(self.nets):
-            logging.info(
-                f"Training model {n+1} out of {len(self.nets)}"
-                " ensemble models"
+    def _setup_engine(self, net: nn.Module):
+        """Instantiate an sbi inference engine (SNPE/SNLE/SNRE)."""
+        if ("NPE" in self.class_name) or ("NLE" in self.class_name):
+            return self.inference_class(
+                prior=self.prior,
+                density_estimator=net,
+                device=self.device,
             )
-            # set seed for reproducibility
-            if seed is not None:
-                torch.manual_seed(seed)
-            # setup training class
-            if "SNPE" in self.class_name:
-                model = self._setup_SNPE(net, theta, x)
-            elif "SNLE" in self.class_name or "MNLE" in self.class_name:
-                model = self._setup_SNLE(net, theta, x)
-            elif "SNRE" in self.class_name or "BNRE" in self.class_name:
-                model = self._setup_SNRE(net, theta, x)
+        elif ("NRE" in self.class_name):
+            return self.inference_class(
+                prior=self.prior,
+                classifier=net,
+                device=self.device,
+            )
+        else:
+            raise ValueError(
+                f"Model class {self.class_name} not supported. "
+                "Please choose one of SNPE, SNLE, or SNRE."
+            )
+
+    def _train_round(self, models: List[NeuralInference],
+                     x: torch.Tensor, theta: torch.Tensor,
+                     proposal: Optional[Independent]):
+        """Train a single round of inference for an ensemble of models."""
+        posteriors, summaries = [], []
+        for i, model in enumerate(models):
+            logging.info(f"Training model {i+1} / {len(models)}.")
+
+            # append simulations
+            if ("NPE" in self.class_name):
+                model = model.append_simulations(theta, x, proposal=proposal)
+            else:
+                model = model.append_simulations(theta, x)
 
             # train
             _ = model.train(**self.train_args)
@@ -285,8 +254,7 @@ class SBIRunner(_BaseRunner):
         val_logprob = torch.tensor(
             [float(x["best_validation_log_prob"][0]) for x in summaries]
         ).to(self.device)
-        # Subtract maximum loss to improve numerical stability of exp
-        # (cancels in next line)
+        # Exponentiate with numerical stability
         weights = torch.exp(val_logprob - val_logprob.max())
         weights /= weights.sum()
 
@@ -295,20 +263,63 @@ class SBIRunner(_BaseRunner):
             weights=weights,
             theta_transform=posteriors[0].theta_transform
         )  # raises warning due to bug in sbi
+
+        # record the name of the ensemble
         posterior_ensemble.name = self.name
         posterior_ensemble.signatures = self.signatures
 
+        return posterior_ensemble, summaries
+
+    def _save_models(self, posterior_ensemble: NeuralPosteriorEnsemble,
+                     summaries: List[Dict]):
+        """Save models to file."""
+
+        logging.info(f"Saving model to {self.output_path}")
+        str_p = self.name + "posterior.pkl"
+        str_s = self.name + "summary.json"
+        with open(self.output_path / str_p, "wb") as handle:
+            pickle.dump(posterior_ensemble, handle)
+        with open(self.output_path / str_s, "w") as handle:
+            json.dump(summaries, handle)
+
+    def __call__(self, loader: _BaseLoader, seed: int = None):
+        """Train your posterior and save it to file
+
+        Args:
+            loader (_BaseLoader): dataloader with stored data-parameter pairs
+            seed (int): torch seed for reproducibility
+        """
+
+        # set seed for reproducibility
+        if seed is not None:
+            torch.manual_seed(seed)
+
+        # instantiate embedding_net architecture, if necessary
+        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
+            self.embedding_net.initalize_model(n_input=x.shape[-1])
+
+        # setup training engines for each model in the ensemble
+        logging.info(f"MODEL INFERENCE CLASS: {self.class_name}")
+        models = [self._setup_engine(net) for net in self.nets]
+
+        # load single-round data
+        x = torch.Tensor(loader.get_all_data()).to(self.device)
+        theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
+
+        # train a single round of inference
+        t0 = time.time()
+        posterior_ensemble, summaries = self._train_round(
+            models=models,
+            x=x,
+            theta=theta,
+            proposal=self.proposal,
+        )
+        logging.info(f"It took {time.time() - t0} seconds to train models.")
+
         # save if output path is specified
         if self.output_path is not None:
-            str_p = self.name + "posterior.pkl"
-            str_s = self.name + "summary.json"
-            with open(self.output_path / str_p, "wb") as handle:
-                pickle.dump(posterior_ensemble, handle)
-            with open(self.output_path / str_s, "w") as handle:
-                json.dump(summaries, handle)
+            self._save_models(posterior_ensemble, summaries)
 
-        logging.info(
-            f"It took {time.time() - t0} seconds to train all models.")
         return posterior_ensemble, summaries
 
 
