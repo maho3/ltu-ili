@@ -32,16 +32,16 @@ class _BaseMetric(ABC):
     """Base class for calculating validation metrics.
 
     Args:
-        output_path (Path): path where to store outputs
+        out_dir (Path): path where to store outputs
     """
 
     def __init__(
         self,
-        output_path: Path,
+        out_dir: Path,
         labels: Optional[List[str]] = None,
     ):
         """Construct the base metric."""
-        self.output_path = output_path
+        self.out_dir = out_dir
         self.labels = labels
 
 
@@ -49,7 +49,7 @@ class _SampleBasedMetric(_BaseMetric):
     """Base class for metrics that require sampling from the posterior.
 
     Args:
-        output_path (Path): The path to save the output.
+        out_dir (Path): The path to save the output.
         num_samples (int): The number of samples to generate.
         sample_method (str, optional): The method used for sampling. Defaults to 'emcee'.
         sample_params (dict, optional): Additional parameters for the sampling method. Defaults to {}.
@@ -58,13 +58,13 @@ class _SampleBasedMetric(_BaseMetric):
 
     def __init__(
         self,
-        output_path: Path,
+        out_dir: Path,
         num_samples: int,
         sample_method: str = 'emcee',
         sample_params: dict = {},
         labels: Optional[List[str]] = None,
     ):
-        super().__init__(output_path, labels)
+        super().__init__(out_dir, labels)
         self.num_samples = num_samples
         self.sample_method = sample_method
         self.sample_params = sample_params
@@ -119,7 +119,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
     Args:
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
-        output_path (Path): path where to store outputs
+        out_dir (Path): path where to store outputs
     """
 
     def __init__(self, save_samples: bool = False, seed: int = None, **kwargs):
@@ -181,15 +181,15 @@ class PlotSinglePosterior(_SampleBasedMetric):
                         fig.axes[i, j].plot(theta_fid[j], theta_fid[i], "ro")
 
         # save
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig
-        filepath = self.output_path / (signature + "plot_single_posterior.jpg")
+        filepath = self.out_dir / (signature + "plot_single_posterior.jpg")
         logging.info(f"Saving single posterior plot to {filepath}...")
         fig.savefig(filepath)
 
         # save single posterior samples if asked
         if self.save_samples:
-            filepath = self.output_path / (signature + "single_samples.npy")
+            filepath = self.out_dir / (signature + "single_samples.npy")
             logging.info(f"Saving single posterior samples to {filepath}...")
             np.save(filepath, samples)
 
@@ -260,9 +260,9 @@ class PosteriorSamples(_SampleBasedMetric):
         # Sample the full dataset
         posterior_samples = self._sample_dataset(posterior, x)
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return posterior_samples
-        filepath = self.output_path / (signature + "posterior_samples.npy")
+        filepath = self.out_dir / (signature + "posterior_samples.npy")
         logging.info(f"Saving posterior samples to {filepath}...")
         np.save(filepath, posterior_samples)
         return posterior_samples
@@ -280,7 +280,7 @@ class PosteriorCoverage(PosteriorSamples):
     Args:
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
-        output_path (Path): path where to store outputs
+        out_dir (Path): path where to store outputs
         plot_list (list): list of plot types to save
         save_samples (bool): whether to save posterior samples
     """
@@ -346,9 +346,9 @@ class PosteriorCoverage(PosteriorSamples):
             axis.axhline(navg - navg ** 0.5, color='k', ls="--")
             axis.axhline(navg + navg ** 0.5, color='k', ls="--")
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig
-        filepath = self.output_path / (signature + "ranks_histogram.jpg")
+        filepath = self.out_dir / (signature + "ranks_histogram.jpg")
         logging.info(f"Saving ranks histogram to {filepath}...")
         fig.savefig(filepath)
         return fig
@@ -400,9 +400,9 @@ class PosteriorCoverage(PosteriorSamples):
         for axis in ax:
             axis.grid(visible=True)
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig
-        filepath = self.output_path / (signature + "plot_coverage.jpg")
+        filepath = self.out_dir / (signature + "plot_coverage.jpg")
         logging.info(f"Saving coverage plot to {filepath}...")
         fig.savefig(filepath)
         return fig
@@ -443,9 +443,9 @@ class PosteriorCoverage(PosteriorSamples):
             axs[j].set_xlabel('True')
         axs[0].set_ylabel('Predicted')
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig
-        filepath = self.output_path / (signature + "plot_predictions.jpg")
+        filepath = self.out_dir / (signature + "plot_predictions.jpg")
         fig.savefig(filepath)
         return fig
 
@@ -505,9 +505,9 @@ class PosteriorCoverage(PosteriorSamples):
         ax.set_ylabel("Expected Coverage")
         ax.set_xlabel("Credibility Level")
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig
-        filepath = self.output_path / (signature + "plot_TARP.jpg")
+        filepath = self.out_dir / (signature + "plot_TARP.jpg")
         fig.savefig(filepath)
         return fig
 
@@ -557,16 +557,16 @@ class PosteriorCoverage(PosteriorSamples):
                      f"Median: {median:.3e}", fontsize=14)
         ax.legend()
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig, logprobs
 
         # Save the logprobs
-        filepath = self.output_path / (signature + "true_logprobs.npy")
+        filepath = self.out_dir / (signature + "true_logprobs.npy")
         logging.info(f"Saving true logprobs to {filepath}...")
         np.save(filepath, logprobs)
 
         # Save the plot
-        filepath = self.output_path / (signature + "plot_true_logprobs.jpg")
+        filepath = self.out_dir / (signature + "plot_true_logprobs.jpg")
         logging.info(f"Saving true logprobs plot to {filepath}...")
         fig.savefig(filepath)
         return fig, logprobs

@@ -1,5 +1,5 @@
-meta_path: './toy/quijote_pydelfi_posterior.pkl'
-output_path: 'toy'
+posterior_file: './toy/quijote_pydelfi_posterior.pkl'
+out_dir: 'toy'
 labels: [ 'Omega_m', 'h', 'sigma_8' ]
 
 metrics:

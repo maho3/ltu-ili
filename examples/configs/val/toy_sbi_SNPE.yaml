@@ -1,5 +1,5 @@
-posterior_path: './toy/toy_SNPE_posterior.pkl'  # Path to posterior model
-output_path: './toy'  # Where to save the metrics
+posterior_file: 'toy_SNPE_posterior.pkl'  # Path to posterior model
+out_dir: './toy'  # Where to save the metrics
 style_path: './style.mcstyle'  # Optional matplotlib style file
 labels: ['t1', 't2', 't3']  # Names of the parameters
 

@@ -290,7 +290,7 @@ def test_yaml():
 
     # Yaml file for validation
     data = dict(
-        meta_path='./toy_pydelfi/posterior.pkl',
+        posterior_file='posterior.pkl',
         output_path='./toy_pydelfi/',
         labels=['t1', 't2', 't3'],
         metrics={

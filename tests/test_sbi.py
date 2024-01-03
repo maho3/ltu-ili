@@ -106,7 +106,7 @@ def test_snpe(monkeypatch):
 
     # use ltu-ili's built-in validation metrics to plot the posterior
     metric = PlotSinglePosterior(
-        output_path=None, num_samples=nsamples,
+        out_dir=None, num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)]
     )
     fig = metric(
@@ -118,7 +118,7 @@ def test_snpe(monkeypatch):
     # calculate and plot the rank statistics + TARP to describe univariate
     # posterior coverage
     metric = PosteriorCoverage(
-        output_path=None, num_samples=nsamples,
+        out_dir=None, num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
         plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"]
     )
@@ -208,7 +208,7 @@ def test_snle(monkeypatch):
 
     # use ltu-ili's built-in validation metrics to plot the posterior
     metric = PlotSinglePosterior(
-        output_path=None, num_samples=nsamples,
+        out_dir=None, num_samples=nsamples,
         sample_method='slice_np_vectorized',
         sample_params={'num_chains': 2, 'burn_in': 1, 'thin': 1},
         labels=[f'$\\theta_{i}$' for i in range(3)]
@@ -220,7 +220,7 @@ def test_snle(monkeypatch):
     )
 
     metric = PlotSinglePosterior(
-        output_path=None, num_samples=nsamples,
+        out_dir=None, num_samples=nsamples,
         sample_method='vi',
         sample_params={'dist': 'maf',
                        'n_particles': 32, 'learning_rate': 0.01},
@@ -597,8 +597,8 @@ def test_yaml():
 
     # Yaml file for validation
     data = dict(
-        posterior_path='./toy/posterior.pkl',
-        output_path='./toy',
+        posterior_file='posterior.pkl',
+        out_dir='./toy',
         labels=['t1', 't2', 't3'],
         metrics=dict(
             single_example={

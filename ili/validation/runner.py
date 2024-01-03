@@ -35,23 +35,23 @@ class ValidationRunner:
             the test set
         backend (str): the backend for the posterior models
             ('sbi' or 'pydelfi')
-        output_path (Path): path where to store outputs
+        out_dir (Path): path where to store outputs
     """
 
     def __init__(
         self,
         posterior: ModelClass,  # see imports
         metrics: List[_BaseMetric],
-        output_path: Path,
+        out_dir: Path,
         ensemble_mode: Optional[bool] = True,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = [],
     ):
         self.posterior = posterior
         self.metrics = metrics
-        self.output_path = output_path
-        if self.output_path is not None:
-            self.output_path.mkdir(parents=True, exist_ok=True)
+        self.out_dir = out_dir
+        if self.out_dir is not None:
+            self.out_dir.mkdir(parents=True, exist_ok=True)
         self.ensemble_mode = ensemble_mode
         self.name = name
         self.signatures = signatures
@@ -69,18 +69,20 @@ class ValidationRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
 
+        out_dir = Path(config["out_dir"])
+
         global backend
         if backend == 'torch':
             posterior_ensemble = cls.load_posterior_sbi(
-                config["posterior_path"])
+                out_dir / config["posterior_file"])
             signatures = posterior_ensemble.signatures
         elif backend == 'tensorflow':
-            posterior_ensemble = DelfiWrapper.load_engine(config["meta_path"])
+            posterior_ensemble = DelfiWrapper.load_engine(
+                out_dir / config["posterior_file"])
             signatures = [""]*posterior_ensemble.num_components
         else:
             raise NotImplementedError
         name = posterior_ensemble.name
-        output_path = Path(config["output_path"])
         if "style_path" in config:
             mpl.style.use(config["style_path"])
         if "ensemble_mode" in config:
@@ -99,14 +101,14 @@ class ValidationRunner:
 
         metrics = {}
         for key, value in config["metrics"].items():
-            value["args"]["output_path"] = output_path
+            value["args"]["out_dir"] = out_dir
             value["args"]["labels"] = config["labels"]
             metrics[key] = load_from_config(value)
 
         return cls(
             posterior=posterior_ensemble,
             metrics=metrics,
-            output_path=output_path,
+            out_dir=out_dir,
             ensemble_mode=ensemble_mode,
             name=name,
             signatures=signatures,
