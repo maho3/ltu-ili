@@ -30,9 +30,9 @@ class DelfiRunner:
         config_ndes: List[Dict],
         prior: Any,
         inference_class: Any,
-        engine_kwargs: Dict,
-        train_args: Dict,
         out_dir: Path,
+        engine_kwargs: Dict = {},
+        train_args: Dict = {},
         name: Optional[str] = ""
     ):
         self.config_ndes = config_ndes
@@ -124,7 +124,6 @@ class DelfiRunner:
             graph_restore_filename="graph_checkpoint",
             restore_filename="temp.pkl",
             restore=False, save=True,
-            nwalkers=1,
             **self.engine_kwargs,
         )
         posterior.load_simulations(x, theta)
