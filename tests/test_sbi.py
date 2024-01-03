@@ -443,6 +443,14 @@ def test_multiround():
         'max_num_epochs': 5,
         'num_round': 2,
     }
+    
+    # define an embedding network
+    embedding_args = {
+        'n_data': x.shape[1],
+        'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
+        'act_fn': "SiLU"
+    }
+    embedding_net = FCN(**embedding_args)
 
     # initialize the trainer
     runner = SBIRunnerSequential(
@@ -450,7 +458,7 @@ def test_multiround():
         inference_class=inference_class,
         nets=nets,
         device=device,
-        embedding_net=nn.Identity(),
+        embedding_net=embedding_net,
         train_args=train_args,
         output_path='./toy',
     )
@@ -606,6 +614,7 @@ def test_custom_priors():
     except Exception as e:
         success = True
     unittest.TestCase().assertTrue(success)
+    _TruncatedStandardNormal(0.0, 1.0)  # bounds are numbers
     
 
 def test_yaml():
@@ -806,6 +815,10 @@ def test_yaml():
     )
     with open('./toy/val.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
+        
+    data['backend'] = 'incorrectmodule'
+    with open('./toy/val_incorrect_module.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
     # -------
 
@@ -846,6 +859,13 @@ def test_yaml():
 
     val_runner = ValidationRunner.from_config("./toy/val.yml")
     val_runner(loader=loader)
+    
+    unittest.TestCase().assertRaises(
+        NotImplementedError,
+        ValidationRunner.from_config,
+        './toy/val_incorrect_module.yml'
+    )
+    
 
     return
 

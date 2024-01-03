@@ -6,14 +6,16 @@ from pathlib import Path
 import yaml
 import pydelfi
 import ili
-from ili.validation.metrics import PlotSinglePosterior
+from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
 from ili.inference.pydelfi_wrappers import DelfiWrapper
 from ili.validation.runner import ValidationRunner
 from ili.inference.runner_pydelfi import DelfiRunner
 from ili.dataloaders import StaticNumpyLoader, NumpyLoader
+from ili.embedding import FCN
 import os
 import numpy as np
 from numpy import testing
+import unittest
 
 
 def test_toy():
@@ -106,8 +108,9 @@ def test_toy():
         }
     }
     metrics = {'single_example': PlotSinglePosterior(**args)}
+    posterior = DelfiWrapper.load_engine('./toy_pydelfi/posterior.pkl')
     val_runner = ValidationRunner(
-        posterior=DelfiWrapper.load_engine('./toy_pydelfi/posterior.pkl'),
+        posterior=posterior,
         metrics=metrics,
         backend='pydelfi',
         output_path=Path('./toy_pydelfi'),
@@ -124,6 +127,21 @@ def test_toy():
         burn_in_chain=20,
     )
     assert samples.shape[1] == len(theta0)
+    
+    # TARP not yet available with pydelfi
+    metric = PosteriorCoverage(
+        backend='pydelfi', output_path=Path('./toy_pydelfi'), num_samples=2,
+        sample_method='emcee', labels=[f'$\\theta_{i}$' for i in range(3)],
+        plot_list=["tarp"],
+        sample_params={'num_chains':6},
+    )
+    unittest.TestCase().assertRaises(
+        NotImplementedError,
+        metric,
+        posterior=posterior,
+        x=x0, 
+        theta=theta0
+    )
 
     return
 
@@ -345,4 +363,20 @@ def test_yaml():
     runner(loader=all_loader)
     ValidationRunner.from_config("./toy_pydelfi/val.yml")
 
+    return
+
+
+def test_embedding():
+    """Test that we can produce an embedding network with pydelfi
+    """
+    
+    # define an embedding network
+    ndata = 10
+    embedding_args = {
+        'n_data': ndata,
+        'n_hidden': [ndata, ndata, ndata],
+        'act_fn': "SiLU"
+    }
+    embedding_net = FCN(**embedding_args)
+    
     return
