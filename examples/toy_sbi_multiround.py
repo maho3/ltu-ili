@@ -6,9 +6,9 @@ from ili.validation.runner import ValidationRunner
 
 
 def simulator(params):
-    # create toy 'simulations'
+    # create toy simulations
     x = np.arange(10)
-    y = params @ np.array([np.sin(x), x ** 2, x])
+    y = params @ np.array([3*np.sin(x), x ** 2, -2*x])
     y += np.random.randn(len(params), len(x))
     return y
 
