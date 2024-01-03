@@ -314,6 +314,23 @@ def test_snle(monkeypatch):
         )
         
         if npar == 1:
+            # Cannot sample directly for snle
+            metric = PosteriorCoverage(
+                backend='sbi', output_path=None, num_samples=nsamples,
+                sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(npar)],
+                plot_list=["predictions", "coverage", "histogram"]
+            )
+            unittest.TestCase().assertRaises(
+                ValueError,
+                metric,
+                posterior=posterior,
+                x_obs=x[ind], 
+                theta_obs=theta[ind],
+                x=x[:2], 
+                theta=theta[:2]
+            )
+            
+            # Can sample with vi for snle
             metric = PosteriorCoverage(
                 backend='sbi', output_path=None, num_samples=nsamples,
                 sample_method='vi', labels=[f'$\\theta_{i}$' for i in range(npar)],
@@ -776,7 +793,7 @@ def test_yaml():
                 'class': 'PlotSinglePosterior',
                 'args': dict(
                     num_samples=20,
-                    sample_method='slice_np_vectorized',
+                    sample_method='direct',
                     sample_params=dict(
                         num_chains=1,
                         burn_in=10,
@@ -790,7 +807,7 @@ def test_yaml():
                 'args': dict(
                     plot_list=["coverage", "histogram", "predictions", "tarp"],
                     num_samples=20,
-                    sample_method='slice_np_vectorized',
+                    sample_method='direct',
                     sample_params=dict(
                         num_chains=1,
                         burn_in=10,
@@ -802,11 +819,11 @@ def test_yaml():
                 'module': 'ili.validation.metrics',
                 'class': 'PosteriorSamples',
                 'args': dict(
-                    num_samples=10,
-                    sample_method='slice_np_vectorized',
+                    num_samples=1,
+                    sample_method='vi',
                     sample_params=dict(
                         num_chains=1,
-                        burn_in=10,
+                        burn_in=1,
                         thin=1
                     )
                 )
