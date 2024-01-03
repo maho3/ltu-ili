@@ -307,20 +307,21 @@ class SBISimulator(NumpyLoader):
         return theta, x
 
 
-class SummarizerDatasetLoader(_BaseLoader):
+class SummarizerDatasetLoader(NumpyLoader):
     """Class to load netCF files of data and a csv of parameters
     Basically a wrapper for ili-summarizer's Dataset, with added
     functionality for loading parameters
 
-
     Args:
+        in_dir (str): path to data directory
         stage (str): whether to load train, test or val data
-        data_dir (str): path to data directory
-        data_root_file (str): root of data files
-        param_file (str): parameter file name
+        x_root (str): root of data files
+        theta_file (str): parameter file name
         train_test_split_file (str): file name where train, test, val
             split idx are stored
         param_names (List[str]): parameters to fit
+        xobs_file (Optional[str]): filename used for observed x values
+        thetafid_file (Optional[str]): filename used for fiducial parameters
 
     Raises:
         Exception: won't work when data and parameters don't have
@@ -329,30 +330,45 @@ class SummarizerDatasetLoader(_BaseLoader):
 
     def __init__(
         self,
+        in_dir: str,
         stage: str,
-        data_dir: str,
-        data_root_file: str,
-        param_file: str,
+        x_root: str,
+        theta_file: str,
         train_test_split_file: str,
         param_names: List[str],
+        xobs_file: Optional[str] = None,
+        thetafid_file: Optional[str] = None
     ):
-        self.data_dir = Path(data_dir)
+        self.in_dir = Path(in_dir)
         self.nodes = self.get_nodes_for_stage(
             stage=stage, train_test_split_file=train_test_split_file
         )
-        self.data = Dataset(
+        self.x = Dataset(
             nodes=self.nodes,
-            path_to_data=self.data_dir,
-            root_file=data_root_file,
+            path_to_data=self.in_dir,
+            root_file=x_root,
         )
         self.theta = self.load_parameters(
-            param_file=param_file,
+            param_file=theta_file,
             nodes=self.nodes,
             param_names=param_names,
         )
-        if len(self.data) != len(self.theta):
+        if len(self.x) != len(self.theta):
             raise Exception(
                 "Stored data and parameters are not of same length.")
+
+        if xobs_file is None:
+            self.xobs_path = None
+            self.xobs = None
+        else:
+            self.xobs_path = self.in_dir / xobs_file
+            self.xobs = np.load(self.xobs_path)
+        if thetafid_file is None:
+            self.thetafid_path = None
+            self.thetafid = None
+        else:
+            self.thetafid_path = self.in_dir / thetafid_file
+            self.thetafid = np.load(self.thetafid_path)
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
@@ -368,15 +384,7 @@ class SummarizerDatasetLoader(_BaseLoader):
         Returns:
             np.array: data
         """
-        return self.data.load().reshape((len(self), -1))
-
-    def get_all_parameters(self):
-        """Returns all the loaded parameters
-
-        Returns:
-            np.array: parameters
-        """
-        return self.theta
+        return self.x.load().reshape((len(self), -1))
 
     def get_nodes_for_stage(
             self, stage: str,
@@ -391,7 +399,7 @@ class SummarizerDatasetLoader(_BaseLoader):
         Returns:
             List[int]: list of idx for stage
         """
-        with open(self.data_dir / train_test_split_file) as f:
+        with open(self.in_dir / train_test_split_file) as f:
             train_test_split = json.load(f)
         return train_test_split[stage]
 
@@ -409,7 +417,7 @@ class SummarizerDatasetLoader(_BaseLoader):
             np.array: array of parameters
         """
         theta = pd.read_csv(
-            self.data_dir / param_file, sep=" ", skipinitialspace=True
+            self.in_dir / param_file, sep=" ", skipinitialspace=True
         ).iloc[nodes]
         return theta[param_names].values
 
