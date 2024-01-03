@@ -145,9 +145,8 @@ class ValidationRunner:
         # load data
         x_test = loader.get_all_data()
         theta_test = loader.get_all_parameters()
-        if hasattr(loader, 'simulate'):
-            x_obs = loader.get_obs_data()
-            theta_fid = loader.get_fid_parameters()
+        x_obs = loader.get_obs_data()
+        theta_fid = loader.get_fid_parameters()
 
         if ((not self.ensemble_mode) and (self.backend == 'sbi') and
                 isinstance(self.posterior, NeuralPosteriorEnsemble)):
