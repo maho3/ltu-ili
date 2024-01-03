@@ -61,17 +61,21 @@ class ValidationRunner:
         self.signatures = signatures
 
     @classmethod
-    def from_config(cls, config_path) -> "ValidationRunner":
+    def from_config(cls, config_path, **kwargs) -> "ValidationRunner":
         """Create a validation runner from a yaml config file
 
         Args:
-            config_path (Path, optional): path to config file.
+            config_path (Path): path to config file.
+            **kwargs: optional keyword arguments to overload config file
         Returns:
             ValidationRunner: the validation runner specified by the config
                 file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
+
+        # optionally overload config file with kwargs
+        config.update(kwargs)
 
         out_dir = Path(config["out_dir"])
 

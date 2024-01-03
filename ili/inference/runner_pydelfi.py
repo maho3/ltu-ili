@@ -46,17 +46,20 @@ class DelfiRunner:
         self.name = name
 
     @classmethod
-    def from_config(cls, config_path) -> "DelfiRunner":
+    def from_config(cls, config_path: Path, **kwargs) -> "DelfiRunner":
         """Create an sbi runner from a yaml config file
 
         Args:
             config_path (Path, optional): path to config file.
-                Defaults to default_config.
+            **kwargs: optional keyword arguments to overload config file
         Returns:
             DelfiRunner: the pyDELFI runner specified by the config file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
+
+        # optionally overload config with kwargs
+        config.update(kwargs)
 
         # currently, all arguments of pyDELFI priors must be np.arrays
         for k, v in config["prior"]["args"].items():

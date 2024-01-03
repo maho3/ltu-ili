@@ -19,23 +19,22 @@ except ModuleNotFoundError:
 
 class _BaseLoader(ABC):
     @classmethod
-    def from_config(
-        cls,
-        config_path: Path,
-        stage: str = None
-    ) -> "_BaseLoader":
+    def from_config(cls, config_path: Path, **kwargs) -> "_BaseLoader":
         """Create a data loader from a yaml config file
 
         Args:
             config_path (Path): path to config file.
-            stage (str, optional): Data split to load (train, val, or test)
+            **kwargs: optional keyword arguments to overload config file
+
         Returns:
             BaseLoader: the sbi runner specified by the config file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
-        if stage:
-            config['stage'] = stage
+
+        # optionally overload config file with kwargs
+        config.update(kwargs)
+
         return cls(**config)
 
     @abstractmethod

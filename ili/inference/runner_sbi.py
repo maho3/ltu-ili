@@ -108,16 +108,20 @@ class SBIRunner(_BaseRunner):
             self.signatures = [""]*len(self.nets)
 
     @classmethod
-    def from_config(cls, config_path: Path) -> "SBIRunner":
+    def from_config(cls, config_path: Path, **kwargs) -> "SBIRunner":
         """Create an sbi runner from a yaml config file
 
         Args:
             config_path (Path, optional): path to config file
+            **kwargs: optional keyword arguments to overload config file
         Returns:
             SBIRunner: the sbi runner specified by the config file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
+
+        # optionally overload config with kwargs
+        config.update(kwargs)
 
         # load prior distribution
         config['prior']['args']['device'] = config['device']
@@ -399,16 +403,21 @@ class ABCRunner(_BaseRunner):
     """Class to run ABC inference models using the sbi package"""
 
     @classmethod
-    def from_config(cls, config_path: Path) -> "ABCRunner":
+    def from_config(cls, config_path: Path, **kwargs) -> "ABCRunner":
         """Create an sbi runner from a yaml config file
 
         Args:
             config_path (Path, optional): path to config file
+            **kwargs: optional keyword arguments to overload config file
+
         Returns:
             SBIRunner: the sbi runner specified by the config file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
+
+        # optionally overload config with kwargs
+        config.update(kwargs)
 
         # load prior distribution
         prior = load_from_config(config["prior"])
