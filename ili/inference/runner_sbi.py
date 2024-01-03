@@ -457,8 +457,6 @@ class ABCRunner(_BaseRunner):
         )
         samples = model(x_obs, return_summary=False, **self.train_args)
 
-        # save model
-
         # save if output path is specified
         if self.output_path is not None:
             str_p = self.name + "samples.pkl"

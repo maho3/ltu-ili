@@ -147,7 +147,7 @@ class ValidationRunner:
         theta_test = loader.get_all_parameters()
         if hasattr(loader, 'simulate'):
             x_obs = loader.get_obs_data()
-            theta_obs = loader.get_obs_parameters()
+            theta_fid = loader.get_fid_parameters()
 
         if ((not self.ensemble_mode) and (self.backend == 'sbi') and
                 isinstance(self.posterior, NeuralPosteriorEnsemble)):
@@ -159,7 +159,7 @@ class ValidationRunner:
                     logging.info(
                         f"Running metric {metric.__class__.__name__}.")
                     metric(posterior_model, x_test, theta_test, x_obs=x_obs,
-                           theta_obs=theta_obs, signature=signature)
+                           theta_obs=theta_fid, signature=signature)
         else:
             # evaluate metrics
             signature = self.name+"".join(self.signatures)
