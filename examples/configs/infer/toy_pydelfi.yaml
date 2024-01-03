@@ -31,4 +31,4 @@ train_args:
   batch_size: 32
   epochs: 300
 
-output_path: 'toy'  # Where to save the posterior
+out_dir: 'toy'  # Where to save the posterior

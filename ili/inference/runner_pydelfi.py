@@ -22,7 +22,7 @@ class DelfiRunner:
         engine_kwargs (Dict): dictionary of additional keywords for Delfi
             engine
         train_args (Dict): dictionary of hyperparameters for training
-        output_path (Path): path where to store outputs
+        out_dir (Path): directory where to store outputs
     """
 
     def __init__(
@@ -32,7 +32,7 @@ class DelfiRunner:
         inference_class: Any,
         engine_kwargs: Dict,
         train_args: Dict,
-        output_path: Path,
+        out_dir: Path,
         name: Optional[str] = ""
     ):
         self.config_ndes = config_ndes
@@ -40,9 +40,9 @@ class DelfiRunner:
         self.inference_class = inference_class
         self.engine_kwargs = engine_kwargs
         self.train_args = train_args
-        self.output_path = output_path
-        if self.output_path is not None:
-            self.output_path.mkdir(parents=True, exist_ok=True)
+        self.out_dir = out_dir
+        if self.out_dir is not None:
+            self.out_dir.mkdir(parents=True, exist_ok=True)
         self.name = name
 
     @classmethod
@@ -75,7 +75,7 @@ class DelfiRunner:
 
         # load logistics
         train_args = config["train_args"]
-        output_path = Path(config["output_path"])
+        out_dir = Path(config["out_dir"])
         if "name" in config["model"]:
             name = config["model"]["name"] + "_"
         else:
@@ -86,7 +86,7 @@ class DelfiRunner:
             inference_class=inference_class,
             engine_kwargs=engine_kwargs,
             train_args=train_args,
-            output_path=output_path,
+            out_dir=out_dir,
             name=name,
         )
 
@@ -116,7 +116,7 @@ class DelfiRunner:
             prior=self.prior,
             nde=nets,
             name=self.name,
-            results_dir=str(self.output_path)+'/',
+            results_dir=str(self.out_dir)+'/',
             param_names=np.arange(n_params).astype(str),
             graph_restore_filename="graph_checkpoint",
             restore_filename="temp.pkl",

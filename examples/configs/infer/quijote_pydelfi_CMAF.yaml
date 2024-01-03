@@ -22,4 +22,4 @@ train_args:
   batch_size: 32
   epochs: 100
 
-output_path: 'toy'
+out_dir: 'toy'

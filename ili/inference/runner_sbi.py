@@ -31,7 +31,7 @@ class _BaseRunner():
         prior: Independent,
         inference_class: NeuralInference,
         train_args: Dict = {},
-        output_path: Path = None,
+        out_dir: Path = None,
         device: str = 'cpu',
         name: Optional[str] = "",
     ):
@@ -41,10 +41,10 @@ class _BaseRunner():
         self.train_args = train_args
         self.device = device
         self.name = name
-        self.output_path = output_path
-        if self.output_path is not None:
-            self.output_path = Path(self.output_path)
-            self.output_path.mkdir(parents=True, exist_ok=True)
+        self.out_dir = out_dir
+        if self.out_dir is not None:
+            self.out_dir = Path(self.out_dir)
+            self.out_dir.mkdir(parents=True, exist_ok=True)
 
 
 class SBIRunner(_BaseRunner):
@@ -59,7 +59,7 @@ class SBIRunner(_BaseRunner):
         embedding_net (nn.Module): neural network to compress high
             dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
-        output_path (Path): path where to store outputs
+        out_dir (Path): directory where to store outputs
         proposal (Independent): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
             sbi will set proposal = prior unless a proposal is specified.
@@ -76,7 +76,7 @@ class SBIRunner(_BaseRunner):
         inference_class: NeuralInference,
         nets: List[Callable],
         train_args: Dict = {},
-        output_path: Path = None,
+        out_dir: Path = None,
         device: str = 'cpu',
         embedding_net: nn.Module = None,
         proposal: Independent = None,
@@ -87,7 +87,7 @@ class SBIRunner(_BaseRunner):
             prior=prior,
             inference_class=inference_class,
             train_args=train_args,
-            output_path=output_path,
+            out_dir=out_dir,
             device=device,
             name=name,
         )
@@ -150,7 +150,7 @@ class SBIRunner(_BaseRunner):
 
         # load logistics
         train_args = config["train_args"]
-        output_path = Path(config["output_path"])
+        out_dir = Path(config["out_dir"])
         if "name" in config["model"]:
             name = config["model"]["name"]+"_"
         else:
@@ -169,7 +169,7 @@ class SBIRunner(_BaseRunner):
             device=config["device"],
             embedding_net=embedding_net,
             train_args=train_args,
-            output_path=output_path,
+            out_dir=out_dir,
             signatures=signatures,
             name=name,
         )
@@ -277,12 +277,12 @@ class SBIRunner(_BaseRunner):
                      summaries: List[Dict]):
         """Save models to file."""
 
-        logging.info(f"Saving model to {self.output_path}")
+        logging.info(f"Saving model to {self.out_dir}")
         str_p = self.name + "posterior.pkl"
         str_s = self.name + "summary.json"
-        with open(self.output_path / str_p, "wb") as handle:
+        with open(self.out_dir / str_p, "wb") as handle:
             pickle.dump(posterior_ensemble, handle)
-        with open(self.output_path / str_s, "w") as handle:
+        with open(self.out_dir / str_s, "w") as handle:
             json.dump(summaries, handle)
 
     def __call__(self, loader: _BaseLoader, seed: int = None):
@@ -320,7 +320,7 @@ class SBIRunner(_BaseRunner):
         logging.info(f"It took {time.time() - t0} seconds to train models.")
 
         # save if output path is specified
-        if self.output_path is not None:
+        if self.out_dir is not None:
             self._save_models(posterior_ensemble, summaries)
 
         return posterior_ensemble, summaries
@@ -389,7 +389,7 @@ class SBIRunnerSequential(SBIRunner):
             self.proposal = posterior_ensemble.set_default_x(x_obs)
         logging.info(f"It took {time.time() - t0} seconds to train models.")
 
-        if self.output_path is not None:
+        if self.out_dir is not None:
             self._save_models(posterior_ensemble, summaries)
 
         return posterior_ensemble, summaries
@@ -421,7 +421,7 @@ class ABCRunner(_BaseRunner):
 
         # load logistics
         train_args = config["train_args"]
-        output_path = Path(config["output_path"])
+        out_dir = Path(config["out_dir"])
         name = ""
         if "name" in config["model"]:
             name = config["model"]["name"]+"_"
@@ -431,7 +431,7 @@ class ABCRunner(_BaseRunner):
             inference_class=inference_class,
             device=config["device"],
             train_args=train_args,
-            output_path=output_path,
+            out_dir=out_dir,
             name=name,
         )
 
@@ -456,9 +456,9 @@ class ABCRunner(_BaseRunner):
         samples = model(x_obs, return_summary=False, **self.train_args)
 
         # save if output path is specified
-        if self.output_path is not None:
+        if self.out_dir is not None:
             str_p = self.name + "samples.pkl"
-            with open(self.output_path / str_p, "wb") as handle:
+            with open(self.out_dir / str_p, "wb") as handle:
                 pickle.dump(samples, handle)
 
         logging.info(

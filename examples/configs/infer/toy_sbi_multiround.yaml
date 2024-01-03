@@ -28,4 +28,4 @@ train_args:
   num_round: 5  # number of rounds of simulations
 
 device: 'cpu'  # Run on CPU
-output_path: './toy'  # Where to save the posterior
+out_dir: './toy'  # Where to save the posterior

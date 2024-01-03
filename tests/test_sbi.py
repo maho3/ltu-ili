@@ -85,7 +85,7 @@ def test_snpe(monkeypatch):
         embedding_net=embedding_net,
         train_args=train_args,
         proposal=None,
-        output_path=None  # no output path, so nothing will be saved to file
+        out_dir=None  # no output path, so nothing will be saved to file
     )
 
     # train the model
@@ -181,7 +181,7 @@ def test_snle(monkeypatch):
         embedding_net=None,
         train_args=train_args,
         proposal=None,
-        output_path=None  # no output path, so nothing will be saved to file
+        out_dir=None  # no output path, so nothing will be saved to file
     )
 
     # train the model. this outputs a posterior model and training logs
@@ -276,7 +276,7 @@ def test_snre():
         embedding_net=None,
         train_args=train_args,
         proposal=None,
-        output_path=Path('./toy')
+        out_dir=Path('./toy')
     )
 
     # train the model. this outputs a posterior model and training logs
@@ -355,7 +355,7 @@ def test_multiround():
         device=device,
         embedding_net=nn.Identity(),
         train_args=train_args,
-        output_path='./toy',
+        out_dir='./toy',
     )
 
     # train the model
@@ -375,7 +375,7 @@ def test_multiround():
         inference_class=inference_class,
         device=device,
         train_args=train_args,
-        output_path='./toy',
+        out_dir='./toy',
     )
     runner(loader=all_loader)
 
@@ -436,7 +436,7 @@ def test_prior():
             embedding_net=None,
             train_args=train_args,
             proposal=None,
-            output_path=Path('./toy')
+            out_dir=Path('./toy')
         )
 
         # train the model. this outputs a posterior model and training logs
@@ -528,7 +528,7 @@ def test_yaml():
             learning_rate=0.001,
         ),
         device='cpu',
-        output_path='./toy'
+        out_dir='./toy'
     )
     with open('./toy/infer_snpe.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
@@ -566,7 +566,7 @@ def test_yaml():
             num_round=2,
         ),
         device='cpu',
-        output_path='./toy'
+        out_dir='./toy'
     )
     with open('./toy/infer_multi.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
@@ -590,7 +590,7 @@ def test_yaml():
             quantile=0.01,
         ),
         device='cpu',
-        output_path='./toy',
+        out_dir='./toy',
     )
     with open('./toy/infer_abc.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
