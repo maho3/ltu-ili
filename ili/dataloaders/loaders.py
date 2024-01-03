@@ -79,6 +79,8 @@ class NumpyLoader(_BaseLoader):
         Returns:
             int: length of dataset
         """
+        if self.x is None:
+            return 0
         return len(self.x)
 
     def get_all_data(self) -> np.array:
@@ -310,20 +312,20 @@ class SBISimulator(NumpyLoader):
 
         # Load stored data (if specified)
         xobs = np.load(self.xobs_path)
-        x = None
-        theta = None
+        x = np.array([])
+        theta = np.array([])
         thetafid = None
         if x_file is None:
             self.x_path = None
         else:
             self.x_path = self.in_dir / x_file
-            if self.x_path.exists():
+            if self.x_path.is_file():
                 x = np.load(self.x_path)
         if theta_file is None:
             self.theta_path = None
         else:
             self.theta_path = self.in_dir / theta_file
-            if self.theta_path.exists():
+            if self.theta_path.is_file():
                 theta = np.load(self.theta_path)
         if thetafid_file is None:
             self.thetafid_path = None
@@ -331,17 +333,7 @@ class SBISimulator(NumpyLoader):
             self.thetafid_path = self.in_dir / thetafid_file
             thetafid = np.load(self.thetafid_path)
 
-        super().__init__(
-            x=x, theta=theta, xobs=xobs, thetafid=thetafid
-        )
-
-    def __len__(self) -> int:
-        """Returns the total number of data points produced when called
-
-        Returns:
-            int: length of dataset
-        """
-        return self.num_simulations
+        super().__init__(x=x, theta=theta, xobs=xobs, thetafid=thetafid)
 
     def set_simulator(self, simulator: callable):
         """Set the simulator to be used in the inference
@@ -366,9 +358,10 @@ class SBISimulator(NumpyLoader):
         theta = proposal.sample((self.num_simulations,)).cpu()
         x = simulate_in_batches(self.simulator, theta)
         theta, x = theta.numpy(), x.numpy()
+        print(self.x.shape, x.shape)
 
         # Save simulated data (concatenates to previous data)
-        if self.theta is None or self.x is None:
+        if len(self) == 0:
             self.theta, self.x = theta, x
         else:
             self.theta = np.concatenate((self.theta, theta))
@@ -382,5 +375,3 @@ class SBISimulator(NumpyLoader):
 
 # TODO: Add loaders which load dynamically from many files, so
 # that everything doesn't need to be stored in memory
-
-# TODO: Add loaders which load from initialization

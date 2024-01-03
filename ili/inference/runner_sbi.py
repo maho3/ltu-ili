@@ -350,25 +350,23 @@ class SBIRunnerSequential(SBIRunner):
 
         # load observed and pre-run data
         x_obs = loader.get_obs_data()
-        x = loader.get_all_data()  # None by default
-        theta = loader.get_all_parameters()  # None by default
 
         # pre-run data
-        if (x is not None) and (theta is not None):
+        if len(loader) > 0:
             logging.info(
                 "The first round of inference will use existing sims from the "
                 "loader. Make sure that the simulations were run from the "
                 "given proposal distribution for consistency.")
-            x = torch.Tensor(x).to(self.device)
-            theta = torch.Tensor(theta).to(self.device)
+            x = torch.Tensor(loader.get_all_data()).to(self.device)
+            theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
         # no pre-run data
         else:
             logging.info(
                 "The first round of inference will simulate from the given "
                 "proposal or prior.")
             theta, x = loader.simulate(self.proposal)
-            theta, x = torch.Tensor(theta).to(
-                self.device), torch.Tensor(x).to(self.device)
+            x = torch.Tensor(x).to(self.device)
+            theta = torch.Tensor(theta).to(self.device)
 
         # instantiate embedding_net architecture, if necessary
         if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):

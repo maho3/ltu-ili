@@ -1,9 +1,9 @@
 in_dir: './toy'  # where to find initial data
 
 xobs_file: 'xobs.npy'  # the observed data around which to center simulations
-thetafid_file: 'thetaobs.npy'  # only if true parameters are known
+thetafid_file: 'thetafid.npy'  # only if true parameters are known
 
 x_file: 'x.npy'  # file name of the initial data
 theta_file: 'theta.npy'  # file name of the initial parameters
 num_simulations: 400  # number of simulations to generate per round
-save_simulated: False  # whether to save the simulated data into x_file and theta_file
+save_simulated: False  # whether to concatenate the simulated data into x_file and theta_file

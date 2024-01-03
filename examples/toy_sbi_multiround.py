@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # simulate a single test observation and save as numpy files
     theta0 = np.zeros((1, 3))+0.5
     x0 = simulator(theta0)
-    np.save('toy/thetaobs.npy', theta0[0])
+    np.save('toy/thetafid.npy', theta0[0])
     np.save('toy/xobs.npy', x0[0])
 
     # setup a dataloader which can simulate
