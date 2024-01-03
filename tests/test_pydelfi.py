@@ -142,7 +142,21 @@ def test_toy():
         x=x0, 
         theta=theta0
     )
-
+    
+    # Cannot sample directly with pydelfi
+    metric = PosteriorCoverage(
+        backend='pydelfi', output_path=Path('./toy_pydelfi'), num_samples=2,
+        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
+        plot_list=["coverage"],
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        metric,
+        posterior=posterior,
+        x=x0, 
+        theta=theta0
+    )
+    
     return
 
 
