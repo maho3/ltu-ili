@@ -1,5 +1,3 @@
-backend: 'sbi'  # sbi or pydelfi backend
-
 posterior_path: './toy/toy_SNRE_posterior.pkl'  # Path to posterior model
 output_path: './toy'  # Where to save the metrics
 labels: ['t1', 't2', 't3']  # Where to save the metrics

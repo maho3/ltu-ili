@@ -1,5 +1,3 @@
-backend: 'pydelfi'
-
 meta_path: './toy/quijote_pydelfi_posterior.pkl'
 output_path: 'toy'
 labels: [ 'Omega_m', 'h', 'sigma_8' ]

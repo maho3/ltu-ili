@@ -1,5 +1,3 @@
-backend: 'sbi'
-
 posterior_path: './toy/toy_mr_posterior.pkl'
 output_path: './toy'
 style_path: './style.mcstyle'  # Optional matplotlib style file

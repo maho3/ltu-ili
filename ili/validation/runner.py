@@ -17,9 +17,11 @@ try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+    backend = 'torch'
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
+    backend = 'tensorflow'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -40,7 +42,6 @@ class ValidationRunner:
         self,
         posterior: ModelClass,  # see imports
         metrics: List[_BaseMetric],
-        backend: str,
         output_path: Path,
         ensemble_mode: Optional[bool] = True,
         name: Optional[str] = "",
@@ -48,7 +49,6 @@ class ValidationRunner:
     ):
         self.posterior = posterior
         self.metrics = metrics
-        self.backend = backend
         self.output_path = output_path
         if self.output_path is not None:
             self.output_path.mkdir(parents=True, exist_ok=True)
@@ -69,12 +69,12 @@ class ValidationRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
 
-        backend = config['backend']
-        if backend == 'sbi':
+        global backend
+        if backend == 'torch':
             posterior_ensemble = cls.load_posterior_sbi(
                 config["posterior_path"])
             signatures = posterior_ensemble.signatures
-        elif backend == 'pydelfi':
+        elif backend == 'tensorflow':
             posterior_ensemble = DelfiWrapper.load_engine(config["meta_path"])
             signatures = [""]*posterior_ensemble.num_components
         else:
@@ -99,13 +99,11 @@ class ValidationRunner:
 
         metrics = {}
         for key, value in config["metrics"].items():
-            value["args"]["backend"] = backend
             value["args"]["output_path"] = output_path
             value["args"]["labels"] = config["labels"]
             metrics[key] = load_from_config(value)
 
         return cls(
-            backend=backend,
             posterior=posterior_ensemble,
             metrics=metrics,
             output_path=output_path,
@@ -147,7 +145,7 @@ class ValidationRunner:
         theta_fid = loader.get_fid_parameters()
 
         # evaluate metrics on each posterior in the ensemble separately
-        if ((not self.ensemble_mode) and (self.backend == 'sbi') and
+        if ((not self.ensemble_mode) and
                 isinstance(self.posterior, NeuralPosteriorEnsemble)):
             n = 0
             for posterior_model in self.posterior.posteriors:

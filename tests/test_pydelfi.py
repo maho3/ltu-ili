@@ -94,7 +94,6 @@ def test_toy():
     # use the trained posterior model to predict on a single example from
     # the test set
     args = {
-        'backend': 'pydelfi',
         'output_path': Path('toy_pydelfi'),
         'labels': ['t1', 't2', 't3'],
         'num_samples': 20,
@@ -109,7 +108,6 @@ def test_toy():
     val_runner = ValidationRunner(
         posterior=DelfiWrapper.load_engine('./toy_pydelfi/posterior.pkl'),
         metrics=metrics,
-        backend='pydelfi',
         output_path=Path('./toy_pydelfi'),
     )
     val_runner(loader=all_loader)
@@ -319,7 +317,6 @@ def test_yaml():
 
     # Yaml file for validation
     data = dict(
-        backend='pydelfi',
         meta_path='./toy_pydelfi/posterior.pkl',
         output_path='./toy_pydelfi/',
         labels=['t1', 't2', 't3'],

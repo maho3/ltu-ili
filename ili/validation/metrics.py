@@ -21,28 +21,26 @@ try:
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
     ModelClass = NeuralPosterior
     import tarp  # doesn't yet work with pydelfi/python 3.6
+    backend = 'torch'
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
+    backend = 'tensorflow'
 
 
 class _BaseMetric(ABC):
     """Base class for calculating validation metrics.
 
     Args:
-        backend (str): the backend for the posterior models
-            ('sbi' or 'pydelfi')
         output_path (Path): path where to store outputs
     """
 
     def __init__(
         self,
-        backend: str,
         output_path: Path,
         labels: Optional[List[str]] = None,
     ):
         """Construct the base metric."""
-        self.backend = backend
         self.output_path = output_path
         self.labels = labels
 
@@ -51,7 +49,6 @@ class _SampleBasedMetric(_BaseMetric):
     """Base class for metrics that require sampling from the posterior.
 
     Args:
-        backend (str): The backend used for sampling ('sbi' or 'pydelfi').
         output_path (Path): The path to save the output.
         num_samples (int): The number of samples to generate.
         sample_method (str, optional): The method used for sampling. Defaults to 'emcee'.
@@ -61,14 +58,13 @@ class _SampleBasedMetric(_BaseMetric):
 
     def __init__(
         self,
-        backend: str,
         output_path: Path,
         num_samples: int,
         sample_method: str = 'emcee',
         sample_params: dict = {},
         labels: Optional[List[str]] = None,
     ):
-        super().__init__(backend, output_path, labels)
+        super().__init__(output_path, labels)
         self.num_samples = num_samples
         self.sample_method = sample_method
         self.sample_params = sample_params
@@ -89,7 +85,8 @@ class _SampleBasedMetric(_BaseMetric):
             return EmceeSampler(posterior, **self.sample_params)
 
         # check if pytorch backend is available
-        if self.backend != 'sbi':
+        global backend
+        if backend != 'torch':
             raise ValueError(
                 'Pyro backend is only available for sbi posteriors')
 
@@ -122,8 +119,6 @@ class PlotSinglePosterior(_SampleBasedMetric):
     Args:
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
-        backend (str): the backend for the posterior models
-            ('sbi' or 'pydelfi')
         output_path (Path): path where to store outputs
     """
 
@@ -646,7 +641,8 @@ class PosteriorCoverage(PosteriorSamples):
         # Specifically for TARP
         if "tarp" in plot_list:
             # check if if backend is sbi
-            if self.backend != 'sbi':
+            global backend
+            if backend != 'torch':
                 raise NotImplementedError(
                     'TARP is not yet supported by pydelfi backend')
             figs.append(self._plot_TARP(posterior_samples, theta, signature,

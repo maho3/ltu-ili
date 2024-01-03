@@ -1,5 +1,3 @@
-backend: 'pydelfi'  # sbi or pydelfi backend
-
 meta_path: './toy/toy_pydelfi_posterior.pkl'  # Path to posterior model
 output_path: './toy'  # Where to save the metrics
 labels: ['t1', 't2', 't3']  # Names of the parameters
