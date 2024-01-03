@@ -12,8 +12,6 @@ model:
   module: 'ili.inference.pydelfi_wrappers'
   class: 'DelfiWrapper'  # Likelihood Estimation with pydelfi
   name: 'toy_pydelfi'
-  kwargs:
-    nwalkers: 20  # Number of walkers for MCMC
   nets:
     - module: 'pydelfi.ndes'
       class: 'MixtureDensityNetwork'

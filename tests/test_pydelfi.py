@@ -73,7 +73,6 @@ def test_toy():
         config_ndes=config_ndes,
         prior=prior,
         inference_class=inference_class,
-        engine_kwargs={'nwalkers': 20},
         train_args=train_args,
         output_path=Path('toy_pydelfi')
 
@@ -173,7 +172,6 @@ def test_prior():
             config_ndes=config_ndes,
             prior=p,
             inference_class=inference_class,
-            engine_kwargs={'nwalkers': 20},
             train_args=train_args,
             output_path=Path('toy_pydelfi'),
             name='prior_'
@@ -282,7 +280,6 @@ def test_yaml():
         model={
             'module': 'ili.inference.pydelfi_wrappers',
             'class': 'DelfiWrapper',
-            'kwargs': {'nwalkers': 20},
             'nets': config_ndes,
         },
         train_args={'batch_size': 32, 'epochs': 5},

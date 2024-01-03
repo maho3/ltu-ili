@@ -68,7 +68,10 @@ class DelfiRunner:
         )
 
         config_ndes = config["model"]["nets"]
-        engine_kwargs = config["model"]["kwargs"]
+        if 'kwargs' in config["model"]:
+            engine_kwargs = config["model"]["kwargs"]
+        else:
+            engine_kwargs = {}
 
         # load logistics
         train_args = config["train_args"]
@@ -118,6 +121,7 @@ class DelfiRunner:
             graph_restore_filename="graph_checkpoint",
             restore_filename="temp.pkl",
             restore=False, save=True,
+            nwalkers=1,
             **self.engine_kwargs,
         )
         posterior.load_simulations(x, theta)
