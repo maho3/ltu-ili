@@ -32,7 +32,7 @@ class _BaseMetric(ABC):
     """Base class for calculating validation metrics.
 
     Args:
-        out_dir (Path): path where to store outputs
+        out_dir (Path): directory where to store outputs.
     """
 
     def __init__(
@@ -49,7 +49,7 @@ class _SampleBasedMetric(_BaseMetric):
     """Base class for metrics that require sampling from the posterior.
 
     Args:
-        out_dir (Path): The path to save the output.
+        out_dir (Path): directory where to store outputs.
         num_samples (int): The number of samples to generate.
         sample_method (str, optional): The method used for sampling. Defaults to 'emcee'.
         sample_params (dict, optional): Additional parameters for the sampling method. Defaults to {}.
@@ -119,7 +119,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
     Args:
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
-        out_dir (Path): path where to store outputs
+        out_dir (Path): directory where to store outputs.
     """
 
     def __init__(self, save_samples: bool = False, seed: int = None, **kwargs):
@@ -280,7 +280,7 @@ class PosteriorCoverage(PosteriorSamples):
     Args:
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
-        out_dir (Path): path where to store outputs
+        out_dir (Path): directory where to store outputs.
         plot_list (list): list of plot types to save
         save_samples (bool): whether to save posterior samples
     """

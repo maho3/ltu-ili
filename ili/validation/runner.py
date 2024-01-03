@@ -33,9 +33,13 @@ class ValidationRunner:
         posterior (ModelClass): trained sbi posterior inference engine
         metrics (List[_BaseMetric]): list of metric objects to measure on
             the test set
-        backend (str): the backend for the posterior models
-            ('sbi' or 'pydelfi')
-        out_dir (Path): path where to store outputs
+        out_dir (Path): directory where to load posterior and store outputs
+        ensemble_mode (Optional[bool], optional): whether to evaluate metrics
+            on each posterior in the ensemble separately or on the ensemble
+            posterior. Defaults to True.
+        name (Optional[str], optional): name of the posterior. Defaults to "".
+        signatures (Optional[List[str]], optional): list of signatures for
+            each posterior in the ensemble. Defaults to [].
     """
 
     def __init__(
