@@ -1,7 +1,4 @@
 
-n_params: 3
-n_data: 222
-
 prior:
   module: 'ili.utils'
   class: 'Uniform'

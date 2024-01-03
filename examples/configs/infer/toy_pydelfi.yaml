@@ -1,7 +1,4 @@
 
-n_params: 3  # Number of parameters to be inferred
-n_data: 10  # Dimesionality of input data
-
 # Specify prior
 prior:
   module: 'ili.utils'

@@ -19,8 +19,6 @@ class DelfiRunner:
         prior (Independent): prior on the parameters
         inference_class (Any): pydelfi inference class used to that train
             neural posteriors
-        nets (List[Callable]): list of neural posteriors to
-            train
         engine_kwargs (Dict): dictionary of additional keywords for Delfi
             engine
         train_args (Dict): dictionary of hyperparameters for training
@@ -29,23 +27,17 @@ class DelfiRunner:
 
     def __init__(
         self,
-        n_params: int,
-        n_data: int,
         config_ndes: List[Dict],
         prior: Any,
         inference_class: Any,
-        nets: List[Callable],
         engine_kwargs: Dict,
         train_args: Dict,
         output_path: Path,
         name: Optional[str] = ""
     ):
-        self.n_params = n_params
-        self.n_data = n_data
         self.config_ndes = config_ndes
         self.prior = prior
         self.inference_class = inference_class
-        self.nets = nets
         self.engine_kwargs = engine_kwargs
         self.train_args = train_args
         self.output_path = output_path
@@ -75,14 +67,7 @@ class DelfiRunner:
             class_name=config["model"]["class"],
         )
 
-        n_params = config['n_params']
-        n_data = config['n_data']
         config_ndes = config["model"]["nets"]
-        nets = inference_class.load_ndes(
-            n_params=n_params,
-            n_data=n_data,
-            config_ndes=config_ndes,
-        )
         engine_kwargs = config["model"]["kwargs"]
 
         # load logistics
@@ -93,12 +78,9 @@ class DelfiRunner:
         else:
             name = ""
         return cls(
-            n_params=n_params,
-            n_data=n_data,
             config_ndes=config_ndes,
             prior=prior,
             inference_class=inference_class,
-            nets=nets,
             engine_kwargs=engine_kwargs,
             train_args=train_args,
             output_path=output_path,
@@ -116,14 +98,23 @@ class DelfiRunner:
         x = loader.get_all_data()
         theta = loader.get_all_parameters()
 
+        n_params = theta.shape[-1]
+        n_data = x.shape[-1]
+
+        nets = self.inference_class.load_ndes(
+            n_params=n_params,
+            n_data=n_data,
+            config_ndes=self.config_ndes,
+        )
+
         posterior = self.inference_class(
             config_ndes=self.config_ndes,
             data=x[0],
             prior=self.prior,
-            nde=self.nets,
+            nde=nets,
             name=self.name,
             results_dir=str(self.output_path)+'/',
-            param_names=np.arange(self.n_params).astype(str),
+            param_names=np.arange(n_params).astype(str),
             graph_restore_filename="graph_checkpoint",
             restore_filename="temp.pkl",
             restore=False, save=True,

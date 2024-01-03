@@ -46,9 +46,6 @@ def test_toy():
         theta_file='theta.npy',
     )
 
-    n_params = 3
-    n_data = 10
-
     # define a prior
     prior = ili.utils.Uniform(low=np.zeros(3), high=np.ones(3))
 
@@ -70,20 +67,12 @@ def test_toy():
          }
     ]
     inference_class = DelfiWrapper
-    nets = inference_class.load_ndes(
-        n_params=n_params,
-        n_data=n_data,
-        config_ndes=config_ndes,
-    )
 
     # train a model to infer x -> theta. save it as toy_pydelfi/posterior.pkl
     runner = DelfiRunner(
-        n_params=n_params,
-        n_data=n_data,
         config_ndes=config_ndes,
         prior=prior,
         inference_class=inference_class,
-        nets=nets,
         engine_kwargs={'nwalkers': 20},
         train_args=train_args,
         output_path=Path('toy_pydelfi')
@@ -152,9 +141,6 @@ def test_prior():
     # reload all simulator examples as a dataloader
     all_loader = NumpyLoader(x=x, theta=theta,)
 
-    n_params = 3
-    n_data = 10
-
     # define a set of priors to test
     priors = [
         ili.utils.Uniform(low=np.zeros(3), high=np.ones(3)),
@@ -181,20 +167,12 @@ def test_prior():
 
     # for each prior to test
     for p in priors:
-        nets = inference_class.load_ndes(
-            n_params=n_params,
-            n_data=n_data,
-            config_ndes=config_ndes,
-        )
 
         # train a model to infer x -> theta. save it as toy_pydelfi/posterior.pkl
         runner = DelfiRunner(
-            n_params=n_params,
-            n_data=n_data,
             config_ndes=config_ndes,
             prior=p,
             inference_class=inference_class,
-            nets=nets,
             engine_kwargs={'nwalkers': 20},
             train_args=train_args,
             output_path=Path('toy_pydelfi'),
@@ -296,8 +274,6 @@ def test_yaml():
 
     # Yaml file for infer
     data = dict(
-        n_params=3,
-        n_data=10,
         prior={
             'module': 'ili.utils',
             'class': 'Uniform',
