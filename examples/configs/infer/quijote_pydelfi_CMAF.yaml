@@ -11,12 +11,10 @@ model:
   engine: 'NLE'  # Neural Likelihood Estimation
   name: 'quijote_pydelfi'
   nets:
-    - module: 'pydelfi.ndes'
-      class: 'ConditionalMaskedAutoregressiveFlow'
-      args: 
-        n_hiddens: [50,50]
-        n_mades: 5
-        act_fun: 'tanh'
+    - model: 'maf'  # Masked Autoregressive Flow
+      hidden_features: 50
+      num_transforms: 5 
+      signature: "maf"
     
 train_args:
   batch_size: 32
