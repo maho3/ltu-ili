@@ -343,6 +343,17 @@ class SBIRunnerSequential(SBIRunner):
             loader (_BaseLoader): data loader with ability to simulate
                 data-parameter pairs
         """
+        # Check arguments
+        if not hasattr(loader, "get_obs_data"):
+            raise ValueError(
+                "For sequential inference, the loader must have a method "
+                "get_obs_data() that returns the observed data."
+            )
+        if not hasattr(loader, "simulate"):
+            raise ValueError(
+                "For sequential inference, the loader must have a method "
+                "simulate() that returns simulated data-parameter pairs."
+            )
 
         # set seed for reproducibility
         if seed is not None:

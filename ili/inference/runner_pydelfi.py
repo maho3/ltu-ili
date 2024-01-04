@@ -12,7 +12,7 @@ from typing import Dict, Any, List, Callable, Optional
 from ili.utils import load_class, load_from_config
 
 
-class DelfiRunner:
+class DelfiRunner():
     """Class to train posterior inference models using the pydelfi package
 
     Args:
