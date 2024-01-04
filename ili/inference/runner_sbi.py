@@ -16,7 +16,7 @@ from torch.distributions import Independent
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
 from ili.dataloaders import _BaseLoader
-from ili.utils import load_class, load_from_config
+from ili.utils import load_class, load_from_config, load_nde_sbi
 
 logging.basicConfig(level=logging.INFO)
 
@@ -141,17 +141,6 @@ class SBIRunner(_BaseRunner):
         else:
             embedding_net = nn.Identity()
 
-        # load inference class and neural nets
-        inference_class = load_class(
-            module_name=config["model"]["module"],
-            class_name=config["model"]["class"],
-        )
-        nets = cls.load_nets(
-            embedding_net=embedding_net,
-            class_name=config["model"]["class"],
-            posteriors_config=config["model"]["nets"],
-        )
-
         # load logistics
         train_args = config["train_args"]
         out_dir = Path(config["out_dir"])
@@ -161,10 +150,19 @@ class SBIRunner(_BaseRunner):
             name = ""
         signatures = []
         for type_nn in config["model"]["nets"]:
-            if "signature" in type_nn:
-                signatures.append(type_nn["signature"] + "_")
-            else:
-                signatures.append("")
+            signatures.append(type_nn.pop("signature", ""))
+
+        # load inference class and neural nets
+        inference_class = load_class(
+            module_name=config["model"]["module"],
+            class_name=config["model"]["class"],
+        )
+        nets = [load_nde_sbi(config['model']['class'],
+                             embedding_net=embedding_net,
+                             **model_args)
+                for model_args in config['model']['nets']]
+
+        # initialize
         return cls(
             prior=prior,
             proposal=proposal,
@@ -177,44 +175,6 @@ class SBIRunner(_BaseRunner):
             signatures=signatures,
             name=name,
         )
-
-    @classmethod
-    def load_nets(
-        cls,
-        class_name: str,
-        posteriors_config: List[Dict],
-        embedding_net: nn.Module = nn.Identity(),
-    ) -> List[Callable]:
-        """Load the inference model
-
-        Args:
-            embedding_net (nn.Module): neural network to compress data
-            class_name (str): name of the inference class
-            posterior_config(List[Dict]): list with configurations for each
-                neural posterior model in the ensemble
-
-        Returns:
-            List[Callable]: list of pytorch neural network models with forward
-                methods
-        """
-        # determine the correct model type
-        def _build_model(embedding_net, model_args):
-            if "NPE" in class_name:
-                return sbi.utils.posterior_nn(
-                    embedding_net=embedding_net, **model_args)
-            elif "NLE" in class_name:
-                return sbi.utils.likelihood_nn(
-                    embedding_net=embedding_net, **model_args)
-            elif "NRE" in class_name:
-                return sbi.utils.classifier_nn(
-                    embedding_net_x=embedding_net, **model_args)
-            else:
-                raise ValueError(
-                    f"Model class {class_name} not supported. "
-                    "Please choose one of SNPE, SNLE, or SNRE."
-                )
-        return [_build_model(embedding_net, model_args)
-                for model_args in posteriors_config]
 
     def _setup_engine(self, net: nn.Module):
         """Instantiate an sbi inference engine (SNPE/SNLE/SNRE)."""

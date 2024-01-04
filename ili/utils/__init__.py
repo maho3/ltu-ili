@@ -12,8 +12,10 @@ try:
         MultivariateNormal, LowRankMultivariateNormal,
         IndependentTruncatedNormal
     )
+    from .ndes import load_nde_sbi
 except ImportError:
     from .distributions_tf import (
         Uniform, IndependentNormal,
         MultivariateTruncatedNormal, IndependentTruncatedNormal
     )
+    from .ndes import load_nde_pydelfi

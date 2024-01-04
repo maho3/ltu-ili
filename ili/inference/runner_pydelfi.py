@@ -83,6 +83,9 @@ class DelfiRunner():
             name = config["model"]["name"] + "_"
         else:
             name = ""
+        signatures = []
+        for type_nn in config_ndes:
+            signatures.append(type_nn.pop("signature", ""))
         return cls(
             config_ndes=config_ndes,
             prior=prior,

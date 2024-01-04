@@ -8,7 +8,7 @@ import emcee
 import numpy as np
 from typing import Dict, List, Callable, Optional
 from pydelfi.delfi import Delfi
-from ili.utils import load_class, load_from_config
+from ili.utils import load_class, load_from_config, load_nde_pydelfi
 
 
 class DelfiWrapper(Delfi):
@@ -103,9 +103,8 @@ class DelfiWrapper(Delfi):
 
         return chain
 
-    @classmethod
+    @staticmethod
     def load_ndes(
-        cls,
         config_ndes: List[Dict],
         n_params: int,
         n_data: int,
@@ -124,23 +123,10 @@ class DelfiWrapper(Delfi):
         """
         nets = []
         for i, model_args in enumerate(config_ndes):
-            model_args['args']['index'] = i
-            model_args['args']['n_parameters'] = n_params
-            model_args['args']['n_data'] = n_data
-            # layer activations must be input as TF classes
-            if 'act_fun' in model_args['args']:
-                if isinstance(model_args['args']['act_fun'], str):
-                    model_args['args']['act_fun'] = load_class(
-                        'tensorflow', model_args['args']['act_fun'])
-            elif 'activations' in model_args['args']:
-                model_args['args']['activations'] = \
-                    [load_class('tensorflow', x)
-                     if isinstance(x, str) else x
-                     for x in model_args['args']['activations']]
-
             nets.append(
-                load_from_config(model_args)
-            )
+                load_nde_pydelfi(
+                    n_params=n_params, n_data=n_data,
+                    index=i, **model_args))
         return nets
 
     def save_engine(
