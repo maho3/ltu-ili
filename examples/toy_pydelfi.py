@@ -1,8 +1,8 @@
 import os
 import numpy as np
 from ili.dataloaders import StaticNumpyLoader
-from ili.inference.runner_pydelfi import DelfiRunner
-from ili.validation.runner import ValidationRunner
+from ili.inference import DelfiRunner
+from ili.validation import ValidationRunner
 
 
 def simulator(params):

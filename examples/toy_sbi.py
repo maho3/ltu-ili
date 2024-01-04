@@ -2,8 +2,8 @@ import os
 import argparse
 import numpy as np
 from ili.dataloaders import StaticNumpyLoader
-from ili.inference.runner_sbi import SBIRunner
-from ili.validation.runner import ValidationRunner
+from ili.inference import SBIRunner
+from ili.validation import ValidationRunner
 
 
 def simulator(params):

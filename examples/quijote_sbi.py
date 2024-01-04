@@ -1,7 +1,7 @@
 import argparse
 from ili.dataloaders import SummarizerDatasetLoader
-from ili.inference.runner_sbi import SBIRunner
-from ili.validation.runner import ValidationRunner
+from ili.inference import SBIRunner
+from ili.validation import ValidationRunner
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

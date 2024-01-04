@@ -1,7 +1,7 @@
 import argparse
 from ili.dataloaders import SummarizerDatasetLoader
-from ili.inference.runner_pydelfi import DelfiRunner
-from ili.validation.runner import ValidationRunner
+from ili.inference import DelfiRunner
+from ili.validation import ValidationRunner
 
 # pydelfi produces a lot of DivideByZero errors on TPCF data, but still works
 import warnings
