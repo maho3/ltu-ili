@@ -1,5 +1,4 @@
-Configuration
----------------------------------
+# Configuration
 
 This document provides guidance to configuring an inference pipeline with ltu-ili and includes links and references to the various functionality options. There are three stages to the inference pipeline:
 - [**Data Loading**](#data-loading): Loading various structured data into memory
@@ -29,10 +28,10 @@ theta_file: 'theta.npy'
 ```bash
 # SummarizerDatasetLoader configuration
 
-data_dir: './ltu-ili-data/quijote'  # contains param_file and train_test_split file and a hierarchy of .nc data files
+in_dir: './ltu-ili-data/quijote'  # contains param_file and train_test_split file and a hierarchy of .nc data files
 
-data_root_file: 'tpcf/z_0.50/quijote'  # prefix to each .nc file
-param_file: 'latin_hypercube_params.txt' 
+x_root: 'tpcf/z_0.50/quijote'  # prefix to each .nc file
+theta_file: 'latin_hypercube_params.txt' 
 train_test_split_file: 'quijote_train_test_val.json'  # specifies which indices in param_file are in train/test/val
 
 param_names: ['Omega_m', 'h', 'sigma_8']
@@ -41,21 +40,21 @@ param_names: ['Omega_m', 'h', 'sigma_8']
 ```bash
 # SBISimulator configuration
 
-in_dir: './toy'  # where to load xobs_file and thetaobs_file from
-out_dir: './toy'  # where to save simulated data to
+in_dir: './toy'  # where to find initial data
 
-xobs_file: 'xobs.npy'  # test data
-thetaobs_file: 'thetaobs.npy'  # test parameters
+xobs_file: 'xobs.npy'  # the observed data around which to center simulations
+thetafid_file: 'thetafid.npy'  # only if true parameters are known
 
-x_file: 'x.npy'  # filename to save simulated data
-theta_file: 'theta.npy'  # filename to save simulation parameters
-num_simulations: 400  # how many simulations to generate for each training round
+x_file: 'x.npy'  # file name of the initial data
+theta_file: 'theta.npy'  # file name of the initial parameters
+num_simulations: 400  # number of simulations to generate per round
+save_simulated: False  # whether to concatenate the simulated data into x_file and theta_file
 ```
 
-You are also welcome to design your own dataloading objects, so long as they contain the functions: `__len__`, `get_all_data`, and `get_all_parameters`.
+You are also welcome to design your own dataloading objects. They will work with NPE/NLE/NRE models so long as they contain the functions: `__len__`, `get_all_data`, and `get_all_parameters`. For SNPE/SNLE/SNRE models, they must also contain the `simulate` and `get_obs_data` functions. See the [_BaseLoader](./ili/dataloaders/loaders.py#L20) template for more details.
 
 ## Training
-There are three available training engines in ltu-ili, SBIRunner and SBIRunnerSequential for `sbi` models, and PydelfiRunner for `pydelfi` models. Each of these engines can be configured from a `yaml`-like configuration file or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb).
+There are three available training engines in ltu-ili, SBIRunner and SBIRunnerSequential for `sbi` (PyTorch) models, and PydelfiRunner for `pydelfi` (Tensorflow) models. Each of these engines can be configured from a `yaml`-like configuration file or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb).
 
 ### SBIRunner
 Here's an example configuration for `SBIRunner`:
