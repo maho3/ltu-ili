@@ -7,8 +7,8 @@ prior:
     upper: [0.5, 0.9, 1.0]
 
 model:
-  module: 'ili.inference.pydelfi_wrappers'
-  class: 'DelfiWrapper'
+  backend: 'pydelfi'
+  engine: 'NLE'  # Neural Likelihood Estimation
   name: 'quijote_pydelfi'
   nets:
     - module: 'pydelfi.ndes'

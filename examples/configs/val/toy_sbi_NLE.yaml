@@ -1,4 +1,4 @@
-posterior_file: 'toy_SNLE_posterior.pkl'  # Path to posterior model
+posterior_file: 'toy_NLE_posterior.pkl'  # Path to posterior model
 out_dir: './toy' # Directory to load posterior from and to save the metrics
 labels: ['t1', 't2', 't3']  # Names of the parameters
 

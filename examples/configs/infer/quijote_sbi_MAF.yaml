@@ -15,8 +15,8 @@ embedding_net:
     act_fn: "SiLU"
 
 model:
-  module: 'sbi.inference'
-  class: 'SNPE_C'
+  backend: 'sbi'
+  engine: 'NPE'  # Neural Posterior Estimation
   nets:
     - model: 'maf'
       hidden_features: 100 

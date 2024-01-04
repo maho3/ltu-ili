@@ -9,8 +9,8 @@ prior:
 
 # Specify the inference model
 model:
-  module: 'ili.inference.pydelfi_wrappers'
-  class: 'DelfiWrapper'  # Likelihood Estimation with pydelfi
+  backend: 'pydelfi'
+  engine: 'NLE'  # Neural Likelihood Estimation
   name: 'toy_pydelfi'
   nets:
     - module: 'pydelfi.ndes'

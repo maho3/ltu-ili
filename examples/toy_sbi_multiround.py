@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from ili.dataloaders import SBISimulator
-from ili.inference import SBIRunnerSequential
+from ili.inference import InferenceRunner
 from ili.validation import ValidationRunner
 
 
@@ -29,7 +29,7 @@ if __name__ == '__main__':
     all_loader.set_simulator(simulator)
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl
-    runner = SBIRunnerSequential.from_config(
+    runner = InferenceRunner.from_config(
         "configs/infer/toy_sbi_multiround.yaml")
     runner(loader=all_loader)
 

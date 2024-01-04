@@ -1,6 +1,6 @@
 import argparse
 from ili.dataloaders import SummarizerDatasetLoader
-from ili.inference import DelfiRunner
+from ili.inference import InferenceRunner
 from ili.validation import ValidationRunner
 
 # pydelfi produces a lot of DivideByZero errors on TPCF data, but still works
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     print(train_loader.get_all_data()[0].shape)
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl
-    runner = DelfiRunner.from_config(args.cfginfer)
+    runner = InferenceRunner.from_config(args.cfginfer)
     runner(loader=train_loader)
 
     # use the trained posterior model to predict on a single example from

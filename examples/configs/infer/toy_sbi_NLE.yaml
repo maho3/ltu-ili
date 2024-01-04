@@ -9,18 +9,17 @@ prior:
 # Specify the inference model
 model:
   backend: 'sbi'
-  engine: 'NPE'  # Neural Posterior Estimation
-  name: 'toy_SNPE'
+  engine: 'NLE'  # Neural Likelihood Estimation
+  name: 'toy_NLE'
   nets:
     - model: 'maf'  # Masked Autoregressive Flow
-      hidden_features: 50
-      num_transforms: 5 
-      signature: "maf"
+      hidden_features: 50 
+      num_transforms: 6
     - model: 'mdn'  # Mixture Density Network
       hidden_features: 50 
       num_components: 6
 
-# Specify the neural training hyperparameters
+# Specify the neural training hyperparameters   
 train_args:
   training_batch_size: 32
   learning_rate: 0.001

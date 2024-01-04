@@ -8,15 +8,17 @@ prior:
 
 # Specify the inference model
 model:
-  module: 'sbi.inference'
-  class: 'SNRE'  # Ratio Estimation
-  name: 'toy_SNRE'
+  backend: 'sbi'
+  engine: 'NPE'  # Neural Posterior Estimation
+  name: 'toy_NPE'
   nets:
-    - model: 'resnet'  # Residual Network classifier
+    - model: 'maf'  # Masked Autoregressive Flow
       hidden_features: 50
-      num_blocks: 3
-    - model: 'mlp'  # Multi-Layer Perceptron classifier
-      hidden_features: 50
+      num_transforms: 5 
+      signature: "maf"
+    - model: 'mdn'  # Mixture Density Network
+      hidden_features: 50 
+      num_components: 6
 
 # Specify the neural training hyperparameters
 train_args:

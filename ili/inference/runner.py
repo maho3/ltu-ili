@@ -9,7 +9,7 @@ from pathlib import Path
 try:
     from ili.inference import SBIRunner, SBIRunnerSequential, ABCRunner
     backend_ml = 'torch'
-except ModuleNotFoundError:
+except ImportError:
     from ili.inference import DelfiRunner
     backend_ml = 'tensorflow'
 

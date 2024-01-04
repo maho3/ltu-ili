@@ -8,9 +8,9 @@ prior:
 
 # Specify the inference model
 model:
-  module: 'sbi.inference'
-  class: 'SNPE_C'  # Posterior Estimation
-  name: "toy_mr"
+  backend: 'sbi'
+  engine: 'SNPE'  # Sequential Neural Posterior Estimation
+  name: "toy_SNPE"
   nets:
     - model: 'maf'  # Masked Autoregressive Flow
       hidden_features: 100 

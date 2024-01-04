@@ -20,7 +20,7 @@ if __name__ == '__main__':
         description="Run SBI inference for toy data.")
     parser.add_argument(
         "--model", type=str,
-        default="SNPE",
+        default="NPE",
         help="Configuration file to use for model training.")
     args = parser.parse_args()
 
