@@ -342,11 +342,13 @@ def test_yaml():
             'class': 'DelfiWrapper',
             'kwargs': {'nwalkers': 20},
             'nets': config_ndes,
-            'name': 'test_pydelfi',
         },
         train_args={'batch_size': 32, 'epochs': 5},
         output_path='toy_pydelfi',
     )
+    with open('./toy_pydelfi/infer_noname.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    data['model']['name'] = 'test_pydelfi'
     with open('./toy_pydelfi/infer.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
@@ -374,6 +376,8 @@ def test_yaml():
 
     all_loader = StaticNumpyLoader.from_config("./toy_pydelfi/data.yml")
     runner = DelfiRunner.from_config("./toy_pydelfi/infer.yml")
+    runner(loader=all_loader)
+    runner = DelfiRunner.from_config("./toy_pydelfi/infer_noname.yml")
     runner(loader=all_loader)
     ValidationRunner.from_config("./toy_pydelfi/val.yml")
 

@@ -696,7 +696,7 @@ def test_yaml():
         model={'module':  'sbi.inference',
                'class': 'SNPE',
                'nets': [
-                   dict(model='maf', hidden_features=50, num_transforms=5),
+                   dict(model='maf', hidden_features=50, num_transforms=5, signature='maf1'),
                    dict(model='mdn', hidden_features=50, num_transforms=2)],
                'name': 'test_snpe'
                },
@@ -779,12 +779,47 @@ def test_yaml():
     )
     with open('./toy/infer_abc.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
+        
+    # Make a matplotlib style file
+    style = {
+        'figure.figsize': 10.6,
+        'figure.facecolor': 'white',
+        'figure.dpi': 200,
+        'savefig.dpi': 200,
+        'savefig.bbox': 'tight',
+        'font.size': 14,
+        'font.weight': 300,
+        'xtick.major.width': 1,
+        'ytick.major.width': 1,
+        'xtick.labelsize': 'small',
+        'ytick.labelsize': 'small',
+        'xtick.top': True,
+        'ytick.right': True,
+        'xtick.direction': 'in',
+        'ytick.direction': 'in',
+        'xtick.minor.visible': True,
+        'ytick.minor.visible': True,
+        'xtick.major.size': 5,
+        'ytick.major.size': 5,
+        'xtick.minor.size': 3,
+        'ytick.minor.size': 3,
+        'legend.fontsize': 'small',
+        'lines.linewidth': 2,
+        'image.origin': 'lower',
+        'mathtext.fontset': 'cm',
+        'savefig.edgecolor': 'white',
+        'savefig.facecolor': 'white',
+    }
+    with open('./toy/style.mcstyle', 'w') as fout:
+        for k, v in style.items():
+            print(f'{k} : {v}', file=fout)
 
     # Yaml file for validation
     data = dict(
         backend='sbi',
         posterior_path='./toy/posterior.pkl',
         output_path='./toy',
+        style_path='./toy/style.mcstyle',
         labels=['t1', 't2', 't3'],
         ensemble_mode=False,
         metrics=dict(
@@ -833,6 +868,10 @@ def test_yaml():
     with open('./toy/val.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
         
+    data['metrics']['save_samples']['args']['sample_method'] = 'slice_np'
+    with open('./toy/val_slice_np.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+        
     data['backend'] = 'incorrectmodule'
     with open('./toy/val_incorrect_module.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
@@ -877,13 +916,15 @@ def test_yaml():
     val_runner = ValidationRunner.from_config("./toy/val.yml")
     val_runner(loader=loader)
     
+    val_runner = ValidationRunner.from_config("./toy/val_slice_np.yml")
+    val_runner(loader=loader)
+    
     unittest.TestCase().assertRaises(
         NotImplementedError,
         ValidationRunner.from_config,
         './toy/val_incorrect_module.yml'
     )
     
-
     return
 
 def test_loaders():
@@ -1048,38 +1089,57 @@ def test_loaders():
         json.dump(split, f, cls=NpEncoder)
         
     # check calling the dataloader
-    loader = SummarizerDatasetLoader(
-        stage='train',
+    all_loaders = []
+    all_loaders.append(
+        SummarizerDatasetLoader(
+            stage='train',
+            data_dir='./toy',
+            data_root_file=f'{str(summary)}/cat',
+            param_file='summarizer_params.txt',
+            train_test_split_file='summarizer_train_test_split.json',
+            param_names=['t0', 't1', 't2'],
+        )
+    )
+    
+    # Use a config file
+    data = dict(
         data_dir='./toy',
         data_root_file=f'{str(summary)}/cat',
         param_file='summarizer_params.txt',
         train_test_split_file='summarizer_train_test_split.json',
         param_names=['t0', 't1', 't2'],
     )
+    with open('./toy/summarizer_data.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    all_loaders.append(
+        SummarizerDatasetLoader.from_config('./toy/summarizer_data.yml', stage='train')
+    )
     
-    unittest.TestCase().assertEqual(i0, len(loader))
-    d = loader.get_all_data()
-    p = loader.get_all_parameters()
-    unittest.TestCase().assertIsInstance(d, np.ndarray)
-    unittest.TestCase().assertIsInstance(p, np.ndarray)
-    np.testing.assert_almost_equal(theta[:i0,:], p, decimal=5)
+    for loader in all_loaders:
     
-    d = loader.get_nodes_for_stage('train', 'summarizer_train_test_split.json')
-    unittest.TestCase().assertListEqual(d, list(np.arange(i0)))
-    p = loader.load_parameters('summarizer_params.txt', d, ['t0', 't1', 't2'])
-    unittest.TestCase().assertIsInstance(p, np.ndarray)
-    np.testing.assert_almost_equal(theta[:i0,:], p, decimal=5)
-        
-    d = loader.get_nodes_for_stage('val', 'summarizer_train_test_split.json')
-    unittest.TestCase().assertListEqual(d, list(np.arange(i0,i1)))
-    p = loader.load_parameters('summarizer_params.txt', d, ['t0', 't1', 't2'])
-    unittest.TestCase().assertIsInstance(p, np.ndarray)
-    np.testing.assert_almost_equal(theta[i0:i1,:], p, decimal=5)
-    
-    d = loader.get_nodes_for_stage('test', 'summarizer_train_test_split.json')
-    unittest.TestCase().assertListEqual(d, list(np.arange(i1,theta.shape[0])))
-    p = loader.load_parameters('summarizer_params.txt', d, ['t0', 't1', 't2'])
-    unittest.TestCase().assertIsInstance(p, np.ndarray)
-    np.testing.assert_almost_equal(theta[i1:,:], p, decimal=5)    
+        unittest.TestCase().assertEqual(i0, len(loader))
+        d = loader.get_all_data()
+        p = loader.get_all_parameters()
+        unittest.TestCase().assertIsInstance(d, np.ndarray)
+        unittest.TestCase().assertIsInstance(p, np.ndarray)
+        np.testing.assert_almost_equal(theta[:i0,:], p, decimal=5)
+
+        d = loader.get_nodes_for_stage('train', 'summarizer_train_test_split.json')
+        unittest.TestCase().assertListEqual(d, list(np.arange(i0)))
+        p = loader.load_parameters('summarizer_params.txt', d, ['t0', 't1', 't2'])
+        unittest.TestCase().assertIsInstance(p, np.ndarray)
+        np.testing.assert_almost_equal(theta[:i0,:], p, decimal=5)
+
+        d = loader.get_nodes_for_stage('val', 'summarizer_train_test_split.json')
+        unittest.TestCase().assertListEqual(d, list(np.arange(i0,i1)))
+        p = loader.load_parameters('summarizer_params.txt', d, ['t0', 't1', 't2'])
+        unittest.TestCase().assertIsInstance(p, np.ndarray)
+        np.testing.assert_almost_equal(theta[i0:i1,:], p, decimal=5)
+
+        d = loader.get_nodes_for_stage('test', 'summarizer_train_test_split.json')
+        unittest.TestCase().assertListEqual(d, list(np.arange(i1,theta.shape[0])))
+        p = loader.load_parameters('summarizer_params.txt', d, ['t0', 't1', 't2'])
+        unittest.TestCase().assertIsInstance(p, np.ndarray)
+        np.testing.assert_almost_equal(theta[i1:,:], p, decimal=5)    
     
     return
