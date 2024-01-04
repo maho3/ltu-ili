@@ -914,7 +914,7 @@ def test_yaml():
     # Run validation
 
     val_runner = ValidationRunner.from_config("./toy/val.yml")
-    # val_runner(loader=loader)
+    val_runner(loader=loader)
     
     val_runner = ValidationRunner.from_config("./toy/val_slice_np.yml")
     val_runner(loader=loader)
