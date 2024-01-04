@@ -17,11 +17,11 @@ try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
-    backend = 'torch'
+    interface = 'torch'
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
-    backend = 'tensorflow'
+    interface = 'tensorflow'
 
 logging.basicConfig(level=logging.INFO)
 
@@ -79,12 +79,12 @@ class ValidationRunner:
 
         out_dir = Path(config["out_dir"])
 
-        global backend
-        if backend == 'torch':
+        global interface
+        if interface == 'torch':
             posterior_ensemble = cls.load_posterior_sbi(
                 out_dir / config["posterior_file"])
             signatures = posterior_ensemble.signatures
-        elif backend == 'tensorflow':
+        elif interface == 'tensorflow':
             posterior_ensemble = DelfiWrapper.load_engine(
                 out_dir / config["posterior_file"])
             signatures = [""]*posterior_ensemble.num_components

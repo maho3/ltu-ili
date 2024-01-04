@@ -8,10 +8,10 @@ from pathlib import Path
 
 try:
     from ili.inference import SBIRunner, SBIRunnerSequential, ABCRunner
-    backend_ml = 'torch'
+    interface = 'torch'
 except ImportError:
     from ili.inference import DelfiRunner
-    backend_ml = 'tensorflow'
+    interface = 'tensorflow'
 
 
 class InferenceRunner():
@@ -89,10 +89,10 @@ class InferenceRunner():
         Returns:
             Any: the loaded engine class
         """
-        global backend_ml
+        global interface
 
         if backend == 'sbi':
-            if backend_ml != 'torch':  # check installation
+            if interface != 'torch':  # check installation
                 raise ValueError(
                     'User requested an sbi model, but torch backend is not '
                     'installed. Please use torch installation or change model.'
@@ -110,7 +110,7 @@ class InferenceRunner():
             else:
                 return SBIRunner
         elif backend == 'pydelfi':
-            if backend_ml != 'tensorflow':  # check installation
+            if interface != 'tensorflow':  # check installation
                 raise ValueError(
                     'User requested a pydelfi model, but tensorflow is not '
                     'installed. Please use tensorflow installation or change '
