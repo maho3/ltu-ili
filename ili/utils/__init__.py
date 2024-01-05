@@ -12,7 +12,7 @@ try:
         MultivariateNormal, LowRankMultivariateNormal,
         IndependentTruncatedNormal
     )
-    from .ndes_pt import load_nde_sbi
+    from .ndes_pt import load_nde_sbi, load_nde_lampe, LampeEnsemble
 except ImportError:
     from .distributions_tf import (
         Uniform, IndependentNormal,
