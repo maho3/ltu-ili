@@ -336,7 +336,7 @@ def test_multiround():
         sbi.utils.posterior_nn(
             model='maf', hidden_features=100, num_transforms=2),
         sbi.utils.posterior_nn(
-            model='mdn', hidden_features=50, num_transforms=4)
+            model='mdn', hidden_features=50, num_components=6)
     ]
 
     # define training arguments
@@ -521,7 +521,7 @@ def test_yaml():
                'class': 'SNPE',
                'nets': [
                    dict(model='maf', hidden_features=50, num_transforms=5),
-                   dict(model='mdn', hidden_features=50, num_transforms=2)],
+                   dict(model='mdn', hidden_features=50, num_components=6)],
                },
         train_args=dict(
             training_batch_size=32,
@@ -558,7 +558,7 @@ def test_yaml():
                'class': 'SNPE_C',
                'nets': [
                    dict(model='maf', hidden_features=100, num_transforms=2),
-                   dict(model='mdn', hidden_features=50, num_transforms=4)],
+                   dict(model='mdn', hidden_features=50, num_components=6)],
                },
         train_args=dict(
             training_batch_size=32,

@@ -57,14 +57,8 @@ def test_toy():
 
     # instantiate your neural networks to be used as an ensemble
     config_ndes = [
-        {'module': 'pydelfi.ndes', 'class': 'MixtureDensityNetwork',
-         'args': {'n_components': 12, 'n_hidden': [64, 64],
-                  'activations': ['tanh', 'tanh']}
-         },
-        {'module': 'pydelfi.ndes',
-         'class': 'ConditionalMaskedAutoregressiveFlow',
-         'args': {'n_hiddens': [50, 50], 'n_mades': 2, 'act_fun': 'tanh'}
-         }
+        {'model': 'mdn', 'hidden_features': 50, 'num_components': 6},
+        {'model': 'maf', 'hidden_features': 50, 'num_transforms': 5}
     ]
     inference_class = DelfiWrapper
 
@@ -157,10 +151,7 @@ def test_prior():
 
     # instantiate your neural networks to be used as an ensemble
     config_ndes = [
-        {'module': 'pydelfi.ndes', 'class': 'MixtureDensityNetwork',
-         'args': {'n_components': 12, 'n_hidden': [64, 64],
-                  'activations': ['tanh', 'tanh']}
-         },
+        {'model': 'mdn', 'hidden_features': 50, 'num_components': 6},
     ]
     inference_class = DelfiWrapper
 
@@ -238,14 +229,8 @@ def test_yaml():
         os.mkdir("toy_pydelfi")
 
     config_ndes = [
-        {'module': 'pydelfi.ndes', 'class': 'MixtureDensityNetwork',
-         'args': {'n_components': 12, 'n_hidden': [64, 64],
-                  'activations': ['tanh', 'tanh']}
-         },
-        {'module': 'pydelfi.ndes',
-         'class': 'ConditionalMaskedAutoregressiveFlow',
-         'args': {'n_hiddens': [50, 50], 'n_mades': 2, 'act_fun': 'tanh'}
-         }
+        {'model': 'mdn', 'hidden_features': 50, 'num_components': 6},
+        {'model': 'maf', 'hidden_features': 50, 'num_transforms': 5}
     ]
 
     def simulator(params):
