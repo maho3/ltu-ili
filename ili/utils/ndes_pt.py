@@ -17,22 +17,14 @@ MLP and ResNet classifiers (mlp, resnet) have the configuration:
 
 import logging
 
-try:
-    import sbi
-    from torch.nn import Module, Identity
-    Identity = Identity()
-    interface = 'torch'
-except ModuleNotFoundError:
-    import pydelfi
-    import tensorflow as tf
-    interface = 'tensorflow'
-    Module, Identity = None, None
+import sbi
+from torch import nn
 
 
 def load_nde_sbi(
         engine: str,
         model: str,
-        embedding_net: Module = Identity,
+        embedding_net: nn.Module = nn.Identity(),
         **model_args):
     """Load an nde from sbi.
 
@@ -71,7 +63,7 @@ def load_nde_sbi(
 
     # Load NLE models (mdn, maf, nsf, made)
     if 'NLE' in engine:
-        if embedding_net != Identity:
+        if embedding_net != nn.Identity():
             logging.warning(
                 "Using an embedding_net with NLE models compresses theta, not "
                 "x as might be expected.")
@@ -79,50 +71,3 @@ def load_nde_sbi(
             model=model, embedding_net=embedding_net, **model_args)
 
     raise ValueError(f"Engine {engine} not implemented.")
-
-
-def load_nde_pydelfi(
-    n_params: int,
-    n_data: int,
-    model: str,
-    index: int = 0,
-    **model_args
-):
-    """ Load an nde from pydelfi.
-
-    Args:
-        n_params (int): dimensionality of parameters
-        n_data (int): dimensionality of data points
-        model (str): model to use. 
-            One of: mdn, maf.
-        index (int, optional): index of the nde in the ensemble. Defaults to 0.
-        **model_args: additional arguments to pass to the model.
-    """
-    if model == 'mdn':
-        if not (set(model_args.keys()) <= {'hidden_features', 'num_components'}):
-            raise ValueError(f"Model {model} arguments mispecified.")
-        n_hidden = [model_args['hidden_features']] * 3
-        activations = [tf.tanh] * 3
-        return pydelfi.ndes.MixtureDensityNetwork(
-            n_parameters=n_params,
-            n_data=n_data,
-            n_components=model_args['num_components'],
-            n_hidden=n_hidden,
-            activations=activations,
-            index=index,
-        )
-    elif model == 'maf':
-        if not (set(model_args.keys()) <= {'hidden_features', 'num_transforms'}):
-            raise ValueError(f"Model {model} arguments mispecified.")
-        n_hidden = [model_args['hidden_features']] * \
-            model_args['num_transforms']
-        return pydelfi.ndes.ConditionalMaskedAutoregressiveFlow(
-            n_parameters=n_params,
-            n_data=n_data,
-            n_hiddens=n_hidden,
-            n_mades=model_args['num_transforms'],
-            act_fun=tf.tanh,
-            index=index,
-        )
-    else:
-        raise NotImplementedError(f"Model {model} not implemented for pydelfi")
