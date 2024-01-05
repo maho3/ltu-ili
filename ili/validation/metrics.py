@@ -32,13 +32,14 @@ class _BaseMetric(ABC):
     """Base class for calculating validation metrics.
 
     Args:
+        labels (List[str]): list of parameter names
         out_dir (Path): directory where to store outputs.
     """
 
     def __init__(
         self,
-        out_dir: Path,
         labels: Optional[List[str]] = None,
+        out_dir: Optional[Path] = None,
     ):
         """Construct the base metric."""
         self.out_dir = out_dir
@@ -49,22 +50,22 @@ class _SampleBasedMetric(_BaseMetric):
     """Base class for metrics that require sampling from the posterior.
 
     Args:
-        out_dir (Path): directory where to store outputs.
         num_samples (int): The number of samples to generate.
         sample_method (str, optional): The method used for sampling. Defaults to 'emcee'.
         sample_params (dict, optional): Additional parameters for the sampling method. Defaults to {}.
         labels (List[str], optional): The labels for the metric. Defaults to None.
+        out_dir (Path): directory where to store outputs.
     """
 
     def __init__(
         self,
-        out_dir: Path,
         num_samples: int,
         sample_method: str = 'emcee',
         sample_params: dict = {},
         labels: Optional[List[str]] = None,
+        out_dir: Optional[Path] = None,
     ):
-        super().__init__(out_dir, labels)
+        super().__init__(labels, out_dir)
         self.num_samples = num_samples
         self.sample_method = sample_method
         self.sample_params = sample_params
@@ -130,8 +131,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
     def __call__(
         self,
         posterior: ModelClass,
-        x: np.array,
-        theta: np.array,
+        x: Optional[np.array] = None,
+        theta: Optional[np.array] = None,
         x_obs: Optional[np.array] = None,
         theta_fid: Optional[np.array] = None,
         signature: Optional[str] = ""
@@ -147,9 +148,10 @@ class PlotSinglePosterior(_SampleBasedMetric):
             theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
             signature (str, optional): signature for the output file name
         """
-        ndim = theta.shape[-1]
 
         # choose a random test datapoint if not supplied
+        if x is None and x_obs is None:
+            raise ValueError("Either x or x_obs must be supplied.")
         if x_obs is None:
             if self.seed:
                 np.random.seed(self.seed)
@@ -160,6 +162,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
         # sample from the posterior
         sampler = self._build_sampler(posterior)
         samples = sampler.sample(self.num_samples, x=x_obs, progress=True)
+        ndim = samples.shape[-1]
 
         # plot
         fig = sns.pairplot(

@@ -5,9 +5,10 @@ Module to contain a universal inference engine configuration for all backends.
 import yaml
 from typing import Any
 from pathlib import Path
+from ili.utils import load_class
 
 try:
-    from ili.inference import SBIRunner, SBIRunnerSequential, ABCRunner
+    from ili.inference import SBIRunner, SBIRunnerSequential
     interface = 'torch'
 except ImportError:
     from ili.inference import DelfiRunner
@@ -20,8 +21,15 @@ class InferenceRunner():
         either backend.
     """
 
-    def __init__(
-        self,
+    def __init__(self):
+        raise NotImplementedError(
+            'This class should not be instantiated. Did you mean to use '
+            '.load() or .from_config()?'
+        )
+
+    @classmethod
+    def load(
+        cls,
         backend: str,
         engine: str,
         prior: Any,
@@ -30,26 +38,31 @@ class InferenceRunner():
         name: str = '',
         **kwargs
     ):
-        """Initialize the InferenceRunner
+        """Create an inference runner from inline arguments
 
         Args:
-            config_path (Any): path to config file
-            backend (str, optional): backend to use. Defaults to 'torch'.
-            **kwargs: optional keyword arguments to overload config file
+            backend (str): name of the backend (sbi or pydelfi)
+            engine (str): name of the engine class (NPE/NLE/NRE or SNPE/SNLE/SNRE)
+            prior (Any): prior distribution
+            out_dir (Path, optional): path to output directory. Defaults to None.
+            device (str, optional): device to run on. Defaults to 'cpu'.
+            name (str, optional): name of the runner. Defaults to ''.
+            **kwargs: optional keyword arguments to specify to the runners
         """
-        engine_class = self._parse_engine(backend, engine)
+        runner_class, inference_class = cls._parse_engine(backend, engine)
 
-        return engine_class(
+        return runner_class(
             prior=prior,
             out_dir=out_dir,
             device=device,
             name=name,
+            inference_class=inference_class,
             **kwargs
         )
 
     @classmethod
     def from_config(cls, config_path: Path, **kwargs) -> "InferenceRunner":
-        """Create an sbi runner from a yaml config file
+        """Create an inference runner from a yaml config file
 
         Args:
             config_path (Path, optional): path to config file.
@@ -66,7 +79,7 @@ class InferenceRunner():
         backend = config['model']['backend']
         engine = config['model']['engine']
 
-        inference_class = cls._parse_engine(backend, engine)
+        runner_class, _ = cls._parse_engine(backend, engine)
 
         if backend == 'sbi':
             config['model']['module'] = 'sbi.inference'
@@ -76,7 +89,7 @@ class InferenceRunner():
             config['model']['module'] = 'ili.inference.pydelfi_wrappers'
             config['model']['class'] = 'DelfiWrapper'
 
-        return inference_class.from_config(config_path, **config)
+        return runner_class.from_config(config_path, **config)
 
     @staticmethod
     def _parse_engine(backend: str, engine: str) -> Any:
@@ -87,6 +100,7 @@ class InferenceRunner():
             engine (str): name of the engine class (NPE/NLE/NRE or SNPE/SNLE/SNRE)
 
         Returns:
+            Any: the loaded training class
             Any: the loaded engine class
         """
         global interface
@@ -105,10 +119,14 @@ class InferenceRunner():
                     'SNPE, SNLE, or SNRE.'
                 )
 
+            inference_class = load_class('sbi.inference',
+                                         engine if engine[0] == 'S'
+                                         else f"S{engine}")
+
             if engine[0] == 'S':
-                return SBIRunnerSequential
+                return SBIRunnerSequential, inference_class
             else:
-                return SBIRunner
+                return SBIRunner, inference_class
         elif backend == 'pydelfi':
             if interface != 'tensorflow':  # check installation
                 raise ValueError(
@@ -123,7 +141,10 @@ class InferenceRunner():
                     f'{engine}. Please use either NLE or SNLE.'
                 )
 
-            return DelfiRunner
+            inference_class = load_class(
+                'ili.inference.pydelfi_wrappers', 'DelfiWrapper')
+
+            return DelfiRunner, inference_class
         else:
             raise ValueError(
                 f'User requested an invalid model backend: {backend}. Please '
