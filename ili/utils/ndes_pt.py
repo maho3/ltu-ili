@@ -23,6 +23,9 @@ import torch
 from torch import nn
 import lampe
 import zuko
+from typing import List
+from torch.distributions.transforms import Transform, identity_transform
+from torch.distributions import biject_to, Distribution
 
 
 def load_nde_sbi(
@@ -77,62 +80,90 @@ def load_nde_sbi(
     raise ValueError(f"Engine {engine} not implemented.")
 
 
-class NPEWithEmbedding(nn.Module):
+class LampeNPE(nn.Module):
     """Simple wrapper to add an embedding network to an NPE model."""
 
-    def __init__(self, nde, embedding_net=nn.Identity()):
+    def __init__(
+        self,
+        nde: nn.Module,
+        prior: Distribution,
+        embedding_net: nn.Module = nn.Identity()
+    ):
         super().__init__()
         self.nde = nde
+        self.prior = prior
         self.embedding_net = embedding_net
+        self.theta_transform = biject_to(prior.support)
 
-    def forward(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-        return self.nde(theta, self.embedding_net(x))
+    def forward(
+        self,
+        theta: torch.Tensor,
+        x: torch.Tensor
+    ) -> torch.Tensor:
+        return self.nde(
+            self.theta_transform.inv(theta),
+            self.embedding_net(x))
 
     def flow(self, x: torch.Tensor):  # -> Distribution
         return self.nde.flow(self.embedding_net(x))
 
-    def sample(self, x: torch.Tensor, num_samples: int = 1):
-        return self.flow(x).sample((num_samples,)).cpu()
+    def sample(
+        self,
+        shape: tuple,
+        x: torch.Tensor,
+        show_progress_bars: bool = False
+    ) -> torch.Tensor:
+        return self.theta_transform(self.flow(x).sample(shape)).cpu()
 
 
 class LampeEnsemble(nn.Module):
     """Simple module to wrap an ensemble of NPE models."""
 
-    def __init__(self, npes: NPEWithEmbedding, weights: torch.Tensor, theta_transform=None):
+    def __init__(
+        self,
+        posteriors: List[LampeNPE],
+        weights: torch.Tensor,
+        device='cpu'
+    ):
         super().__init__()
-        self.npes = nn.ModuleList(npes)
+        self.posteriors = nn.ModuleList(posteriors)
         self.weights = weights
-        assert len(self.npes) == len(self.weights)
-        self.theta_transform = theta_transform
+        assert len(self.posteriors) == len(self.weights)
+        self.prior = self.posteriors[0].prior
+        self.theta_transform = self.posteriors[0].theta_transform
+        self._device = device
 
     def forward(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         return torch.stack([
-            weight * nde(theta, x)
-            for weight, nde in zip(self.weights, self.npes)
+            weight * npe(theta, x)
+            for weight, npe in zip(self.weights, self.posteriors)
         ], dim=-1)
 
-    def sample(self, shape: tuple, x0: torch.Tensor):
+    def sample(
+        self,
+        shape: tuple,
+        x: torch.Tensor,
+        show_progress_bars: bool = True
+    ):
         num_samples = np.prod(shape)
         per_model = torch.round(
             num_samples * self.weights/self.weights.sum()).numpy().astype(int)
+        if show_progress_bars:
+            logging.info(f"Sampling models with {per_model} samples each.")
         samples = torch.cat([
-            nde.sample(x0, num_samples=N)
-            for nde, N in zip(self.npes, per_model)
+            nde.sample((N,), x, show_progress_bars=show_progress_bars)
+            for nde, N in zip(self.posteriors, per_model)
         ], dim=0)
-        if self.theta_transform is not None:
-            samples = self.theta_transform(samples)
         return samples.reshape(*shape, -1)
 
     def log_prob(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-        if self.theta_transform is not None:
-            theta = self.theta_transform.inv(theta)
         return self.forward(theta, x).sum(dim=-1).detach()
 
 
 def load_nde_lampe(
         model: str,
         embedding_net: nn.Module = nn.Identity(),
-        **model_args):
+        ** model_args):
     """Load an nde from lampe.
 
     Args:
@@ -158,7 +189,7 @@ def load_nde_lampe(
     if model == 'maf':
         flow_class = zuko.flows.autoregressive.MAF
 
-    def net_constructor(x_batch, theta_batch):
+    def net_constructor(x_batch, theta_batch, prior):
         z_batch = embedding_net(x_batch)
         z_shape = z_batch.shape[1:]
         theta_shape = theta_batch.shape[1:]
@@ -174,9 +205,10 @@ def load_nde_lampe(
             build=flow_class,
             **model_args
         )
-        return NPEWithEmbedding(
+        return LampeNPE(
             nde=nde,
-            embedding_net=embedding_net
+            embedding_net=embedding_net,
+            prior=prior
         )
 
     return net_constructor

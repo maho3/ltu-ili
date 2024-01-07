@@ -15,7 +15,7 @@ import lampe
 from lampe.inference import NPE, NPELoss
 from pathlib import Path
 from typing import Dict, List, Callable, Optional
-from torch.distributions import Independent, biject_to
+from torch.distributions import Independent
 from ili.dataloaders import _BaseLoader
 from ili.utils import load_class, load_from_config, load_nde_sbi, LampeEnsemble
 
@@ -61,7 +61,6 @@ class LampeRunner():
         signatures: Optional[List[str]] = None,
     ):
         self.prior = prior
-        self.theta_transform = biject_to(self.prior.support)
         self.train_args = train_args
         self.device = device
         self.name = name
@@ -153,14 +152,14 @@ class LampeRunner():
         model.train()
 
         loss_train = torch.stack([
-            stepper(loss(self.theta_transform.inv(theta), x))
+            stepper(loss(theta, x))
             for x, theta in loader_train
         ]).mean().item()
 
         model.eval()
         with torch.no_grad():
             loss_val = torch.stack([
-                loss(self.theta_transform.inv(theta), x)
+                loss(theta, x)
                 for x, theta in loader_val
             ]).mean().item()
 
@@ -187,7 +186,7 @@ class LampeRunner():
 
             # initialize model
             x_, y_ = next(iter(loader_train))
-            model = model(x_, y_).to(self.device)
+            model = model(x_, y_, self.prior).to(self.device)
 
             # define optimizer
             optimizer = torch.optim.Adam(
@@ -219,6 +218,7 @@ class LampeRunner():
                     # check for convergence
                     if loss_val < best_val:
                         best_val = loss_val
+                        best_model = model.state_dict()
                         wait = 0
                     elif wait > self.train_args["stop_after_epochs"]:
                         break
@@ -230,6 +230,7 @@ class LampeRunner():
                 summary['epochs_trained'] = epoch
 
             # save model
+            model.load_state_dict(best_model)
             posteriors.append(model)
             summaries.append(summary)
 
@@ -242,7 +243,8 @@ class LampeRunner():
         weights /= weights.sum()
 
         posterior_ensemble = LampeEnsemble(
-            posteriors, weights, theta_transform=self.theta_transform)
+            posteriors, weights,
+            device=self.device)
 
         # record the name of the ensemble
         posterior_ensemble.name = self.name
@@ -280,10 +282,6 @@ class LampeRunner():
         # load single-round data
         x = torch.Tensor(loader.get_all_data()).to(self.device)
         theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
-
-        # # instantiate embedding_net architecture, if necessary
-        # if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
-        #     self.embedding_net.initalize_model(n_input=x.shape[-1])
 
         # train a single round of inference
         t0 = time.time()
