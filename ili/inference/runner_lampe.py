@@ -12,12 +12,12 @@ import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 import lampe
-from lampe.inference import NPE, NPELoss
+from lampe.inference import NPELoss
 from pathlib import Path
 from typing import Dict, List, Callable, Optional
-from torch.distributions import Independent
+from torch.distributions import Distribution
 from ili.dataloaders import _BaseLoader
-from ili.utils import load_class, load_from_config, load_nde_sbi, LampeEnsemble
+from ili.utils import load_class, load_from_config, LampeEnsemble, load_nde_lampe
 
 logging.basicConfig(level=logging.INFO)
 
@@ -27,10 +27,10 @@ default_config = (
 
 
 class LampeRunner():
-    """Class to train posterior inference models using the sbi package
+    """Class to train posterior inference models using the lampe package
 
     Args:
-        prior (Independent): prior on the parameters
+        prior (Distribution): prior on the parameters
         inference_class (NeuralInference): sbi inference class used to
             train neural posteriors
         nets (List[Callable]): list of neural nets for amortized posteriors,
@@ -39,9 +39,9 @@ class LampeRunner():
             dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
         out_dir (Path): directory where to store outputs
-        proposal (Independent): proposal distribution from which existing
+        proposal (Distribution): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
-            sbi will set proposal = prior unless a proposal is specified.
+            we will set proposal = prior unless a proposal is specified.
             While it is possible to choose a prior on parameters different
             than the proposal for SNPE, we advise to leave proposal to None
             unless for test purposes.
@@ -51,12 +51,13 @@ class LampeRunner():
 
     def __init__(
         self,
-        prior: Independent,
+        prior: Distribution,
         nets: List[Callable],
         train_args: Dict = {},
         out_dir: Path = None,
         device: str = 'cpu',
         embedding_net: nn.Module = None,
+        proposal: Distribution = None,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = None,
     ):
@@ -69,6 +70,10 @@ class LampeRunner():
             self.out_dir = Path(self.out_dir)
             self.out_dir.mkdir(parents=True, exist_ok=True)
         self.nets = nets
+        if proposal is None:
+            self.proposal = prior
+        else:
+            self.proposal = proposal
         self.embedding_net = embedding_net
         self.signatures = signatures
         if self.signatures is None:
@@ -78,74 +83,69 @@ class LampeRunner():
             stop_after_epochs=30, clip_max_norm=10)
         self.train_args.update(train_args)
 
-    # @classmethod
-    # def from_config(cls, config_path: Path, **kwargs) -> "SBIRunner":
-    #     """Create an sbi runner from a yaml config file
+    @classmethod
+    def from_config(cls, config_path: Path, **kwargs) -> "LampeRunner":
+        """Create a lampe runner from a yaml config file
 
-    #     Args:
-    #         config_path (Path, optional): path to config file
-    #         **kwargs: optional keyword arguments to overload config file
-    #     Returns:
-    #         SBIRunner: the sbi runner specified by the config file
-    #     """
-    #     with open(config_path, "r") as fd:
-    #         config = yaml.safe_load(fd)
+        Args:
+            config_path (Path, optional): path to config file
+            **kwargs: optional keyword arguments to overload config file
+        Returns:
+            LampeRunner: the lampe runner specified by the config file
+        """
+        with open(config_path, "r") as fd:
+            config = yaml.safe_load(fd)
 
-    #     # optionally overload config with kwargs
-    #     config.update(kwargs)
+        # optionally overload config with kwargs
+        config.update(kwargs)
 
-    #     # load prior distribution
-    #     config['prior']['args']['device'] = config['device']
-    #     prior = load_from_config(config["prior"])
+        # load prior distribution
+        config['prior']['args']['device'] = config['device']
+        prior = load_from_config(config["prior"])
 
-    #     # load proposal distributions
-    #     proposal = None
-    #     if "proposal" in config:
-    #         config['proposal']['args']['device'] = config['device']
-    #         proposal = load_from_config(config["proposal"])
+        # load proposal distributions
+        proposal = None
+        if "proposal" in config:
+            config['proposal']['args']['device'] = config['device']
+            proposal = load_from_config(config["proposal"])
 
-    #     # load embedding net
-    #     if "embedding_net" in config:
-    #         embedding_net = load_from_config(
-    #             config=config["embedding_net"],
-    #         )
-    #     else:
-    #         embedding_net = nn.Identity()
+        # load embedding net
+        if "embedding_net" in config:
+            embedding_net = load_from_config(
+                config=config["embedding_net"],
+            )
+        else:
+            embedding_net = nn.Identity()
 
-    #     # load logistics
-    #     train_args = config["train_args"]
-    #     out_dir = Path(config["out_dir"])
-    #     if "name" in config["model"]:
-    #         name = config["model"]["name"]+"_"
-    #     else:
-    #         name = ""
-    #     signatures = []
-    #     for type_nn in config["model"]["nets"]:
-    #         signatures.append(type_nn.pop("signature", ""))
+        # load logistics
+        train_args = config["train_args"]
+        out_dir = Path(config["out_dir"])
+        if "name" in config["model"]:
+            name = config["model"]["name"]+"_"
+        else:
+            name = ""
+        signatures = []
+        for type_nn in config["model"]["nets"]:
+            signatures.append(type_nn.pop("signature", ""))
 
-    #     # load inference class and neural nets
-    #     inference_class = load_class(
-    #         module_name=config["model"]["module"],
-    #         class_name=config["model"]["class"],
-    #     )
-    #     nets = [load_nde_sbi(config['model']['class'],
-    #                          embedding_net=embedding_net,
-    #                          **model_args)
-    #             for model_args in config['model']['nets']]
+        # load inference class and neural nets
+        nets = [load_nde_lampe(embedding_net=embedding_net,
+                               **model_args)
+                for model_args in config['model']['nets']]
 
-    #     # initialize
-    #     return cls(
-    #         prior=prior,
-    #         proposal=proposal,
-    #         inference_class=inference_class,
-    #         nets=nets,
-    #         device=config["device"],
-    #         embedding_net=embedding_net,
-    #         train_args=train_args,
-    #         out_dir=out_dir,
-    #         signatures=signatures,
-    #         name=name,
-    #     )
+        # initialize
+        return cls(
+            prior=prior,
+            proposal=proposal,
+            nets=nets,
+            device=config["device"],
+            embedding_net=embedding_net,
+            train_args=train_args,
+            out_dir=out_dir,
+            signatures=signatures,
+            name=name,
+        )
+
     def _train_epoch(self, model, loader_train, loader_val, stepper):
         """Train a single epoch of a neural network model."""
         loss = NPELoss(model)
@@ -252,17 +252,17 @@ class LampeRunner():
 
         return posterior_ensemble, summaries
 
-    # def _save_models(self, posterior_ensemble: NeuralPosteriorEnsemble,
-    #                  summaries: List[Dict]):
-    #     """Save models to file."""
+    def _save_models(self, posterior_ensemble: LampeEnsemble,
+                     summaries: List[Dict]):
+        """Save models to file."""
 
-    #     logging.info(f"Saving model to {self.out_dir}")
-    #     str_p = self.name + "posterior.pkl"
-    #     str_s = self.name + "summary.json"
-    #     with open(self.out_dir / str_p, "wb") as handle:
-    #         pickle.dump(posterior_ensemble, handle)
-    #     with open(self.out_dir / str_s, "w") as handle:
-    #         json.dump(summaries, handle)
+        logging.info(f"Saving model to {self.out_dir}")
+        str_p = self.name + "posterior.pkl"
+        str_s = self.name + "summary.json"
+        with open(self.out_dir / str_p, "wb") as handle:
+            pickle.dump(posterior_ensemble, handle)
+        with open(self.out_dir / str_s, "w") as handle:
+            json.dump(summaries, handle)
 
     def __call__(self, loader: _BaseLoader, seed: int = None):
         """Train your posterior and save it to file
