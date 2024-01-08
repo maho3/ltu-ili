@@ -9,6 +9,7 @@ import yaml
 import matplotlib as mpl
 from pathlib import Path
 from typing import List, Optional
+from ili.dataloaders import _BaseLoader
 from ili.validation.metrics import _BaseMetric
 from ili.utils import load_from_config
 
@@ -128,16 +129,11 @@ class ValidationRunner:
             posterior.name = ''
         return posterior
 
-    def __call__(
-            self,
-            loader,
-            x_obs=None,
-            theta_obs=None
-    ):
+    def __call__(self, loader: _BaseLoader):
         """Run your validation metrics and save them to file
 
         Args:
-            loader (BaseLoader): data loader with stored data-parameter
+            loader (_BaseLoader): data loader with stored data-parameter
                 pairs or has ability to simulate data-parameter pairs
         """
         t0 = time.time()
@@ -145,10 +141,12 @@ class ValidationRunner:
         # load data
         x_test = loader.get_all_data()
         theta_test = loader.get_all_parameters()
-        if hasattr(loader, 'simulate'):
-            x_obs = loader.get_obs_data()
-            theta_obs = loader.get_obs_parameters()
 
+        # load observations for inference (defaults to None)
+        x_obs = loader.get_obs_data()
+        theta_fid = loader.get_fid_parameters()
+
+        # evaluate metrics on each posterior in the ensemble separately
         if ((not self.ensemble_mode) and (self.backend == 'sbi') and
                 isinstance(self.posterior, NeuralPosteriorEnsemble)):
             n = 0
@@ -159,13 +157,14 @@ class ValidationRunner:
                     logging.info(
                         f"Running metric {metric.__class__.__name__}.")
                     metric(posterior_model, x_test, theta_test, x_obs=x_obs,
-                           theta_obs=theta_obs, signature=signature)
+                           theta_fid=theta_fid, signature=signature)
+        # evaluate metrics on the ensemble posterior
         else:
             # evaluate metrics
             signature = self.name+"".join(self.signatures)
             for metric in self.metrics.values():
                 logging.info(f"Running metric {metric.__class__.__name__}.")
                 metric(self.posterior, x_test, theta_test,
-                       x_obs=x_obs, theta_obs=theta_obs, signature=signature)
+                       x_obs=x_obs, theta_fid=theta_fid, signature=signature)
 
         logging.info(f"It took {time.time() - t0} seconds to run all metrics.")

@@ -111,7 +111,7 @@ def test_snpe(monkeypatch):
     )
     fig = metric(
         posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
+        x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta
     )
 
@@ -124,7 +124,7 @@ def test_snpe(monkeypatch):
     )
     fig = metric(
         posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
+        x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta
     )
 
@@ -215,7 +215,7 @@ def test_snle(monkeypatch):
     )
     fig = metric(
         posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
+        x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta
     )
 
@@ -228,7 +228,7 @@ def test_snle(monkeypatch):
     )
     fig = metric(
         posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
+        x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta
     )
 
@@ -312,15 +312,16 @@ def test_multiround():
     np.save('toy/xobs.npy', x0[0])
 
     # setup a dataloader which can simulate
-    all_loader = SBISimulator('./toy',
-                              'xobs.npy',
-                              'thetaobs.npy',
-                              './toy',
-                              'x.npy',
-                              'theta.npy',
-                              400,
-                              simulator,
-                              )
+    all_loader = SBISimulator(
+        in_dir='./toy',
+        xobs_file='xobs.npy',
+        thetafid_file='thetaobs.npy',
+        x_file='x.npy',
+        theta_file='theta.npy',
+        num_simulations=400,
+        simulator=simulator,
+        save_simulated=True
+    )
 
     # train an SBI sequential model to infer x -> theta
 
@@ -498,9 +499,8 @@ def test_yaml():
     # Yaml file for data - multiround
     data = dict(
         in_dir='./toy',
-        out_dir='./toy',
         xobs_file='xobs.npy',
-        thetaobs_file='thetaobs.npy',
+        thetafid_file='thetaobs.npy',
         x_file='x.npy',
         theta_file='theta.npy',
         num_simulations=400,
@@ -570,8 +570,8 @@ def test_yaml():
     )
     with open('./toy/infer_multi.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
-        
-    # Yaml file for infer - ABC
+
+    #  Yaml file for infer - ABC
     data = dict(
         prior={'module': 'ili.utils',
                'class': 'Uniform',
@@ -584,7 +584,7 @@ def test_yaml():
                'class': 'MCABC',
                'name': 'toy_abc',
                'num_workers': 8,
-              },
+               },
         train_args=dict(
             num_simulations=1000000,
             quantile=0.01,
@@ -689,10 +689,10 @@ def test_yaml():
     loader.set_simulator(simulator)
     run_seq = SBIRunnerSequential.from_config("./toy/infer_multi.yml")
     run_seq(loader=loader)
-    
+
     # -------
     # Run for ABC
-    
+
     ABCRunner.from_config("./toy/infer_abc.yml")
 
     # -------
