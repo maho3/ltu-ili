@@ -91,7 +91,10 @@ class SBIRunner(_BaseRunner):
             device=device,
             name=name,
         )
-        self.proposal = proposal
+        if proposal is None:
+            self.proposal = prior
+        else:
+            self.proposal = proposal
         self.nets = nets
         self.embedding_net = embedding_net
         self.train_args = train_args
@@ -192,13 +195,13 @@ class SBIRunner(_BaseRunner):
         """
         # determine the correct model type
         def _build_model(embedding_net, model_args):
-            if "SNPE" in class_name:
+            if "NPE" in class_name:
                 return sbi.utils.posterior_nn(
                     embedding_net=embedding_net, **model_args)
-            elif "SNLE" in class_name or "MNLE" in class_name:
+            elif "NLE" in class_name:
                 return sbi.utils.likelihood_nn(
                     embedding_net=embedding_net, **model_args)
-            elif "SNRE" in class_name or "BNRE" in class_name:
+            elif "NRE" in class_name:
                 return sbi.utils.classifier_nn(
                     embedding_net_x=embedding_net, **model_args)
             else:
@@ -209,70 +212,39 @@ class SBIRunner(_BaseRunner):
         return [_build_model(embedding_net, model_args)
                 for model_args in posteriors_config]
 
-    def _setup_SNPE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
-        """Instantiate and train an amoritized posterior SNPE model."""
-        model = self.inference_class(
-            prior=self.prior,
-            density_estimator=net,
-            device=self.device,
-        )
-        model = model.append_simulations(theta, x, proposal=self.proposal)
-        return model
-
-    def _setup_SNLE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
-        """Instantiate and train a likelihood estimation SNLE model."""
-        model = self.inference_class(
-            prior=self.prior,
-            density_estimator=net,
-            device=self.device,
-        )
-        model = model.append_simulations(theta, x)
-        return model
-
-    def _setup_SNRE(self, net: nn.Module, theta: torch.Tensor, x: torch.Tensor):
-        """Instantiate and train a ratio estimation SNRE model."""
-        model = self.inference_class(
-            prior=self.prior,
-            classifier=net,
-            device=self.device,
-        )
-        model = model.append_simulations(theta, x)
-        return model
-
-    def __call__(self, loader: _BaseLoader, seed: int = None):
-        """Train your posterior and save it to file
-
-        Args:
-            loader (_BaseLoader): dataloader with stored data-parameter pairs
-            seed (int): torch seed for reproducibility
-        """
-        t0 = time.time()
-        x = torch.Tensor(loader.get_all_data()).to(self.device)
-        theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
-
-        logging.info(f"MODEL INFERENCE CLASS: {self.class_name}")
-
-        # instantiate embedding_net architecture, if necessary
-        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
-
-        # setup and train each architecture
-        posteriors, summaries = [], []
-        for n, net in enumerate(self.nets):
-            logging.info(
-                f"Training model {n+1} out of {len(self.nets)}"
-                " ensemble models"
+    def _setup_engine(self, net: nn.Module):
+        """Instantiate an sbi inference engine (SNPE/SNLE/SNRE)."""
+        if ("NPE" in self.class_name) or ("NLE" in self.class_name):
+            return self.inference_class(
+                prior=self.prior,
+                density_estimator=net,
+                device=self.device,
             )
-            # set seed for reproducibility
-            if seed is not None:
-                torch.manual_seed(seed)
-            # setup training class
-            if "SNPE" in self.class_name:
-                model = self._setup_SNPE(net, theta, x)
-            elif "SNLE" in self.class_name or "MNLE" in self.class_name:
-                model = self._setup_SNLE(net, theta, x)
-            elif "SNRE" in self.class_name or "BNRE" in self.class_name:
-                model = self._setup_SNRE(net, theta, x)
+        elif ("NRE" in self.class_name):
+            return self.inference_class(
+                prior=self.prior,
+                classifier=net,
+                device=self.device,
+            )
+        else:
+            raise ValueError(
+                f"Model class {self.class_name} not supported. "
+                "Please choose one of SNPE, SNLE, or SNRE."
+            )
+
+    def _train_round(self, models: List[NeuralInference],
+                     x: torch.Tensor, theta: torch.Tensor,
+                     proposal: Optional[Independent]):
+        """Train a single round of inference for an ensemble of models."""
+        posteriors, summaries = [], []
+        for i, model in enumerate(models):
+            logging.info(f"Training model {i+1} / {len(models)}.")
+
+            # append simulations
+            if ("NPE" in self.class_name):
+                model = model.append_simulations(theta, x, proposal=proposal)
+            else:
+                model = model.append_simulations(theta, x)
 
             # train
             _ = model.train(**self.train_args)
@@ -285,8 +257,7 @@ class SBIRunner(_BaseRunner):
         val_logprob = torch.tensor(
             [float(x["best_validation_log_prob"][0]) for x in summaries]
         ).to(self.device)
-        # Subtract maximum loss to improve numerical stability of exp
-        # (cancels in next line)
+        # Exponentiate with numerical stability
         weights = torch.exp(val_logprob - val_logprob.max())
         weights /= weights.sum()
 
@@ -295,20 +266,63 @@ class SBIRunner(_BaseRunner):
             weights=weights,
             theta_transform=posteriors[0].theta_transform
         )  # raises warning due to bug in sbi
+
+        # record the name of the ensemble
         posterior_ensemble.name = self.name
         posterior_ensemble.signatures = self.signatures
 
+        return posterior_ensemble, summaries
+
+    def _save_models(self, posterior_ensemble: NeuralPosteriorEnsemble,
+                     summaries: List[Dict]):
+        """Save models to file."""
+
+        logging.info(f"Saving model to {self.output_path}")
+        str_p = self.name + "posterior.pkl"
+        str_s = self.name + "summary.json"
+        with open(self.output_path / str_p, "wb") as handle:
+            pickle.dump(posterior_ensemble, handle)
+        with open(self.output_path / str_s, "w") as handle:
+            json.dump(summaries, handle)
+
+    def __call__(self, loader: _BaseLoader, seed: int = None):
+        """Train your posterior and save it to file
+
+        Args:
+            loader (_BaseLoader): dataloader with stored data-parameter pairs
+            seed (int): torch seed for reproducibility
+        """
+
+        # set seed for reproducibility
+        if seed is not None:
+            torch.manual_seed(seed)
+
+        # setup training engines for each model in the ensemble
+        logging.info(f"MODEL INFERENCE CLASS: {self.class_name}")
+        models = [self._setup_engine(net) for net in self.nets]
+
+        # load single-round data
+        x = torch.Tensor(loader.get_all_data()).to(self.device)
+        theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
+
+        # instantiate embedding_net architecture, if necessary
+        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
+            self.embedding_net.initalize_model(n_input=x.shape[-1])
+
+        # train a single round of inference
+        t0 = time.time()
+        posterior_ensemble, summaries = self._train_round(
+            models=models,
+            x=x,
+            theta=theta,
+            proposal=self.proposal,
+        )
+        logging.info(f"It took {time.time() - t0} seconds to train models.")
+
         # save if output path is specified
         if self.output_path is not None:
-            str_p = self.name + "posterior.pkl"
-            str_s = self.name + "summary.json"
-            with open(self.output_path / str_p, "wb") as handle:
-                pickle.dump(posterior_ensemble, handle)
-            with open(self.output_path / str_s, "w") as handle:
-                json.dump(summaries, handle)
+            self._save_models(posterior_ensemble, summaries)
 
-        logging.info(
-            f"It took {time.time() - t0} seconds to train all models.")
         return posterior_ensemble, summaries
 
 
@@ -318,100 +332,67 @@ class SBIRunnerSequential(SBIRunner):
     multiple rounds
     """
 
-    def __call__(self, loader: _BaseLoader):
+    def __call__(self, loader: _BaseLoader, seed: int = None):
         """Train your posterior and save it to file
 
         Args:
             loader (_BaseLoader): data loader with ability to simulate
                 data-parameter pairs
         """
-        t0 = time.time()
+
+        # set seed for reproducibility
+        if seed is not None:
+            torch.manual_seed(seed)
+
+        # setup training engines for each model in the ensemble
+        logging.info(f"MODEL INFERENCE CLASS: {self.class_name}")
+        models = [self._setup_engine(net) for net in self.nets]
+
+        # load observed and pre-run data
         x_obs = loader.get_obs_data()
 
-        all_model = []
-        for n, posterior in enumerate(self.nets):
-            all_model.append(self.inference_class(
-                prior=self.prior,
-                density_estimator=posterior,
-                device=self.device,
-            ))
-        proposal = self.prior
-
-        # loader has x and theta attributes, both default values are None
-        # Even in multiround inference, we can take advantage of prerun
-        # simulation-parameter pairs
-        x = loader.get_all_data()
-        theta = loader.get_all_parameters()
-        if x is not None and theta is not None:
-            theta = torch.Tensor(theta).to(self.device)
-            x = torch.Tensor(x).to(self.device)
-            prerun_sims = True
+        # pre-run data
+        if len(loader) > 0:
             logging.info(
                 "The first round of inference will use existing sims from the "
                 "loader. Make sure that the simulations were run from the "
-                "given prior for consistency.")
+                "given proposal distribution for consistency.")
+            x = torch.Tensor(loader.get_all_data()).to(self.device)
+            theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
+        # no pre-run data
         else:
-            prerun_sims = False
             logging.info(
-                "The first round of inference will simulate from the given prior."
-            )
+                "The first round of inference will simulate from the given "
+                "proposal or prior.")
+            theta, x = loader.simulate(self.proposal)
+            x = torch.Tensor(x).to(self.device)
+            theta = torch.Tensor(theta).to(self.device)
 
-        # Start multiround inference
+        # instantiate embedding_net architecture, if necessary
+        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
+            self.embedding_net.initalize_model(n_input=x.shape[-1])
+
+        # train multiple rounds of inference
+        t0 = time.time()
         for rnd in range(self.num_rounds):
-            t1 = time.time()
-            logging.info(
-                f"Running round {rnd+1} of {self.num_rounds}"
+            logging.info(f"Running round {rnd+1} / {self.num_rounds}")
+
+            # train a round of inference
+            posterior_ensemble, summaries = self._train_round(
+                models=models,
+                x=x,
+                theta=theta,
+                proposal=self.proposal,
             )
 
-            if rnd == 0 and prerun_sims:
-                pass  # in that case theta and x were set before the loop on rnd
-            else:
-                theta, x = loader.simulate(proposal)
-                theta, x = torch.Tensor(theta).to(
-                    self.device), torch.Tensor(x).to(self.device)
+            # update proposal for next round
+            self.proposal = posterior_ensemble.set_default_x(x_obs)
+        logging.info(f"It took {time.time() - t0} seconds to train models.")
 
-            posteriors, val_logprob = [], []
-            for i in range(len(self.nets)):
-                logging.info(
-                    f"Training model {n+1} out of "
-                    f"{len(self.nets)} ensemble models"
-                )
-                if not isinstance(self.embedding_net, nn.Identity):
-                    self.embedding_net.initalize_model(n_input=x.shape[-1])
-                density_estimator = \
-                    all_model[i].append_simulations(theta, x, proposal).train(
-                        **self.train_args,
-                    )
-                posteriors.append(
-                    all_model[i].build_posterior(density_estimator))
-                val_logprob.append(
-                    all_model[i].summary["best_validation_log_prob"][-1])
+        if self.output_path is not None:
+            self._save_models(posterior_ensemble, summaries)
 
-            val_logprob = torch.tensor([float(vl) for vl in val_logprob])
-            # Subtract maximum loss to improve numerical stability of exp
-            # (cancels in next line)
-            val_logprob = torch.exp(val_logprob - val_logprob.max())
-            val_logprob /= val_logprob.sum()
-
-            posterior_ensemble = NeuralPosteriorEnsemble(
-                posteriors=posteriors,
-                weights=val_logprob)  # raises warning due to bug in sbi
-            posterior_ensemble.signatures = self.signatures
-
-            logging.info(f"Network signatures: {self.signatures}")
-
-            str_p = self.name + f"posterior_{rnd}.pkl"
-            with open(self.output_path / str_p, "wb") as f:
-                pickle.dump(posterior_ensemble, f)
-            proposal = posterior_ensemble.set_default_x(x_obs)
-            logging.info(
-                f"It took {time.time()-t1} seconds to complete round {rnd+1}.")
-
-        str_p = self.name + "posterior.pkl"
-        with open(self.output_path / str_p, "wb") as f:
-            pickle.dump(posterior_ensemble, f)
-        logging.info(
-            f"It took {time.time() - t0} seconds to train all models.")
+        return posterior_ensemble, summaries
 
 
 class ABCRunner(_BaseRunner):
@@ -473,8 +454,6 @@ class ABCRunner(_BaseRunner):
             simulator=loader.simulator
         )
         samples = model(x_obs, return_summary=False, **self.train_args)
-
-        # save model
 
         # save if output path is specified
         if self.output_path is not None:

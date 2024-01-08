@@ -115,7 +115,6 @@ def test_snpe(monkeypatch):
     # log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
 
     # use ltu-ili's built-in validation metrics to plot the posterior
-    print("\n\nTRAINING\n\n")
     metric = PlotSinglePosterior(
         backend='sbi', output_path=None, num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
@@ -123,6 +122,7 @@ def test_snpe(monkeypatch):
     )
     fig = metric(
         posterior=posterior,
+        x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta
     )
 
@@ -135,7 +135,7 @@ def test_snpe(monkeypatch):
     )
     fig = metric(
         posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
+        x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta
     )
     
@@ -148,7 +148,7 @@ def test_snpe(monkeypatch):
     )
     fig = metric(
         posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
+        x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta, bootstrap=False,
     )
     
@@ -163,7 +163,7 @@ def test_snpe(monkeypatch):
      )
     samples = metric(
         posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
+        x_obs=x[ind], theta_fid=theta[ind],
         x=x[:ntest], theta=theta[:ntest,:],
         skip_initial_state_check=True,
     )
@@ -177,7 +177,7 @@ def test_snpe(monkeypatch):
      )
     samples = metric(
         posterior=posterior,
-        x_obs=x[ind], theta_obs=theta[ind],
+        x_obs=x[ind], theta_fid=theta[ind],
         x=x[:ntest], theta=theta[:ntest,:],
     )
     unittest.TestCase().assertIsInstance(samples, np.ndarray)
@@ -191,7 +191,7 @@ def test_snpe(monkeypatch):
      )
     # samples = metric(
     #     posterior=posterior,
-    #     x_obs=x[ind], theta_obs=theta[ind],
+    #     x_obs=x[ind], theta_fid=theta[ind],
     #     x=x[:ntest], theta=theta[:ntest,:],
     # )
     # unittest.TestCase().assertIsInstance(samples, np.ndarray)
@@ -297,7 +297,7 @@ def test_snle(monkeypatch):
         )
         fig = metric(
             posterior=posterior,
-            x_obs=x[ind], theta_obs=theta[ind],
+            x_obs=x[ind], theta_fid=theta[ind],
             x=x, theta=theta
         )
 
@@ -310,7 +310,7 @@ def test_snle(monkeypatch):
         )
         fig = metric(
             posterior=posterior,
-            x_obs=x[ind], theta_obs=theta[ind],
+            x_obs=x[ind], theta_fid=theta[ind],
             x=x, theta=theta
         )
         
@@ -326,7 +326,7 @@ def test_snle(monkeypatch):
                 metric,
                 posterior=posterior,
                 x_obs=x[ind], 
-                theta_obs=theta[ind],
+                theta_fid=theta[ind],
                 x=x[:2], 
                 theta=theta[:2]
             )
@@ -339,7 +339,7 @@ def test_snle(monkeypatch):
             )
 #             metric(
 #                 posterior=posterior,
-#                 x_obs=x[ind], theta_obs=theta[ind],
+#                 x_obs=x[ind], theta_fid=theta[ind],
 #                 x=x[:2], theta=theta[:2]
 #             )
 
@@ -423,15 +423,16 @@ def test_multiround():
     np.save('toy/xobs.npy', x0[0])
 
     # setup a dataloader which can simulate
-    all_loader = SBISimulator('./toy',
-                              'xobs.npy',
-                              'thetaobs.npy',
-                              './toy',
-                              'x_mr.npy',
-                              'theta_mr.npy',
-                              400,
-                              simulator,
-                              )
+    all_loader = SBISimulator(
+        in_dir='./toy',
+        xobs_file='xobs.npy',
+        thetafid_file='thetaobs.npy',
+        x_file='x.npy',
+        theta_file='theta.npy',
+        num_simulations=400,
+        simulator=simulator,
+        save_simulated=True
+    )
     unittest.TestCase().assertEqual(len(all_loader), 400)
     np.testing.assert_almost_equal(
         np.squeeze(all_loader.get_obs_parameters()), 
@@ -668,9 +669,8 @@ def test_yaml():
     # Yaml file for data - multiround
     data = dict(
         in_dir='./toy',
-        out_dir='./toy',
         xobs_file='xobs.npy',
-        thetaobs_file='thetaobs.npy',
+        thetafid_file='thetaobs.npy',
         x_file='x.npy',
         theta_file='theta.npy',
         num_simulations=10,
@@ -756,8 +756,8 @@ def test_yaml():
     )
     with open('./toy/infer_multi.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
-        
-    # Yaml file for infer - ABC
+
+    #  Yaml file for infer - ABC
     data = dict(
         prior={'module': 'ili.utils',
                'class': 'Uniform',
@@ -770,7 +770,7 @@ def test_yaml():
                'class': 'MCABC',
                'name': 'toy_abc',
                'num_workers': 8,
-              },
+               },
         train_args=dict(
             num_simulations=1000000,
             quantile=0.01,
@@ -905,10 +905,10 @@ def test_yaml():
     loader.set_simulator(simulator)
     run_seq = SBIRunnerSequential.from_config("./toy/infer_multi.yml")
     run_seq(loader=loader)
-    
+
     # -------
     # Run for ABC
-    
+
     ABCRunner.from_config("./toy/infer_abc.yml")
 
     # -------

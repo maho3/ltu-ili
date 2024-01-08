@@ -113,6 +113,8 @@ class _SampleBasedMetric(_BaseMetric):
                            **self.sample_params)
 
 
+# Metrics evaluated at a single data point (use x_obs and theta_fid)
+
 class PlotSinglePosterior(_SampleBasedMetric):
     """Perform inference sampling on a single test point and plot the
     posterior in a corner plot.
@@ -136,7 +138,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
         x: np.array,
         theta: np.array,
         x_obs: Optional[np.array] = None,
-        theta_obs: Optional[np.array] = None,
+        theta_fid: Optional[np.array] = None,
         signature: Optional[str] = ""
     ):
         """Given a posterior and test data, plot the inferred posterior of a
@@ -147,18 +149,18 @@ class PlotSinglePosterior(_SampleBasedMetric):
             x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): tensor of observed data
-            theta_obs (np.array, optional): tensor of true parameters for x_obs
+            theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
             signature (str, optional): signature for the output file name
         """
         ndim = theta.shape[-1]
 
         # choose a random test datapoint if not supplied
-        if x_obs is None or theta_obs is None:
+        if x_obs is None:
             if self.seed:
                 np.random.seed(self.seed)
             ind = np.random.choice(len(x))
             x_obs = x[ind]
-            theta_obs = theta[ind]
+            theta_fid = theta[ind]
 
         # sample from the posterior
         sampler = self._build_sampler(posterior)
@@ -173,14 +175,15 @@ class PlotSinglePosterior(_SampleBasedMetric):
         )
         fig.map_lower(sns.kdeplot, levels=4, color=".2")
 
-        for i in range(ndim):
-            for j in range(i + 1):
-                if i == j:
-                    fig.axes[i, i].axvline(theta_obs[i], color="r")
-                else:
-                    fig.axes[i, j].axhline(theta_obs[i], color="r")
-                    fig.axes[i, j].axvline(theta_obs[j], color="r")
-                    fig.axes[i, j].plot(theta_obs[j], theta_obs[i], "ro")
+        if theta_fid is not None:  # do not plot fiducial parameters if None
+            for i in range(ndim):
+                for j in range(i + 1):
+                    if i == j:
+                        fig.axes[i, i].axvline(theta_fid[i], color="r")
+                    else:
+                        fig.axes[i, j].axhline(theta_fid[i], color="r")
+                        fig.axes[i, j].axvline(theta_fid[j], color="r")
+                        fig.axes[i, j].plot(theta_fid[j], theta_fid[i], "ro")
 
         # save
         if self.output_path is None:
@@ -197,6 +200,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
         return fig
 
+
+# Metrics evaluated over a whole test set (use x and theta)
 
 class PosteriorSamples(_SampleBasedMetric):
     """
@@ -245,7 +250,7 @@ class PosteriorSamples(_SampleBasedMetric):
         signature: Optional[str] = "",
         # here for debugging purpose, otherwise error in runner.py line 123
         x_obs: Optional[np.array] = None,
-        theta_obs: Optional[np.array] = None,
+        theta_fid: Optional[np.array] = None,
         **kwargs
     ):
         """Given a posterior and test data, infer posterior samples of a
@@ -256,7 +261,7 @@ class PosteriorSamples(_SampleBasedMetric):
             x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): tensor of observed data
-            theta_obs (np.array, optional): tensor of true parameters for x_obs
+            theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
         """
         # Sample the full dataset
         posterior_samples = self._sample_dataset(posterior, x, **kwargs)
@@ -578,7 +583,7 @@ class PosteriorCoverage(PosteriorSamples):
         x: np.array,
         theta: np.array,
         x_obs: Optional[np.array] = None,
-        theta_obs: Optional[np.array] = None,
+        theta_fid: Optional[np.array] = None,
         signature: Optional[str] = "",
         references: str = "random",
         metric: str = "euclidean",
@@ -595,7 +600,7 @@ class PosteriorCoverage(PosteriorSamples):
             x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): Not used
-            theta_obs (np.array, optional): Not used
+            theta_fid (np.array, optional): Not used
             signature (str, optional): signature for the output file name
 
         Args (TARP only):
