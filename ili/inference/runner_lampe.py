@@ -171,7 +171,7 @@ class LampeRunner():
             data_val = TensorDataset(x_val, theta_val)
             train_loader = DataLoader(data_train, shuffle=True,
                                       batch_size=self.train_args["batch_size"])
-            val_loader = DataLoader(data_val,
+            val_loader = DataLoader(data_val, shuffle=False,
                                     batch_size=self.train_args["batch_size"])
         else:
             raise ValueError("Loader must be a subclass of _BaseLoader.")
@@ -263,9 +263,7 @@ class LampeRunner():
         weights = torch.exp(val_logprob - val_logprob.max())
         weights /= weights.sum()
 
-        posterior_ensemble = LampeEnsemble(
-            posteriors, weights,
-            device=self.device)
+        posterior_ensemble = LampeEnsemble(posteriors, weights)
 
         # record the name of the ensemble
         posterior_ensemble.name = self.name

@@ -19,7 +19,7 @@ try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     from sbi.inference.posteriors import DirectPosterior
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
-    from ili.utils import LampeNPE, LampeEnsemble
+    from ili.utils.ndes_pt import LampeNPE, LampeEnsemble
     ModelClass = NeuralPosterior
     import tarp  # doesn't yet work with pydelfi/python 3.6
     backend = 'torch'

@@ -23,8 +23,8 @@ import torch
 from torch import nn
 import lampe
 import zuko
-from typing import List
-from torch.distributions.transforms import Transform, identity_transform
+from typing import List, Any
+from collections.abc import Iterable
 from torch.distributions import biject_to, Distribution
 
 
@@ -94,12 +94,18 @@ class LampeNPE(nn.Module):
         self.prior = prior
         self.embedding_net = embedding_net
         self.theta_transform = biject_to(prior.support)
+        self._device = 'cpu'
 
     def forward(
         self,
         theta: torch.Tensor,
-        x: torch.Tensor
+        x: Any
     ) -> torch.Tensor:
+        # check inputs
+        if isinstance(x, (list, np.ndarray)):
+            x = torch.Tensor(x)
+        x = x.to(self._device)
+        # sample
         return self.nde(
             self.theta_transform.inv(theta),
             self.embedding_net(x))
@@ -113,8 +119,16 @@ class LampeNPE(nn.Module):
         x: torch.Tensor,
         show_progress_bars: bool = False
     ) -> torch.Tensor:
-        x = torch.Tensor(x)
+        # check inputs
+        if isinstance(x, (list, np.ndarray)):
+            x = torch.Tensor(x)
+        x = x.to(self._device)
+        # sample
         return self.theta_transform(self.flow(x).sample(shape)).cpu()
+
+    def to(self, device):
+        self._device = device
+        return super().to(device)
 
 
 class LampeEnsemble(nn.Module):
@@ -123,8 +137,7 @@ class LampeEnsemble(nn.Module):
     def __init__(
         self,
         posteriors: List[LampeNPE],
-        weights: torch.Tensor,
-        device='cpu'
+        weights: torch.Tensor
     ):
         super().__init__()
         self.posteriors = nn.ModuleList(posteriors)
@@ -132,7 +145,7 @@ class LampeEnsemble(nn.Module):
         assert len(self.posteriors) == len(self.weights)
         self.prior = self.posteriors[0].prior
         self.theta_transform = self.posteriors[0].theta_transform
-        self._device = device
+        self._device = posteriors[0]._device
 
     def forward(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         return torch.stack([
@@ -143,15 +156,17 @@ class LampeEnsemble(nn.Module):
     def sample(
         self,
         shape: tuple,
-        x: torch.Tensor,
+        x: Any,
         show_progress_bars: bool = True
     ):
-        x = torch.Tensor(x).to(self._device)
+        # determine number of samples per model
         num_samples = np.prod(shape)
         per_model = torch.round(
             num_samples * self.weights/self.weights.sum()).numpy().astype(int)
         if show_progress_bars:
             logging.info(f"Sampling models with {per_model} samples each.")
+
+        # sample
         samples = torch.cat([
             nde.sample((N,), x, show_progress_bars=show_progress_bars)
             for nde, N in zip(self.posteriors, per_model)
@@ -160,6 +175,10 @@ class LampeEnsemble(nn.Module):
 
     def log_prob(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         return self.forward(theta, x).sum(dim=-1).detach()
+
+    def to(self, device):
+        self._device = device
+        return super().to(device)
 
 
 def load_nde_lampe(
