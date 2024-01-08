@@ -74,10 +74,24 @@ train_test_split_file: 'quijote_train_test_val.json'  # specifies which indices 
 param_names: ['Omega_m', 'h', 'sigma_8']
 ```
 
+```bash
+# SBISimulator configuration
+
+in_dir: './toy'  # where to find initial data
+
+xobs_file: 'xobs.npy'  # the observed data around which to center simulations
+thetafid_file: 'thetafid.npy'  # only if true parameters are known
+
+x_file: 'x.npy'  # file name of the initial data
+theta_file: 'theta.npy'  # file name of the initial parameters
+num_simulations: 400  # number of simulations to generate per round
+save_simulated: False  # whether to concatenate the simulated data into x_file and theta_file
+```
+
 You are also welcome to design your own dataloading objects. They will work with NPE/NLE/NRE models so long as they contain the functions: `__len__`, `get_all_data`, and `get_all_parameters`. For SNPE/SNLE/SNRE models, they must also contain the `simulate` and `get_obs_data` functions. See the [_BaseLoader](./ili/dataloaders/loaders.py#L20) template for more details.
 
 ## Training
-ltu-ili provides the ability to train neural network models for Neural Posterior Estimation (NPE), Neural Likelihood Estimation (NLE), and Neural Ratio Estimation (NRE), as well as their Sequential analogues (SNPE, SNLE, and SNRE). To do this, we rely on two backend packages, [sbi](https://github.com/sbi-dev/sbi) and [pydelfi](https://github.com/justinalsing/pydelfi), which are respectively based in PyTorch or Tensorflow.
+There are three available training engines in ltu-ili, SBIRunner and SBIRunnerSequential for `sbi` (PyTorch) models, and PydelfiRunner for `pydelfi` (Tensorflow) models. Each of these engines can be configured from a `yaml`-like configuration file or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb).
 
 Here's a detailed example of an `InferenceRunner` configuration for training Sequential Neural Posterior Estimation (SNPE) using the `sbi` backend and an ensemble of architectures: a mixture density network (`mdn`), a masked autoregressive flows (`maf`), and a neural spline flow (`nsf`).
 

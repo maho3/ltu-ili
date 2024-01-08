@@ -83,6 +83,52 @@ class _BaseLoader(ABC):
         """
         return NotImplemented
 
+    @abstractmethod
+    def __len__(self) -> int:
+        """Returns the total number of data points in the dataset
+
+        Returns:
+            int: length of dataset
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_all_data(self) -> Any:
+        """Returns all the loaded data
+
+        Returns:
+            Any: data
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_all_parameters(self) -> Any:
+        """Returns all the loaded parameters
+
+        Returns:
+            Any: parameters
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_obs_data(self) -> Any:
+        """Returns the observed data
+
+        Returns:
+            Any: data
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_fid_parameters(self) -> Any:
+        """Returns the fiducial parameters which we expect the
+        observed data to resemble
+
+        Returns:
+            Any: parameters
+        """
+        return NotImplemented
+
 
 class NumpyLoader(_BaseLoader):
     """A class for loading in-memory data using numpy arrays.

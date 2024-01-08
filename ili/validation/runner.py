@@ -155,7 +155,7 @@ class ValidationRunner:
         theta_fid = loader.get_fid_parameters()
 
         # evaluate metrics on each posterior in the ensemble separately
-        if ((not self.ensemble_mode) and
+        if ((not self.ensemble_mode) and (self.backend == 'sbi') and
                 isinstance(self.posterior, NeuralPosteriorEnsemble)):
             n = 0
             for posterior_model in self.posterior.posteriors:
