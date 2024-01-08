@@ -156,6 +156,11 @@ class LampeRunner():
         elif (hasattr(loader, "get_all_data") and
                 hasattr(loader, "get_all_parameters")):
             x, theta = loader.get_all_data(), loader.get_all_parameters()
+
+            # move to device
+            x = torch.Tensor(x).to(self.device)
+            theta = torch.Tensor(theta).to(self.device)
+
             # split data into train and validation
             mask = torch.randperm(len(x)) < int(
                 self.train_args['validation_fraction']*len(x))

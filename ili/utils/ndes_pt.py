@@ -113,6 +113,7 @@ class LampeNPE(nn.Module):
         x: torch.Tensor,
         show_progress_bars: bool = False
     ) -> torch.Tensor:
+        x = torch.Tensor(x)
         return self.theta_transform(self.flow(x).sample(shape)).cpu()
 
 
@@ -145,6 +146,7 @@ class LampeEnsemble(nn.Module):
         x: torch.Tensor,
         show_progress_bars: bool = True
     ):
+        x = torch.Tensor(x).to(self._device)
         num_samples = np.prod(shape)
         per_model = torch.round(
             num_samples * self.weights/self.weights.sum()).numpy().astype(int)
