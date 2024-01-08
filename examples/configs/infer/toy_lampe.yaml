@@ -8,6 +8,8 @@ prior:
 
 # Specify the inference model
 model:
+  backend: 'lampe'
+  engine: 'NPE'
   name: 'lampe'
   nets:
     - model: 'maf'  # Masked Autoregressive Flow
@@ -15,7 +17,7 @@ model:
       num_transforms: 5 
       signature: "maf"
     - model: 'mdn'  # Mixture Density Network
-      hidden_features: 50 
+      hidden_features: 50
       num_components: 6
 
 # Specify the neural training hyperparameters

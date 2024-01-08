@@ -8,7 +8,7 @@ from pathlib import Path
 from ili.utils import load_class
 
 try:
-    from ili.inference import SBIRunner, SBIRunnerSequential
+    from ili.inference import SBIRunner, SBIRunnerSequential, LampeRunner
     interface = 'torch'
 except ImportError:
     from ili.inference import DelfiRunner
@@ -17,7 +17,7 @@ except ImportError:
 
 class InferenceRunner():
     """ A universal class to train posterior inference models using either
-        the sbi or pydelfi backends. Provides a univeral interface to configure
+        the sbi/pydelfi/lampe backends. Provides a univeral interface to configure
         either backend.
     """
 
@@ -41,7 +41,7 @@ class InferenceRunner():
         """Create an inference runner from inline arguments
 
         Args:
-            backend (str): name of the backend (sbi or pydelfi)
+            backend (str): name of the backend (sbi/pydelfi/lampe)
             engine (str): name of the engine class (NPE/NLE/NRE or SNPE/SNLE/SNRE)
             prior (Any): prior distribution
             out_dir (Path, optional): path to output directory. Defaults to None.
@@ -88,6 +88,9 @@ class InferenceRunner():
         elif backend == 'pydelfi':
             config['model']['module'] = 'ili.inference.pydelfi_wrappers'
             config['model']['class'] = 'DelfiWrapper'
+        elif backend == 'lampe':
+            config['model']['module'] = 'ili.inference'
+            config['model']['class'] = 'LampeNPE'
 
         return runner_class.from_config(config_path, **config)
 
@@ -145,6 +148,22 @@ class InferenceRunner():
                 'ili.inference.pydelfi_wrappers', 'DelfiWrapper')
 
             return DelfiRunner, inference_class
+        elif backend == 'lampe':
+            if interface != 'torch':  # check installation
+                raise ValueError(
+                    'User requested a lampe model, but torch backend is not '
+                    'installed. Please use torch installation or change model.'
+                )
+            # check model type
+            if engine not in ['NPE']:
+                raise ValueError(
+                    'User requested an invalid model type for lampe: '
+                    f'{engine}. lampe only supports NPE.'
+                )
+
+            inference_class = load_class('ili.utils', 'LampeNPE')
+
+            return LampeRunner, inference_class
         else:
             raise ValueError(
                 f'User requested an invalid model backend: {backend}. Please '

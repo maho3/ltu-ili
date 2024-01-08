@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Dict, List, Callable, Optional
 from torch.distributions import Distribution
 from ili.dataloaders import _BaseLoader
-from ili.utils import load_class, load_from_config, LampeEnsemble, load_nde_lampe
+from ili.utils import load_from_config, LampeEnsemble, load_nde_lampe
 
 logging.basicConfig(level=logging.INFO)
 
@@ -56,6 +56,7 @@ class LampeRunner():
         train_args: Dict = {},
         out_dir: Path = None,
         device: str = 'cpu',
+        inference_class: Callable = None,
         embedding_net: nn.Module = None,
         proposal: Distribution = None,
         name: Optional[str] = "",
@@ -80,7 +81,8 @@ class LampeRunner():
             self.signatures = [""]*len(self.nets)
         self.train_args = dict(
             batch_size=32, learning_rate=1e-3,
-            stop_after_epochs=30, clip_max_norm=10)
+            stop_after_epochs=30, clip_max_norm=10,
+            validation_fraction=0.1)
         self.train_args.update(train_args)
 
     @classmethod
@@ -146,46 +148,60 @@ class LampeRunner():
             name=name,
         )
 
-    def _train_epoch(self, model, loader_train, loader_val, stepper):
+    def _prepare_loader(self, loader: _BaseLoader):
+        """Prepare a loader for training."""
+        if (hasattr(loader, "train_loader") and
+                hasattr(loader, "val_loader")):
+            train_loader, val_loader = loader.train_loader, loader.val_loader
+        elif (hasattr(loader, "get_all_data") and
+                hasattr(loader, "get_all_parameters")):
+            x, theta = loader.get_all_data(), loader.get_all_parameters()
+            # split data into train and validation
+            mask = torch.randperm(len(x)) < int(
+                self.train_args['validation_fraction']*len(x))
+            x_train, x_val = x[mask], x[~mask]
+            theta_train, theta_val = theta[mask], theta[~mask]
+
+            data_train = TensorDataset(x_train, theta_train)
+            data_val = TensorDataset(x_val, theta_val)
+            train_loader = DataLoader(data_train, shuffle=True,
+                                      batch_size=self.train_args["batch_size"])
+            val_loader = DataLoader(data_val,
+                                    batch_size=self.train_args["batch_size"])
+        else:
+            raise ValueError("Loader must be a subclass of _BaseLoader.")
+
+        return train_loader, val_loader
+
+    def _train_epoch(self, model, train_loader, val_loader, stepper):
         """Train a single epoch of a neural network model."""
         loss = NPELoss(model)
         model.train()
 
         loss_train = torch.stack([
             stepper(loss(theta, x))
-            for x, theta in loader_train
+            for x, theta in train_loader
         ]).mean().item()
 
         model.eval()
         with torch.no_grad():
             loss_val = torch.stack([
                 loss(theta, x)
-                for x, theta in loader_val
+                for x, theta in val_loader
             ]).mean().item()
 
         return loss_train, loss_val
 
     def _train_round(self, models: List[Callable],
-                     x: torch.Tensor, theta: torch.Tensor):
+                     train_loader: DataLoader, val_loader: DataLoader):
         """Train a single round of inference for an ensemble of models."""
-        # split data into train and validation
-        mask = torch.randperm(x.shape[0]) < int(0.9*x.shape[0])
-        x_train, x_val = x[mask], x[~mask]
-        theta_train, theta_val = theta[mask], theta[~mask]
-
-        data_train = TensorDataset(x_train, theta_train)
-        data_val = TensorDataset(x_val, theta_val)
-        loader_train = DataLoader(
-            data_train, batch_size=self.train_args["batch_size"])
-        loader_val = DataLoader(
-            data_val, batch_size=self.train_args["batch_size"])
 
         posteriors, summaries = [], []
         for i, model in enumerate(models):
             logging.info(f"Training model {i+1} / {len(models)}.")
 
             # initialize model
-            x_, y_ = next(iter(loader_train))
+            x_, y_ = next(iter(train_loader))
             model = model(x_, y_, self.prior).to(self.device)
 
             # define optimizer
@@ -204,8 +220,8 @@ class LampeRunner():
                 for epoch in tq:
                     loss_train, loss_val = self._train_epoch(
                         model=model,
-                        loader_train=loader_train,
-                        loader_val=loader_val,
+                        train_loader=train_loader,
+                        val_loader=val_loader,
                         stepper=stepper,
                     )
                     tq.set_postfix(
@@ -280,15 +296,14 @@ class LampeRunner():
         logging.info("MODEL INFERENCE CLASS: NPE")
 
         # load single-round data
-        x = torch.Tensor(loader.get_all_data()).to(self.device)
-        theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
+        train_loader, val_loader = self._prepare_loader(loader)
 
         # train a single round of inference
         t0 = time.time()
         posterior_ensemble, summaries = self._train_round(
             models=self.nets,
-            x=x,
-            theta=theta,
+            train_loader=train_loader,
+            val_loader=val_loader,
         )
         logging.info(f"It took {time.time() - t0} seconds to train models.")
 
