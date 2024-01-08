@@ -8,6 +8,8 @@ import os
 import numpy as np
 import emcee
 from abc import ABC
+from collections.abc import Sequence
+from typing import Any
 
 try:
     import torch
@@ -193,7 +195,7 @@ class DirectSampler(ABC):
     def __init__(self, posterior: ModelClass) -> None:
         self.posterior = posterior
 
-    def sample(self, nsteps: int, x: np.ndarray, progress: bool = False) -> np.ndarray:
+    def sample(self, nsteps: int, x: Any, progress: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -203,9 +205,10 @@ class DirectSampler(ABC):
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
         """
-        x = torch.Tensor(x)
-        if hasattr(self.posterior, '_device'):
-            x = x.to(self.posterior._device)
+        if isinstance(x, Sequence):
+            x = torch.Tensor(x)
+            if hasattr(self.posterior, '_device'):
+                x = x.to(self.posterior._device)
         return self.posterior.sample(
             (nsteps,), x=x,
             show_progress_bars=progress

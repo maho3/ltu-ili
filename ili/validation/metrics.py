@@ -228,7 +228,7 @@ class PosteriorSamples(_SampleBasedMetric):
 
         # Calculate shape of posterior samples
         _t = posterior.prior.sample()
-        Ntest = x.shape[0]
+        Ntest = len(x)
         Nparams = _t.shape[0]
         Nsamps = self.num_samples
         if self.sample_method == "emcee":
@@ -624,6 +624,8 @@ class PosteriorCoverage(PosteriorSamples):
             bootstrap (bool, optional): whether to use bootstrapping.
                 Defaults to False.
         """
+        theta = np.array(theta)
+
         # Sample the full dataset
         if self.save_samples:
             # Call PosteriorSamples to calculate and save samples
