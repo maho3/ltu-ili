@@ -425,20 +425,26 @@ def test_multiround():
     np.save('toy/x.npy', x)
 
     # setup a dataloader which can simulate
-    all_loader = SBISimulator(
-        in_dir='./toy',
-        xobs_file='xobs.npy',
-        thetafid_file='thetaobs.npy',
-        x_file='x.npy',
-        theta_file='theta.npy',
-        num_simulations=400,
-        simulator=simulator,
-        save_simulated=True
-    )
-    np.testing.assert_almost_equal(
-        np.squeeze(all_loader.get_fid_parameters()), 
-        np.squeeze(theta0)
-    )
+    # first uses existing data, second simulates all rounds
+    all_loader = [
+        SBISimulator(
+            in_dir='./toy',
+            xobs_file='xobs.npy',
+            thetafid_file='thetaobs.npy',
+            x_file='x.npy',
+            theta_file='theta.npy',
+            num_simulations=400,
+            simulator=simulator,
+            save_simulated=True
+        ),
+        SBISimulator(
+            in_dir='./toy',
+            xobs_file='xobs.npy',
+            num_simulations=400,
+            simulator=simulator,
+            save_simulated=False
+        ),
+    ]
     
     # train an SBI sequential model to infer x -> theta
 
@@ -446,10 +452,11 @@ def test_multiround():
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
     
     # Check lengths of simulator
-    unittest.TestCase().assertEqual(len(all_loader), 200)
-    all_loader.simulate(prior)
-    unittest.TestCase().assertEqual(len(all_loader), 600)
-    
+    unittest.TestCase().assertEqual(len(all_loader[0]), 200)
+    all_loader[0].simulate(prior)
+    unittest.TestCase().assertEqual(len(all_loader[0]), 600)
+    unittest.TestCase().assertEqual(len(all_loader[1]), 0)
+
     # define an inference class (we are doing amortized posterior inference)
     inference_class = sbi.inference.SNPE_C
 
@@ -468,7 +475,7 @@ def test_multiround():
         'max_num_epochs': 5,
         'num_round': 2,
     }
-    
+
     # define an embedding network
     embedding_args = {
         'n_data': x.shape[1],
@@ -476,20 +483,27 @@ def test_multiround():
         'act_fn': "SiLU"
     }
     embedding_net = FCN(**embedding_args)
-
-    # initialize the trainer
-    runner = SBIRunnerSequential(
-        prior=prior,
-        inference_class=inference_class,
-        nets=nets,
-        device=device,
-        embedding_net=embedding_net,
-        train_args=train_args,
-        output_path='./toy',
-    )
     
-    # train the model
-    runner(loader=all_loader)
+    np.testing.assert_almost_equal(
+            np.squeeze(all_loader[0].get_fid_parameters()), 
+            np.squeeze(theta0)
+        )
+    
+    for loader in all_loader:
+        
+        # initialize the trainer
+        runner = SBIRunnerSequential(
+            prior=prior,
+            inference_class=inference_class,
+            nets=nets,
+            device=device,
+            embedding_net=embedding_net,
+            train_args=train_args,
+            output_path='./toy',
+        )
+    
+        # train the model
+        runner(loader=loader, seed=1)
 
     # sample an ABC model to infer x -> theta
     train_args = {
@@ -507,7 +521,7 @@ def test_multiround():
         train_args=train_args,
         output_path='./toy',
     )
-    runner(loader=all_loader)
+    runner(loader=all_loader[0])
 
     return
 
@@ -862,7 +876,7 @@ def test_yaml():
                 'class': 'PosteriorSamples',
                 'args': dict(
                     num_samples=1,
-                    sample_method='slice_np',
+                    sample_method='direct',
                     sample_params=dict(
                         num_chains=1,
                         burn_in=1,
@@ -877,6 +891,10 @@ def test_yaml():
         
     data['metrics']['save_samples']['args']['sample_method'] = 'vi'
     with open('./toy/val_vi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+        
+    data['metrics']['save_samples']['args']['sample_method'] = 'slice_np'
+    with open('./toy/val_slice_np.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
         
     data['backend'] = 'incorrectmodule'
@@ -921,9 +939,12 @@ def test_yaml():
     # Run validation
 
     val_runner = ValidationRunner.from_config("./toy/val.yml")
-    # val_runner(loader=loader)
+    val_runner(loader=loader)
     
     val_runner = ValidationRunner.from_config("./toy/val_vi.yml")
+    # val_runner(loader=loader)
+    
+    val_runner = ValidationRunner.from_config("./toy/val_slice_np.yml")
     # val_runner(loader=loader)
     
     unittest.TestCase().assertRaises(
@@ -945,17 +966,61 @@ def test_loaders():
     # Exception if data and parameters of different size
     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
     x = np.random.rand(190)  # 190 simulations
-    try:
-        NumpyLoader(x, theta)
-        success = False
-    except Exception as e:
-        success = True
-    unittest.TestCase().assertTrue(success)
+    unittest.TestCase().assertRaises(
+        Exception,
+        NumpyLoader,
+        x, 
+        theta
+    )
+    
+    if not os.path.isdir("toy"):
+        os.mkdir("toy")
+    x = np.random.rand(theta.shape[0],7)
+    np.save('./toy/x.npy', x)
+    np.save('./toy/theta.npy', theta)
+    np.save('./toy/xobs.npy', x[0,:])
+    np.save('./toy/thetafid.npy', theta[0,:])
+    
+    # Check static numpy loader
+    StaticNumpyLoader(
+        in_dir = './toy/',
+        x_file = 'x.npy',
+        theta_file = 'theta.npy',
+        xobs_file = 'xobs.npy',
+        thetafid_file = 'thetafid.npy',
+    )
     
     # Check length attribute
-    x = np.random.rand(theta.shape[0])
     loader = NumpyLoader(x, theta)
     unittest.TestCase().assertEqual(len(x), len(loader))
+    
+    # check a dataloader with no data has zero length
+    def simulator(params):
+        # create toy 'simulations'
+        x = np.arange(10)
+        y = params @ np.array([np.sin(x), x ** 2, x])
+        y += np.random.randn(len(params), len(x))
+        return y
+    loader = SBISimulator(
+        in_dir = './toy',
+        xobs_file = 'xobs.npy',
+        num_simulations = 10,
+        simulator=simulator
+    )
+    unittest.TestCase().assertEqual(len(loader), 0)
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
+    loader.simulate(prior)
+    unittest.TestCase().assertEqual(len(loader), 10)
+    
+    # Exception is files not specified
+    unittest.TestCase().assertRaises(
+        Exception,
+        SBISimulator,
+        in_dir = './toy', 
+        xobs_file = 'x.npy',
+        num_simulations = 10,
+        save_simulated=True
+    )
     
     # -------
     # SummarizerDatasetLoader
@@ -1107,6 +1172,20 @@ def test_loaders():
             param_names=['t0', 't1', 't2'],
         )
     )
+    np.save('./toy/xobs.npy', all_loaders[-1].x.summaries[0,:])
+    np.save('./toy/thetafid.npy', all_loaders[-1].theta[0])
+    all_loaders.append(
+        SummarizerDatasetLoader(
+            stage='train',
+            in_dir='./toy',
+            x_root=f'{str(summary)}/cat',
+            theta_file='summarizer_params.txt',
+            train_test_split_file='summarizer_train_test_split.json',
+            param_names=['t0', 't1', 't2'],
+            xobs_file = 'xobs.npy',
+            thetafid_file = 'thetafid.npy',
+        )
+    )
     
     # Use a config file
     data = dict(
@@ -1150,3 +1229,6 @@ def test_loaders():
         np.testing.assert_almost_equal(theta[i1:,:], p, decimal=5)    
     
     return
+
+# test_loaders()
+test_yaml()
