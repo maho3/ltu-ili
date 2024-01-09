@@ -11,7 +11,7 @@ from ili.inference.pydelfi_wrappers import DelfiWrapper
 from ili.validation.runner import ValidationRunner
 from ili.inference.runner_pydelfi import DelfiRunner
 from ili.dataloaders import StaticNumpyLoader, NumpyLoader
-from ili.embedding import FCN
+# from ili.embedding import FCN
 import os
 import numpy as np
 from numpy import testing
@@ -381,20 +381,4 @@ def test_yaml():
     runner(loader=all_loader)
     ValidationRunner.from_config("./toy_pydelfi/val.yml")
 
-    return
-
-
-def test_embedding():
-    """Test that we can produce an embedding network with pydelfi
-    """
-    
-    # define an embedding network
-    ndata = 10
-    embedding_args = {
-        'n_data': ndata,
-        'n_hidden': [ndata, ndata, ndata],
-        'act_fn': "SiLU"
-    }
-    embedding_net = FCN(**embedding_args)
-    
     return

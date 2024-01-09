@@ -2,4 +2,8 @@ from .dataloaders import *
 from .inference import *
 from .utils import *
 from .validation import *
-from .embedding import *
+
+try:
+    from .embedding import *
+except ModuleNotFoundError:
+    pass

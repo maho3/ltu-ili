@@ -32,7 +32,7 @@ print('Device:', device)
 def test_snpe(monkeypatch):
     """Test the SNPE inference class with a simple toy model."""
 
-    monkeypatch.setattr(plt, 'show', lambda: None)
+    # monkeypatch.setattr(plt, 'show', lambda: None)
     
     # construct a working directory
     if not os.path.isdir("toy"):
@@ -112,8 +112,8 @@ def test_snpe(monkeypatch):
     samples = posterior.sample((nsamples,), torch.Tensor(x[ind]).to(device))
     
     # calculate the log_prob for each sample
-    # log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
-
+    log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
+    
     # use ltu-ili's built-in validation metrics to plot the posterior
     metric = PlotSinglePosterior(
         backend='sbi', output_path=None, num_samples=nsamples,
@@ -189,13 +189,13 @@ def test_snpe(monkeypatch):
         labels=[f'$\\theta_{i}$' for i in range(3)],
         sample_params={'num_chains':nchain},
      )
-    # samples = metric(
-    #     posterior=posterior,
-    #     x_obs=x[ind], theta_fid=theta[ind],
-    #     x=x[:ntest], theta=theta[:ntest,:],
-    # )
-    # unittest.TestCase().assertIsInstance(samples, np.ndarray)
-    # unittest.TestCase().assertListEqual(list(samples.shape), [nsamp,ntest,3])
+    samples = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_fid=theta[ind],
+        x=x[:ntest], theta=theta[:ntest,:],
+    )
+    unittest.TestCase().assertIsInstance(samples, np.ndarray)
+    unittest.TestCase().assertListEqual(list(samples.shape), [nsamp,ntest,3])
     
     return
 
