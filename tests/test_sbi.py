@@ -1229,6 +1229,3 @@ def test_loaders():
         np.testing.assert_almost_equal(theta[i1:,:], p, decimal=5)    
     
     return
-
-# test_loaders()
-test_yaml()
