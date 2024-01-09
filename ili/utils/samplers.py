@@ -64,7 +64,8 @@ class EmceeSampler(_MCMCSampler):
     """
 
     def sample(self, nsteps: int, x: np.ndarray,
-               progress: bool = False, **kwargs) -> np.ndarray:
+               progress: bool = False, 
+               skip_initial_state_check: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -73,6 +74,11 @@ class EmceeSampler(_MCMCSampler):
             x (np.ndarray): data to evaluate the posterior at
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
+            skip_initial_state_check (bool, optional): If True, a check that 
+                the initial_state can fully explore the space will be skipped. 
+                Defaults to False.
+
+
         """
         theta0 = [self.posterior.prior.sample()
                           for i in range(self.num_chains)]
@@ -100,7 +106,7 @@ class EmceeSampler(_MCMCSampler):
             self.burn_in + nsteps,
             thin_by=self.thin,
             progress=progress,
-            **kwargs
+            skip_initial_state_check=skip_initial_state_check
         )
         return self.sampler.get_chain(discard=self.burn_in, flat=True)
 
