@@ -32,7 +32,7 @@ print('Device:', device)
 def test_snpe(monkeypatch):
     """Test the SNPE inference class with a simple toy model."""
 
-    # monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, 'show', lambda: None)
     
     # construct a working directory
     if not os.path.isdir("toy"):
@@ -203,7 +203,7 @@ def test_snpe(monkeypatch):
 def test_snle(monkeypatch):
     """Test the SNLE inference class with a simple toy model."""
 
-    # monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, 'show', lambda: None)
 
     # create the same synthetic catalog as the previous example
     def simulator_0(params):
@@ -409,7 +409,6 @@ def test_multiround():
         y += np.random.randn(len(params), len(x))
         return y
     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
-    # x = np.array([simulator(t) for t in theta])
     x = simulator(theta)
 
     # construct a working directory
@@ -421,6 +420,9 @@ def test_multiround():
     x0 = simulator(theta0)
     np.save('toy/thetaobs.npy', theta0[0])
     np.save('toy/xobs.npy', x0[0])
+    
+    np.save('toy/theta.npy', theta)
+    np.save('toy/x.npy', x)
 
     # setup a dataloader which can simulate
     all_loader = SBISimulator(
@@ -433,9 +435,8 @@ def test_multiround():
         simulator=simulator,
         save_simulated=True
     )
-    unittest.TestCase().assertEqual(len(all_loader), 400)
     np.testing.assert_almost_equal(
-        np.squeeze(all_loader.get_obs_parameters()), 
+        np.squeeze(all_loader.get_fid_parameters()), 
         np.squeeze(theta0)
     )
     
@@ -443,7 +444,12 @@ def test_multiround():
 
     # define a prior
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
-
+    
+    # Check lengths of simulator
+    unittest.TestCase().assertEqual(len(all_loader), 200)
+    all_loader.simulate(prior)
+    unittest.TestCase().assertEqual(len(all_loader), 600)
+    
     # define an inference class (we are doing amortized posterior inference)
     inference_class = sbi.inference.SNPE_C
 
@@ -481,7 +487,7 @@ def test_multiround():
         train_args=train_args,
         output_path='./toy',
     )
-
+    
     # train the model
     runner(loader=all_loader)
 
@@ -783,7 +789,7 @@ def test_yaml():
         
     # Make a matplotlib style file
     style = {
-        'figure.figsize': 10.6,
+        'figure.figsize': '10,6',
         'figure.facecolor': 'white',
         'figure.dpi': 200,
         'savefig.dpi': 200,
@@ -1094,9 +1100,9 @@ def test_loaders():
     all_loaders.append(
         SummarizerDatasetLoader(
             stage='train',
-            data_dir='./toy',
-            data_root_file=f'{str(summary)}/cat',
-            param_file='summarizer_params.txt',
+            in_dir='./toy',
+            x_root=f'{str(summary)}/cat',
+            theta_file='summarizer_params.txt',
             train_test_split_file='summarizer_train_test_split.json',
             param_names=['t0', 't1', 't2'],
         )
@@ -1104,9 +1110,9 @@ def test_loaders():
     
     # Use a config file
     data = dict(
-        data_dir='./toy',
-        data_root_file=f'{str(summary)}/cat',
-        param_file='summarizer_params.txt',
+        in_dir='./toy',
+        x_root=f'{str(summary)}/cat',
+        theta_file='summarizer_params.txt',
         train_test_split_file='summarizer_train_test_split.json',
         param_names=['t0', 't1', 't2'],
     )
