@@ -82,7 +82,10 @@ class EmceeSampler(_MCMCSampler):
         """
         theta0 = [self.posterior.prior.sample()
                           for i in range(self.num_chains)]
-        theta0 = np.array(torch.stack(theta0).cpu())
+        if isinstance(theta0[0], np.ndarray):
+            theta0 = np.stack(theta0)
+        else:
+            theta0 = np.array(torch.stack(theta0).cpu())
 
         def log_target(t, x):
             res = self.posterior.potential(
