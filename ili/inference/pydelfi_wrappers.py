@@ -6,7 +6,8 @@ interface.
 import pickle
 import emcee
 import numpy as np
-from typing import Dict, List, Callable, Optional
+from math import ceil
+from typing import Dict, List, Callable, Optional, Union
 from pydelfi.delfi import Delfi
 from ili.utils import load_class, load_from_config, load_nde_pydelfi
 
@@ -53,7 +54,7 @@ class DelfiWrapper(Delfi):
 
     def sample(
         self,
-        sample_shape: tuple,
+        sample_shape: Union[int, tuple],
         x: np.array,
         show_progress_bars=False,
         burn_in_chain=1000
@@ -67,13 +68,16 @@ class DelfiWrapper(Delfi):
                 MCMC walker, after burn-in
             x (np.array): data vector to condition the inference on
             show_progress_bars (bool): whether to print sampling progress
-            burn_in_chain (int): length of burn-in for MCMC sampling
+            burn_in_chain (int, tuple): length of burn-in for MCMC sampling
 
         Returns:
             np.array: array of unique samples of shape (# of samples, # of
                 parameters), after MCMC rejection
         """
+        if isinstance(sample_shape, int):
+            sample_shape = (sample_shape,)
         num_samples = np.prod(sample_shape)
+        to_sample = ceil(num_samples / self.nwalkers)
 
         # build posterior to sample
         def log_target(t): return self.log_posterior_stacked(t, x)
@@ -96,12 +100,12 @@ class DelfiWrapper(Delfi):
         sampler.reset()
 
         # Main chain
-        sampler.run_mcmc(state, num_samples, progress=show_progress_bars)
+        sampler.run_mcmc(state, to_sample, progress=show_progress_bars)
 
         # pull out the unique samples and weights
-        chain = sampler.get_chain(flat=True)
+        chain = sampler.get_chain(flat=True)[:num_samples]
 
-        return chain
+        return chain.reshape((*sample_shape, self.npar))
 
     @staticmethod
     def load_ndes(

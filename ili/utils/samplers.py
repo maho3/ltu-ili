@@ -64,7 +64,7 @@ class EmceeSampler(_MCMCSampler):
     """
 
     def sample(self, nsteps: int, x: np.ndarray,
-               progress: bool = False, 
+               progress: bool = False,
                skip_initial_state_check: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
@@ -81,7 +81,7 @@ class EmceeSampler(_MCMCSampler):
 
         """
         theta0 = [self.posterior.prior.sample()
-                          for i in range(self.num_chains)]
+                  for i in range(self.num_chains)]
         if isinstance(theta0[0], np.ndarray):
             theta0 = np.stack(theta0)
         else:

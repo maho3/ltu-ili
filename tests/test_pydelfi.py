@@ -4,7 +4,6 @@ warnings.filterwarnings('ignore')  # noqa
 import tensorflow as tf
 from pathlib import Path
 import yaml
-import pydelfi
 import ili
 from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
 from ili.inference.pydelfi_wrappers import DelfiWrapper
@@ -107,25 +106,25 @@ def test_toy():
         burn_in_chain=20,
     )
     assert samples.shape[1] == len(theta0)
-    
+
     # TARP not yet available with pydelfi
     metric = PosteriorCoverage(
-        backend='pydelfi', output_path=Path('./toy_pydelfi'), num_samples=2,
+        out_dir=Path('./toy_pydelfi'), num_samples=2,
         sample_method='emcee', labels=[f'$\\theta_{i}$' for i in range(3)],
         plot_list=["tarp"],
-        sample_params={'num_chains':6},
+        sample_params={'num_chains': 6},
     )
     unittest.TestCase().assertRaises(
         NotImplementedError,
         metric,
         posterior=posterior,
-        x=x0, 
+        x=x0,
         theta=theta0
     )
-    
-    # Cannot sample directly with pydelfi
+
+    #  Cannot sample directly with pydelfi
     metric = PosteriorCoverage(
-        backend='pydelfi', output_path=Path('./toy_pydelfi'), num_samples=2,
+        out_dir=Path('./toy_pydelfi'), num_samples=2,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
         plot_list=["coverage"],
     )
@@ -133,10 +132,10 @@ def test_toy():
         ValueError,
         metric,
         posterior=posterior,
-        x=x0, 
+        x=x0,
         theta=theta0
     )
-    
+
     return
 
 

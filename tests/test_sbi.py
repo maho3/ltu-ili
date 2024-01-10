@@ -141,7 +141,7 @@ def test_snpe(monkeypatch):
 
     # repeat but save to file and do tarp without bootstrapping
     metric = PosteriorCoverage(
-        backend='sbi', output_path=Path('./toy'), num_samples=nsamples,
+        out_dir=Path('./toy'), num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
         plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"],
         save_samples=True,
@@ -156,8 +156,8 @@ def test_snpe(monkeypatch):
     nsamp = 2
     nchain = 6
     ntest = 1
-    metric = PosteriorSamples(backend='sbi', output_path=None,
-                              num_samples=nsamp, sample_method='emcee',
+    metric = PosteriorSamples(out_dir=None, num_samples=nsamp,
+                              sample_method='emcee',
                               labels=[f'$\\theta_{i}$' for i in range(3)],
                               sample_params={'num_chains': nchain},
                               )
@@ -172,8 +172,8 @@ def test_snpe(monkeypatch):
         list(samples.shape), [nsamp*nchain, ntest, 3])
 
     # get samples using direct method with PosteriorSamples class
-    metric = PosteriorSamples(backend='sbi', output_path=Path('./toy'),
-                              num_samples=nsamp, sample_method='direct',
+    metric = PosteriorSamples(out_dir=None, num_samples=nsamp,
+                              sample_method='direct',
                               labels=[f'$\\theta_{i}$' for i in range(3)],
                               )
     samples = metric(
@@ -185,8 +185,8 @@ def test_snpe(monkeypatch):
     unittest.TestCase().assertListEqual(list(samples.shape), [nsamp, ntest, 3])
 
     # get samples using pyro with the PosteriorSamples class
-    metric = PosteriorSamples(backend='sbi', output_path=None,
-                              num_samples=nsamp, sample_method='slice_np_vectorized',
+    metric = PosteriorSamples(out_dir=None, num_samples=nsamp,
+                              sample_method='slice_np_vectorized',
                               labels=[f'$\\theta_{i}$' for i in range(3)],
                               sample_params={'num_chains': nchain},
                               )
@@ -319,7 +319,7 @@ def test_snle(monkeypatch):
         if npar == 1:
             # Cannot sample directly for snle
             metric = PosteriorCoverage(
-                backend='sbi', output_path=None, num_samples=nsamples,
+                out_dir=None, num_samples=nsamples,
                 sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(npar)],
                 plot_list=["predictions", "coverage", "histogram"]
             )
@@ -335,7 +335,7 @@ def test_snle(monkeypatch):
 
             # Can sample with vi for snle
             metric = PosteriorCoverage(
-                backend='sbi', output_path=None, num_samples=nsamples,
+                out_dir=None, num_samples=nsamples,
                 sample_method='vi', labels=[f'$\\theta_{i}$' for i in range(npar)],
                 plot_list=["predictions", "coverage", "histogram"]
             )
@@ -722,7 +722,7 @@ def test_yaml():
                'nets': [
                    dict(model='maf', hidden_features=50,
                         num_transforms=5, signature='maf1'),
-                   dict(model='mdn', hidden_features=50, num_transforms=2)],
+                   dict(model='mdn', hidden_features=50, num_components=2)],
                'name': 'test_snpe'
                },
         train_args=dict(
@@ -842,7 +842,7 @@ def test_yaml():
     # Yaml file for validation
     data = dict(
         out_dir='./toy',
-        posterior_path='./toy/posterior.pkl',
+        posterior_file='./posterior.pkl',
         style_path='./toy/style.mcstyle',
         labels=['t1', 't2', 't3'],
         ensemble_mode=False,
@@ -900,10 +900,6 @@ def test_yaml():
     with open('./toy/val_slice_np.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
-    data['backend'] = 'incorrectmodule'
-    with open('./toy/val_incorrect_module.yml', 'w') as outfile:
-        yaml.dump(data, outfile, default_flow_style=False)
-
     # -------
 
     # Test objects
@@ -949,12 +945,6 @@ def test_yaml():
 
     val_runner = ValidationRunner.from_config("./toy/val_slice_np.yml")
     # val_runner(loader=loader)
-
-    unittest.TestCase().assertRaises(
-        NotImplementedError,
-        ValidationRunner.from_config,
-        './toy/val_incorrect_module.yml'
-    )
 
     return
 
