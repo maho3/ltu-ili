@@ -137,3 +137,5 @@ class DelfiRunner():
 
         logging.info(
             f"It took {time.time() - t0} seconds to train all models.")
+
+        return posterior
