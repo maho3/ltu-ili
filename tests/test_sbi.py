@@ -75,7 +75,6 @@ def test_snpe(monkeypatch):
 
     # define an embedding network
     embedding_args = {
-        'n_data': x.shape[1],
         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
         'act_fn': "SiLU"
     }
@@ -480,7 +479,6 @@ def test_multiround():
 
     # define an embedding network
     embedding_args = {
-        'n_data': x.shape[1],
         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
         'act_fn': "SiLU"
     }
@@ -732,7 +730,6 @@ def test_yaml():
         embedding_net={'module': 'ili.embedding',
                        'class': 'FCN',
                        'args': {
-                           'n_data': x.shape[1],
                            'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
                            'act_fn': "SiLU",
                        },

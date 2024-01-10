@@ -109,7 +109,6 @@ embedding_net:
   module: 'ili.embedding'
   class: 'FCN'  # Fully-connected network
   args:
-    n_data: 100  # length of data vector
     n_hidden: [100,100,100]  # width of hidden layers
     act_fn: "SiLU"  # activation function
 
