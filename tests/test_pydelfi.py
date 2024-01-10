@@ -6,14 +6,16 @@ from pathlib import Path
 import yaml
 import pydelfi
 import ili
-from ili.validation.metrics import PlotSinglePosterior
+from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
 from ili.inference.pydelfi_wrappers import DelfiWrapper
 from ili.validation.runner import ValidationRunner
 from ili.inference.runner_pydelfi import DelfiRunner
 from ili.dataloaders import StaticNumpyLoader, NumpyLoader
+# from ili.embedding import FCN
 import os
 import numpy as np
 from numpy import testing
+import unittest
 
 
 def test_toy():
@@ -87,8 +89,9 @@ def test_toy():
         }
     }
     metrics = {'single_example': PlotSinglePosterior(**args)}
+    posterior = DelfiWrapper.load_engine('./toy_pydelfi/posterior.pkl')
     val_runner = ValidationRunner(
-        posterior=DelfiWrapper.load_engine('./toy_pydelfi/posterior.pkl'),
+        posterior=posterior,
         metrics=metrics,
         out_dir=Path('./toy_pydelfi'),
     )
@@ -104,7 +107,36 @@ def test_toy():
         burn_in_chain=20,
     )
     assert samples.shape[1] == len(theta0)
-
+    
+    # TARP not yet available with pydelfi
+    metric = PosteriorCoverage(
+        backend='pydelfi', output_path=Path('./toy_pydelfi'), num_samples=2,
+        sample_method='emcee', labels=[f'$\\theta_{i}$' for i in range(3)],
+        plot_list=["tarp"],
+        sample_params={'num_chains':6},
+    )
+    unittest.TestCase().assertRaises(
+        NotImplementedError,
+        metric,
+        posterior=posterior,
+        x=x0, 
+        theta=theta0
+    )
+    
+    # Cannot sample directly with pydelfi
+    metric = PosteriorCoverage(
+        backend='pydelfi', output_path=Path('./toy_pydelfi'), num_samples=2,
+        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
+        plot_list=["coverage"],
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        metric,
+        posterior=posterior,
+        x=x0, 
+        theta=theta0
+    )
+    
     return
 
 
@@ -270,6 +302,9 @@ def test_yaml():
         train_args={'batch_size': 32, 'epochs': 5},
         out_dir='toy_pydelfi',
     )
+    with open('./toy_pydelfi/infer_noname.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    data['model']['name'] = 'test_pydelfi'
     with open('./toy_pydelfi/infer.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
@@ -296,6 +331,8 @@ def test_yaml():
 
     all_loader = StaticNumpyLoader.from_config("./toy_pydelfi/data.yml")
     runner = DelfiRunner.from_config("./toy_pydelfi/infer.yml")
+    runner(loader=all_loader)
+    runner = DelfiRunner.from_config("./toy_pydelfi/infer_noname.yml")
     runner(loader=all_loader)
     ValidationRunner.from_config("./toy_pydelfi/val.yml")
 

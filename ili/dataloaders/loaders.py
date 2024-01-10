@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 import json
 import pandas as pd
+import logging
+import os
 from ili.utils import Dataset
 
 try:
@@ -465,7 +467,6 @@ class SummarizerDatasetLoader(NumpyLoader):
             self.in_dir / param_file, sep=" ", skipinitialspace=True
         ).iloc[nodes]
         return theta[param_names].values
-
 
 # TODO: Add loaders which load dynamically from many files, so
 # that everything doesn't need to be stored in memory
