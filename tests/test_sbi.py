@@ -32,7 +32,7 @@ print('Device:', device)
 def test_snpe(monkeypatch):
     """Test the SNPE inference class with a simple toy model."""
 
-    # monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, 'show', lambda: None)
     
     # construct a working directory
     if not os.path.isdir("toy"):
@@ -337,11 +337,11 @@ def test_snle(monkeypatch):
                 sample_method='vi', labels=[f'$\\theta_{i}$' for i in range(npar)],
                 plot_list=["predictions", "coverage", "histogram"]
             )
-#             metric(
-#                 posterior=posterior,
-#                 x_obs=x[ind], theta_fid=theta[ind],
-#                 x=x[:2], theta=theta[:2]
-#             )
+            metric(
+                posterior=posterior,
+                x_obs=x[ind], theta_fid=theta[ind],
+                x=x[:2], theta=theta[:2]
+            )
 
     return
 
@@ -663,19 +663,30 @@ def test_yaml():
     if not os.path.isdir("toy"):
         os.mkdir("toy")
         
-    # Run for single round
+    # create synthetic catalog
     def simulator(params):
-        # create toy simulations
+        # create toy 'simulations'
         x = np.arange(10)
-        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
-        y += np.random.randn(len(x))
+        y = params @ np.array([np.sin(x), x ** 2, x])
+        y += np.random.randn(len(params), len(x))
         return y
 
     # simulate data and save as numpy files
-    theta = np.random.rand(10, 3)  # 10 simulations, 3 parameters
-    x = np.array([simulator(t) for t in theta])
+    np.random.seed(1)
+    theta = np.random.rand(50, 3)  # 50 simulations, 3 parameters
+    x = simulator(theta)
     np.save("toy/theta.npy", theta)
     np.save("toy/x.npy", x)
+    
+    # save a subset of these in a separate file
+    np.save("toy/theta_val.npy", theta[:2,:])
+    np.save("toy/x_val.npy", x[:2,:])
+    
+    # simulate a single test observation and save as numpy files
+    theta0 = np.zeros((1,3))
+    x0 = simulator(theta0)
+    np.save('toy/thetaobs.npy', theta[0])
+    np.save('toy/xobs.npy', x[0])
 
     # Yaml file for data - standard
     data = dict(
@@ -684,6 +695,15 @@ def test_yaml():
         theta_file='theta.npy'
     )
     with open('./toy/data.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+        
+    # Yaml file for data - subset
+    data = dict(
+        in_dir='./toy',
+        x_file='x_val.npy',
+        theta_file='theta_val.npy'
+    )
+    with open('./toy/data_val.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for data - multiround
@@ -890,6 +910,21 @@ def test_yaml():
         yaml.dump(data, outfile, default_flow_style=False)
         
     data['metrics']['save_samples']['args']['sample_method'] = 'vi'
+    data['metrics'] = {
+            'save_samples':{
+                'module': 'ili.validation.metrics',
+                'class': 'PosteriorSamples',
+                'args': dict(
+                    num_samples=1,
+                    sample_method='direct',
+                    sample_params=dict(
+                        num_chains=1,
+                        burn_in=1,
+                        thin=1
+                    )
+                )
+            }
+    }
     with open('./toy/val_vi.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
         
@@ -912,19 +947,6 @@ def test_yaml():
     # -------
     # Run for multi round
 
-    def simulator(params):
-        # create toy 'simulations'
-        x = np.arange(10)
-        y = params @ np.array([np.sin(x), x ** 2, x])
-        y += np.random.randn(len(params), len(x))
-        return y
-
-    # simulate a single test observation and save as numpy files
-    theta0 = np.zeros((1, 3))+0.5
-    x0 = simulator(theta0)
-    np.save('toy/thetaobs.npy', theta0[0])
-    np.save('toy/xobs.npy', x0[0])
-
     loader = SBISimulator.from_config("./toy/data_multi.yml")
     loader.set_simulator(simulator)
     run_seq = SBIRunnerSequential.from_config("./toy/infer_multi.yml")
@@ -941,11 +963,13 @@ def test_yaml():
     val_runner = ValidationRunner.from_config("./toy/val.yml")
     val_runner(loader=loader)
     
+    loader = StaticNumpyLoader.from_config("./toy/data_val.yml")
+    
     val_runner = ValidationRunner.from_config("./toy/val_vi.yml")
-    # val_runner(loader=loader)
+    val_runner(loader=loader)
     
     val_runner = ValidationRunner.from_config("./toy/val_slice_np.yml")
-    # val_runner(loader=loader)
+    val_runner(loader=loader)
     
     unittest.TestCase().assertRaises(
         NotImplementedError,

@@ -11,7 +11,6 @@ from ili.inference.pydelfi_wrappers import DelfiWrapper
 from ili.validation.runner import ValidationRunner
 from ili.inference.runner_pydelfi import DelfiRunner
 from ili.dataloaders import StaticNumpyLoader, NumpyLoader
-# from ili.embedding import FCN
 import os
 import numpy as np
 from numpy import testing

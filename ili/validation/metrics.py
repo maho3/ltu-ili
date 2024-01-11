@@ -486,7 +486,6 @@ class PosteriorCoverage(PosteriorSamples):
         Returns:
             plt.Figure: The generated TARP plot.
         """
-
         ecp, alpha = tarp.get_tarp_coverage(
             posterior_samples, theta,
             references=references, metric=metric,
