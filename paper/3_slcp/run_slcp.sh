@@ -10,7 +10,7 @@ source /home/mattho/.bashrc
 source /home/mattho/data/anaconda3/etc/profile.d/conda.sh
 
 WDIR=${HOME}/git/ltu-ili/paper/3_slcp
-csv_file="./configs/record.csv"
+csv_file="./configs/batch.csv"
 cd ${WDIR}
 
 row_number=${PBS_ARRAYID}
