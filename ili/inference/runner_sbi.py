@@ -9,7 +9,6 @@ import logging
 import pickle
 import torch
 import torch.nn as nn
-import sbi
 from pathlib import Path
 from typing import Dict, List, Callable, Optional
 from torch.distributions import Independent

@@ -1444,6 +1444,18 @@ def test_universal():
         engine='NRE',
         model='mdn', hidden_features=50, num_components=2
     )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_sbi,
+        engine='NRE',
+        model='andre', hidden_features=50, num_components=2
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_sbi,
+        engine='ANDRE',
+        model='nsf', hidden_features=50, num_components=2
+    )
 
     # test that it works if you underspecify
     model = load_nde_sbi(

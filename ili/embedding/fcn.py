@@ -5,10 +5,7 @@ Module providing compression networks for data.
 from typing import List
 import torch
 import torch.nn as nn
-try:
-    from typing import OrderedDict
-except ImportError:
-    pass
+from typing import OrderedDict
 
 
 class FCN(nn.Module):
