@@ -3,6 +3,7 @@ Module to train posterior inference models using the pyDELFI package
 """
 
 import yaml
+import json
 import time
 import logging
 import numpy as np
@@ -10,6 +11,7 @@ import tensorflow as tf
 from pathlib import Path
 from typing import Dict, Any, List, Callable, Optional
 from ili.utils import load_class, load_from_config
+from .pydelfi_wrappers import DelfiWrapper
 
 
 class DelfiRunner():
@@ -96,6 +98,15 @@ class DelfiRunner():
             name=name,
         )
 
+    def _save_models(self, posterior: DelfiWrapper, summary: Dict[str, Any]):
+        """Save the trained models to file"""
+        logging.info(f"Saving models to {self.out_dir}")
+        str_p = self.name + "posterior.pkl"
+        str_s = self.name + "summary.json"
+        posterior.save_engine(str_p)
+        with open(self.out_dir / str_s, "w") as f:
+            json.dump(summary, f)
+
     def __call__(self, loader):
         """Train your posterior and save it to file
 
@@ -132,10 +143,19 @@ class DelfiRunner():
         posterior.load_simulations(x, theta)
         posterior.train_ndes(**self.train_args)
 
-        posterior.save_engine(self.name+'posterior.pkl')
+        train_probs = [(-t).tolist() for t in posterior.training_loss]
+        val_probs = [(-t).tolist() for t in posterior.validation_loss]
+        summary = dict(
+            training_log_probs=train_probs,
+            validation_log_probs=val_probs,
+            epochs_trained=[len(posterior.training_loss[0])]
+        )
+
+        if self.out_dir is not None:
+            self._save_models(posterior, summary)
         tf.reset_default_graph()
 
         logging.info(
             f"It took {time.time() - t0} seconds to train all models.")
 
-        return posterior
+        return posterior, summary
