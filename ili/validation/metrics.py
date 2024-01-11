@@ -226,8 +226,6 @@ class PosteriorSamples(_SampleBasedMetric):
         Ntest = x.shape[0]
         Nparams = _t.shape[0]
         Nsamps = self.num_samples
-        if self.sample_method == "emcee":
-            Nsamps *= sampler.num_chains
 
         posterior_samples = np.zeros((Nsamps, Ntest, Nparams))
         for ii in tqdm.tqdm(range(Ntest)):
@@ -484,7 +482,6 @@ class PosteriorCoverage(PosteriorSamples):
         Returns:
             plt.Figure: The generated TARP plot.
         """
-
         ecp, alpha = tarp.get_tarp_coverage(
             posterior_samples, theta,
             references=references, metric=metric,

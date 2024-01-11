@@ -103,7 +103,7 @@ def test_toy():
         sample_shape=100,
         x=x0,
         show_progress_bars=False,
-        burn_in_chain=20,
+        burn_in=20,
     )
     assert samples.shape[1] == len(theta0)
 
@@ -209,7 +209,7 @@ def test_prior():
             sample_shape=100,
             x=x0,
             show_progress_bars=False,
-            burn_in_chain=20,
+            burn_in=20,
         )
         assert samples.shape[1] == len(theta0)
         tf.reset_default_graph()
