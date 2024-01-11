@@ -209,7 +209,7 @@ class PosteriorSamples(_SampleBasedMetric):
     tasks (e.g. nested sampling) or making custom plots.
     """
 
-    def _sample_dataset(self, posterior, x):
+    def _sample_dataset(self, posterior, x, **kwargs):
         """Sample from posterior for all datapoints within a
         test dataset.
 
@@ -236,7 +236,7 @@ class PosteriorSamples(_SampleBasedMetric):
             try:
                 # Sample posterior P(theta | x[ii])
                 posterior_samples[:, ii] = sampler.sample(
-                    self.num_samples, x=x[ii], progress=False)
+                    self.num_samples, x=x[ii], progress=False, **kwargs)
             except Warning as w:
                 logging.warning("WARNING\n", w)
                 continue
@@ -250,7 +250,8 @@ class PosteriorSamples(_SampleBasedMetric):
         signature: Optional[str] = "",
         # here for debugging purpose, otherwise error in runner.py line 123
         x_obs: Optional[np.array] = None,
-        theta_fid: Optional[np.array] = None
+        theta_fid: Optional[np.array] = None,
+        **kwargs
     ):
         """Given a posterior and test data, infer posterior samples of a
         test dataset and save to file.
@@ -263,7 +264,7 @@ class PosteriorSamples(_SampleBasedMetric):
             theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
         """
         # Sample the full dataset
-        posterior_samples = self._sample_dataset(posterior, x)
+        posterior_samples = self._sample_dataset(posterior, x, **kwargs)
 
         if self.output_path is None:
             return posterior_samples
@@ -485,7 +486,6 @@ class PosteriorCoverage(PosteriorSamples):
         Returns:
             plt.Figure: The generated TARP plot.
         """
-
         ecp, alpha = tarp.get_tarp_coverage(
             posterior_samples, theta,
             references=references, metric=metric,
@@ -584,9 +584,6 @@ class PosteriorCoverage(PosteriorSamples):
         x_obs: Optional[np.array] = None,
         theta_fid: Optional[np.array] = None,
         signature: Optional[str] = "",
-        plot_list: Optional[list] = ["coverage", "histogram",
-                                     "predictions", "tarp",
-                                     "logprob"],
         references: str = "random",
         metric: str = "euclidean",
         num_alpha_bins: Union[int, None] = None,
@@ -604,7 +601,6 @@ class PosteriorCoverage(PosteriorSamples):
             x_obs (np.array, optional): Not used
             theta_fid (np.array, optional): Not used
             signature (str, optional): signature for the output file name
-            plot_list (list, optional): list of plot types to save
 
         Args (TARP only):
             references (str, optional): how to select the reference points.
@@ -619,7 +615,7 @@ class PosteriorCoverage(PosteriorSamples):
             norm (bool, optional): whether to normalize the metric.
                 Defaults to True.
             bootstrap (bool, optional): whether to use bootstrapping.
-                Defaults to False.
+                Defaults to True.
         """
         # Sample the full dataset
         if self.save_samples:
@@ -631,20 +627,20 @@ class PosteriorCoverage(PosteriorSamples):
 
         figs = []
         # Save the plots
-        if "coverage" in plot_list:
+        if "coverage" in self.plot_list:
             figs.append(self._plot_coverage(
                 posterior_samples, theta, signature))
-        if "histogram" in plot_list:
+        if "histogram" in self.plot_list:
             figs.append(self._plot_ranks_histogram(
                 posterior_samples, theta, signature))
-        if "predictions" in plot_list:
+        if "predictions" in self.plot_list:
             figs.append(self._plot_predictions(
                 posterior_samples, theta, signature))
-        if "logprob" in plot_list:
+        if "logprob" in self.plot_list:
             self._calc_true_logprob(posterior_samples, theta, signature)
 
         # Specifically for TARP
-        if "tarp" in plot_list:
+        if "tarp" in self.plot_list:
             # check if if backend is sbi
             if self.backend != 'sbi':
                 raise NotImplementedError(
