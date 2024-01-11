@@ -32,9 +32,10 @@ class DelfiRunner():
         config_ndes: List[Dict],
         prior: Any,
         inference_class: Any,
-        out_dir: Path,
         engine_kwargs: Dict = {},
         train_args: Dict = {},
+        out_dir: Path = None,
+        device: str = 'cpu',
         name: Optional[str] = ""
     ):
         self.config_ndes = config_ndes
@@ -43,6 +44,7 @@ class DelfiRunner():
         self.engine_kwargs = engine_kwargs
         self.train_args = train_args
         self.out_dir = out_dir
+        self.device = device
         if self.out_dir is not None:
             self.out_dir.mkdir(parents=True, exist_ok=True)
         self.name = name

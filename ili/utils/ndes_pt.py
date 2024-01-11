@@ -63,7 +63,7 @@ def load_nde_sbi(
 
     # Load NLE models (mdn, maf, nsf, made)
     if 'NLE' in engine:
-        if embedding_net != nn.Identity():
+        if isinstance(embedding_net, nn.Identity):
             logging.warning(
                 "Using an embedding_net with NLE models compresses theta, not "
                 "x as might be expected.")

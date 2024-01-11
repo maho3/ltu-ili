@@ -8,9 +8,9 @@ import ili
 from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
 from ili.inference.pydelfi_wrappers import DelfiWrapper
 from ili.validation.runner import ValidationRunner
-from ili.inference.runner_pydelfi import DelfiRunner
+from ili.inference import DelfiRunner, InferenceRunner
 from ili.dataloaders import StaticNumpyLoader, NumpyLoader
-# from ili.embedding import FCN
+from ili.utils import load_nde_pydelfi
 import os
 import numpy as np
 from numpy import testing
@@ -336,3 +336,134 @@ def test_yaml():
     ValidationRunner.from_config("./toy_pydelfi/val.yml")
 
     return
+
+
+def test_universal():
+    # -------
+    # Setup a toy problem
+
+    # construct a working directory
+    if not os.path.isdir("toy_pydelfi"):
+        os.mkdir("toy_pydelfi")
+
+    # create synthetic catalog
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
+
+    theta = np.random.rand(20, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+
+    # make a dataloader
+    loader = NumpyLoader(x=x, theta=theta)
+
+    # define a prior
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1])
+
+    config_ndes = [
+        dict(model='maf', hidden_features=50, num_transforms=5),
+        dict(model='mdn', hidden_features=50, num_components=2)
+    ]
+
+    # -------
+    # Tests of InferenceRunner
+
+    # InferenceRunner isn't supposed to be initialized
+    unittest.TestCase().assertRaises(
+        NotImplementedError,
+        InferenceRunner
+    )
+
+    # check that the correct trainers are loaded
+    runner0 = InferenceRunner.load(
+        backend='pydelfi',
+        engine='NLE',
+        prior=prior,
+        config_ndes=config_ndes,
+    )
+    assert isinstance(runner0, DelfiRunner)
+
+    # you can't call a pydelfi engine that doesn't exist
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='pydelfi',
+        engine='ANDRE',
+        prior=prior,
+        config_ndes=config_ndes,
+    )
+
+    # you can't load an sbi backend in the tf interface
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='sbi',
+        engine='NLE',
+        prior=prior,
+        config_ndes=config_ndes,
+    )
+
+    netcfg = [
+        dict(model='maf', hidden_features=50, num_transforms=5),
+        dict(model='mdn', hidden_features=50, num_components=2)
+    ]
+    priorcfg = dict(
+        module='ili.utils',
+        args=dict(
+            low=[0, 0, 0],
+            high=[1, 1, 1],
+        ),
+    )
+    priorcfg['class'] = 'Uniform'
+    modelcfg = dict(
+        backend='pydelfi',
+        engine='NLE',
+        nets=netcfg,
+    )
+    cfg = dict(
+        model=modelcfg,
+        prior=priorcfg,
+        device='cpu',
+        out_dir='./toy_pydelfi',
+        train_args={}
+    )
+    with open('./toy_pydelfi/inf_univ.yml', 'w') as outfile:
+        yaml.dump(cfg, outfile, default_flow_style=False)
+    runner = InferenceRunner.from_config('./toy_pydelfi/inf_univ.yml')
+
+    # -------
+    # Test ndes_pt
+
+    # test that it works
+    model = load_nde_pydelfi(
+        n_params=theta.shape[1], n_data=x.shape[1],
+        model='maf', hidden_features=50, num_transforms=5)
+
+    # test that it breaks if you misspecify model configs
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_pydelfi,
+        n_params=theta.shape[1], n_data=x.shape[1],
+        model='maf', hidden_features=50, num_components=2
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_pydelfi,
+        n_params=theta.shape[1], n_data=x.shape[1],
+        model='mdn', hidden_features=50, num_transforms=5
+    )
+    unittest.TestCase().assertRaises(
+        NotImplementedError,
+        load_nde_pydelfi,
+        n_params=theta.shape[1], n_data=x.shape[1],
+        model='nsf', hidden_features=50, num_components=2
+    )
+
+    # test that it works if you underspecify
+    tf.reset_default_graph()
+    model = load_nde_pydelfi(
+        n_params=theta.shape[1], n_data=x.shape[1],
+        model='maf', hidden_features=50)
