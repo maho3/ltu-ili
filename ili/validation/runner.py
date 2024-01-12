@@ -8,7 +8,7 @@ import time
 import yaml
 import matplotlib as mpl
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 from ili.dataloaders import _BaseLoader
 from ili.validation.metrics import _BaseMetric
 from ili.utils import load_from_config
@@ -26,14 +26,14 @@ except ModuleNotFoundError:
 logging.basicConfig(level=logging.INFO)
 
 
-class ValidationRunner:
+class ValidationRunner():
     """Class to measure validation metrics of posterior inference models
 
     Args:
         posterior (ModelClass): trained sbi posterior inference engine
         metrics (List[_BaseMetric]): list of metric objects to measure on
             the test set
-        out_dir (Path): directory where to load posterior and store outputs
+        out_dir (str, Path): directory where to load posterior and store outputs
         ensemble_mode (Optional[bool], optional): whether to evaluate metrics
             on each posterior in the ensemble separately or on the ensemble
             posterior. Defaults to True.
@@ -46,14 +46,14 @@ class ValidationRunner:
         self,
         posterior: ModelClass,  # see imports
         metrics: List[_BaseMetric],
-        out_dir: Path,
+        out_dir: Union[str, Path],
         ensemble_mode: Optional[bool] = True,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = [],
     ):
         self.posterior = posterior
         self.metrics = metrics
-        self.out_dir = out_dir
+        self.out_dir = Path(out_dir)
         if self.out_dir is not None:
             self.out_dir.mkdir(parents=True, exist_ok=True)
         self.ensemble_mode = ensemble_mode
@@ -61,11 +61,15 @@ class ValidationRunner:
         self.signatures = signatures
 
     @classmethod
-    def from_config(cls, config_path, **kwargs) -> "ValidationRunner":
+    def from_config(
+        cls,
+        config_path: Union[str, Path],
+        **kwargs
+    ) -> "ValidationRunner":
         """Create a validation runner from a yaml config file
 
         Args:
-            config_path (Path): path to config file.
+            config_path (str, Path): path to config file.
             **kwargs: optional keyword arguments to overload config file
         Returns:
             ValidationRunner: the validation runner specified by the config
@@ -123,11 +127,11 @@ class ValidationRunner:
         )
 
     @classmethod
-    def load_posterior_sbi(cls, path):
+    def load_posterior_sbi(cls, path: Union[str, Path]):
         """Load a pretrained sbi posterior from file
 
         Args:
-            path (Path): path to stored .pkl of trained sbi posterior
+            path (str, Path): path to stored .pkl of trained sbi posterior
         Returns:
             posterior (ModelClass): the posterior of interest
         """
@@ -160,7 +164,7 @@ class ValidationRunner:
                 isinstance(self.posterior, NeuralPosteriorEnsemble)):
             n = 0
             for posterior_model in self.posterior.posteriors:
-                signature = self.signatures[n]
+                signature = self.signatures[n]+"_"
                 n += 1
                 for metric in self.metrics.values():
                     logging.info(
@@ -170,7 +174,8 @@ class ValidationRunner:
         # evaluate metrics on the ensemble posterior
         else:
             # evaluate metrics
-            signature = self.name+"".join(self.signatures)
+            sigcat = [f"{t}_" for t in self.signatures if t != ""]
+            signature = self.name+"".join(sigcat)
             for metric in self.metrics.values():
                 logging.info(f"Running metric {metric.__class__.__name__}.")
                 metric(self.posterior, x_test, theta_test,

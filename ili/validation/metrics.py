@@ -33,16 +33,16 @@ class _BaseMetric(ABC):
 
     Args:
         labels (List[str]): list of parameter names
-        out_dir (Path): directory where to store outputs.
+        out_dir (str, Path): directory where to store outputs.
     """
 
     def __init__(
         self,
         labels: Optional[List[str]] = None,
-        out_dir: Optional[Path] = None,
+        out_dir: Optional[Union[str, Path]] = None,
     ):
         """Construct the base metric."""
-        self.out_dir = out_dir
+        self.out_dir = Path(out_dir)
         self.labels = labels
 
 
@@ -54,7 +54,7 @@ class _SampleBasedMetric(_BaseMetric):
         sample_method (str, optional): The method used for sampling. Defaults to 'emcee'.
         sample_params (dict, optional): Additional parameters for the sampling method. Defaults to {}.
         labels (List[str], optional): The labels for the metric. Defaults to None.
-        out_dir (Path): directory where to store outputs.
+        out_dir (str, Path): directory where to store outputs.
     """
 
     def __init__(
@@ -120,7 +120,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
     Args:
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
-        out_dir (Path): directory where to store outputs.
+        out_dir (str, Path): directory where to store outputs.
     """
 
     def __init__(self, save_samples: bool = False, seed: int = None, **kwargs):
@@ -282,7 +282,7 @@ class PosteriorCoverage(PosteriorSamples):
     Args:
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
-        out_dir (Path): directory where to store outputs.
+        out_dir (str, Path): directory where to store outputs.
         plot_list (list): list of plot types to save
         save_samples (bool): whether to save posterior samples
     """

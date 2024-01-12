@@ -25,7 +25,7 @@ class DelfiRunner(_BaseRunner):
         engine_kwargs (Dict): dictionary of additional keywords for Delfi
             engine
         train_args (Dict): dictionary of hyperparameters for training
-        out_dir (Path): directory where to store outputs
+        out_dir (str, Path): directory where to store outputs
     """
 
     def __init__(

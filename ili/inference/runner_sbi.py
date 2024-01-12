@@ -33,7 +33,7 @@ class SBIRunner(_BaseRunner):
         embedding_net (nn.Module): neural network to compress high
             dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
-        out_dir (Path): directory where to store outputs
+        out_dir (str, Path): directory where to store outputs
         proposal (Distribution): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
             sbi will set proposal = prior unless a proposal is specified.

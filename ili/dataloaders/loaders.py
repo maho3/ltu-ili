@@ -4,13 +4,11 @@ Module for loading data into the ltu-ili pipeline.
 
 import yaml
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Optional
+from typing import Any, List, Tuple, Optional, Union
 from pathlib import Path
 import numpy as np
 import json
 import pandas as pd
-import logging
-import os
 from ili.utils import Dataset
 
 try:
@@ -21,11 +19,15 @@ except ModuleNotFoundError:
 
 class _BaseLoader(ABC):
     @classmethod
-    def from_config(cls, config_path: Path, **kwargs) -> "_BaseLoader":
+    def from_config(
+        cls,
+        config_path: Union[str, Path],
+        **kwargs
+    ) -> "_BaseLoader":
         """Create a data loader from a yaml config file
 
         Args:
-            config_path (Path): path to config file.
+            config_path (str, Path): path to config file.
             **kwargs: optional keyword arguments to overload config file
 
         Returns:

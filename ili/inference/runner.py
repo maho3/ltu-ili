@@ -3,7 +3,7 @@
 Module to contain a universal inference engine configuration for all backends.
 """
 import yaml
-from typing import Any
+from typing import Any, Union
 from pathlib import Path
 from ili.utils import load_class
 
@@ -33,7 +33,7 @@ class InferenceRunner():
         backend: str,
         engine: str,
         prior: Any,
-        out_dir: Path = None,
+        out_dir: Union[str, Path] = None,
         device: str = 'cpu',
         name: str = '',
         **kwargs
@@ -44,7 +44,7 @@ class InferenceRunner():
             backend (str): name of the backend (sbi or pydelfi)
             engine (str): name of the engine class (NPE/NLE/NRE or SNPE/SNLE/SNRE)
             prior (Any): prior distribution
-            out_dir (Path, optional): path to output directory. Defaults to None.
+            out_dir (str, Path, optional): path to output directory. Defaults to None.
             device (str, optional): device to run on. Defaults to 'cpu'.
             name (str, optional): name of the runner. Defaults to ''.
             **kwargs: optional keyword arguments to specify to the runners
