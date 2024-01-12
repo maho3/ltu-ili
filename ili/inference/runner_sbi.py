@@ -10,47 +10,22 @@ import pickle
 import torch
 import torch.nn as nn
 from pathlib import Path
-from typing import Dict, List, Callable, Optional
-from torch.distributions import Independent
+from typing import Dict, List, Callable, Optional, Union
+from torch.distributions import Distribution
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+from .base import _BaseRunner
 from ili.dataloaders import _BaseLoader
 from ili.utils import load_class, load_from_config, load_nde_sbi
 
 logging.basicConfig(level=logging.INFO)
-
-default_config = (
-    Path(__file__).parent.parent / "examples/configs/sample_sbi.yaml"
-)
-
-
-class _BaseRunner():
-    def __init__(
-        self,
-        prior: Independent,
-        inference_class: NeuralInference,
-        train_args: Dict = {},
-        out_dir: Path = None,
-        device: str = 'cpu',
-        name: Optional[str] = "",
-    ):
-        self.prior = prior
-        self.inference_class = inference_class
-        self.class_name = inference_class.__name__
-        self.train_args = train_args
-        self.device = device
-        self.name = name
-        self.out_dir = out_dir
-        if self.out_dir is not None:
-            self.out_dir = Path(self.out_dir)
-            self.out_dir.mkdir(parents=True, exist_ok=True)
 
 
 class SBIRunner(_BaseRunner):
     """Class to train posterior inference models using the sbi package
 
     Args:
-        prior (Independent): prior on the parameters
+        prior (Distribution): prior on the parameters
         inference_class (NeuralInference): sbi inference class used to
             train neural posteriors
         nets (List[Callable]): list of neural nets for amortized posteriors,
@@ -59,7 +34,7 @@ class SBIRunner(_BaseRunner):
             dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
         out_dir (Path): directory where to store outputs
-        proposal (Independent): proposal distribution from which existing
+        proposal (Distribution): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
             sbi will set proposal = prior unless a proposal is specified.
             While it is possible to choose a prior on parameters different
@@ -71,14 +46,14 @@ class SBIRunner(_BaseRunner):
 
     def __init__(
         self,
-        prior: Independent,
+        prior: Distribution,
         inference_class: NeuralInference,
         nets: List[Callable],
         train_args: Dict = {},
-        out_dir: Path = None,
+        out_dir: Union[str, Path] = None,
         device: str = 'cpu',
         embedding_net: nn.Module = None,
-        proposal: Independent = None,
+        proposal: Distribution = None,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = None,
     ):
@@ -197,7 +172,7 @@ class SBIRunner(_BaseRunner):
 
     def _train_round(self, models: List[NeuralInference],
                      x: torch.Tensor, theta: torch.Tensor,
-                     proposal: Optional[Independent]):
+                     proposal: Optional[Distribution]):
         """Train a single round of inference for an ensemble of models."""
         posteriors, summaries = [], []
         for i, model in enumerate(models):

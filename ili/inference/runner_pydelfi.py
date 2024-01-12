@@ -9,16 +9,17 @@ import logging
 import numpy as np
 import tensorflow as tf
 from pathlib import Path
-from typing import Dict, Any, List, Callable, Optional
+from typing import Dict, Any, List, Union, Optional
 from ili.utils import load_class, load_from_config
 from .pydelfi_wrappers import DelfiWrapper
+from .base import _BaseRunner
 
 
-class DelfiRunner():
+class DelfiRunner(_BaseRunner):
     """Class to train posterior inference models using the pydelfi package
 
     Args:
-        prior (Independent): prior on the parameters
+        prior (Any): prior on the parameters
         inference_class (Any): pydelfi inference class used to that train
             neural posteriors
         engine_kwargs (Dict): dictionary of additional keywords for Delfi
@@ -29,25 +30,29 @@ class DelfiRunner():
 
     def __init__(
         self,
-        config_ndes: List[Dict],
         prior: Any,
         inference_class: Any,
+        config_ndes: List[Dict],
         engine_kwargs: Dict = {},
         train_args: Dict = {},
-        out_dir: Path = None,
+        out_dir: Union[str, Path] = None,
         device: str = 'cpu',
-        name: Optional[str] = ""
+        name: Optional[str] = "",
     ):
+        super().__init__(
+            prior=prior,
+            inference_class=inference_class,
+            train_args=train_args,
+            out_dir=out_dir,
+            device=device,
+            name=name,
+        )
         self.config_ndes = config_ndes
-        self.prior = prior
-        self.inference_class = inference_class
         self.engine_kwargs = engine_kwargs
-        self.train_args = train_args
-        self.out_dir = out_dir
-        self.device = device
-        if self.out_dir is not None:
-            self.out_dir.mkdir(parents=True, exist_ok=True)
-        self.name = name
+        if device != 'cpu':
+            logging.warning(
+                'pydelfi only supports cpu training. Device set to cpu.')
+            self.device = 'cpu'
 
     @classmethod
     def from_config(cls, config_path: Path, **kwargs) -> "DelfiRunner":
@@ -91,9 +96,9 @@ class DelfiRunner():
         for type_nn in config_ndes:
             signatures.append(type_nn.pop("signature", ""))
         return cls(
-            config_ndes=config_ndes,
             prior=prior,
             inference_class=inference_class,
+            config_ndes=config_ndes,
             engine_kwargs=engine_kwargs,
             train_args=train_args,
             out_dir=out_dir,
