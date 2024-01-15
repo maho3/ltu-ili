@@ -30,6 +30,7 @@ class DelfiRunner(_BaseRunner):
         self,
         prior: Any,
         config_ndes: List[Dict],
+        engine: str = 'NLE',
         engine_kwargs: Dict = {},
         train_args: Dict = {},
         out_dir: Union[str, Path] = None,
