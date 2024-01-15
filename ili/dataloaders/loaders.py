@@ -16,7 +16,7 @@ try:
     import torch
     from torch.utils.data import DataLoader
 except ModuleNotFoundError:
-    pass
+    DataLoader = Any
 
 
 class _BaseLoader(ABC):
