@@ -61,13 +61,11 @@ def test_toy():
         {'model': 'mdn', 'hidden_features': 50, 'num_components': 6},
         {'model': 'maf', 'hidden_features': 50, 'num_transforms': 5}
     ]
-    inference_class = DelfiWrapper
 
     # train a model to infer x -> theta. save it as toy_pydelfi/posterior.pkl
     runner = DelfiRunner(
         config_ndes=config_ndes,
         prior=prior,
-        inference_class=inference_class,
         train_args=train_args,
         out_dir=Path('toy_pydelfi')
 
@@ -184,7 +182,6 @@ def test_prior():
     config_ndes = [
         {'model': 'mdn', 'hidden_features': 50, 'num_components': 6},
     ]
-    inference_class = DelfiWrapper
 
     # for each prior to test
     for p in priors:
@@ -193,7 +190,6 @@ def test_prior():
         runner = DelfiRunner(
             config_ndes=config_ndes,
             prior=p,
-            inference_class=inference_class,
             train_args=train_args,
             out_dir=Path('toy_pydelfi'),
             name='prior_'
@@ -294,8 +290,7 @@ def test_yaml():
             'args': {'low': [0, 0, 0], 'high': [1, 1, 1]},
         },
         model={
-            'module': 'ili.inference.pydelfi_wrappers',
-            'class': 'DelfiWrapper',
+            'engine': 'NLE',
             'nets': config_ndes,
         },
         train_args={'batch_size': 32, 'epochs': 5},
