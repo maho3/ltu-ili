@@ -13,10 +13,10 @@ from ili.utils import Dataset
 
 try:
     from sbi.simulators.simutils import simulate_in_batches
-    import torch
+    from torch import Tensor
     from torch.utils.data import DataLoader
 except ModuleNotFoundError:
-    DataLoader = Any
+    DataLoader, Tensor = Any, Any
 
 
 class _BaseLoader(ABC):
@@ -476,13 +476,13 @@ class TorchLoader(_BaseLoader):
     """A class for using TorchDataloaders.
 
     Args:
-        x (torch.Tensor): Array of training data of
+        x (Tensor): Array of training data of
             shape (Ndata, \*data.shape)
-        theta (torch.Tensor): Array of training parameters of
+        theta (Tensor): Array of training parameters of
             shape (Ndata, \*parameters.shape)
-        xobs (Optional[torch.Tensor]): Array of observed data of
+        xobs (Optional[Tensor]): Array of observed data of
             shape (\*data.shape). Defaults to None.
-        thetafid (Optional[torch.Tensor]): Array of fiducial
+        thetafid (Optional[Tensor]): Array of fiducial
             parameters of shape (\*parameters.shape). Defaults to None.
     """
 
@@ -490,8 +490,8 @@ class TorchLoader(_BaseLoader):
         self,
         train_loader: DataLoader,
         val_loader: DataLoader,
-        xobs: Optional[torch.Tensor] = None,
-        thetafid: Optional[torch.Tensor] = None
+        xobs: Optional[Tensor] = None,
+        thetafid: Optional[Tensor] = None
     ) -> None:
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -506,11 +506,11 @@ class TorchLoader(_BaseLoader):
         """
         return len(self.train_loader)
 
-    def get_all_data(self) -> torch.Tensor:
+    def get_all_data(self) -> Tensor:
         """Returns all the loaded data for training
 
         Returns:
-            torch.Tensor: data
+            Tensor: data
         """
         return self.train_loader.dataset
 
@@ -518,15 +518,15 @@ class TorchLoader(_BaseLoader):
         """Returns all the loaded parameters for training
 
         Returns:
-            torch.Tensor: parameters
+            Tensor: parameters
         """
         return self.train_loader.dataset.y
 
-    def get_obs_data(self) -> torch.Tensor:
+    def get_obs_data(self) -> Tensor:
         """Returns the observed data
 
         Returns:
-            torch.Tensor: data
+            Tensor: data
         """
         return self.xobs
 
@@ -535,7 +535,7 @@ class TorchLoader(_BaseLoader):
         observed data to resemble
 
         Returns:
-            torch.Tensor: parameters
+            Tensor: parameters
         """
         return self.thetafid
 
