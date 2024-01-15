@@ -19,31 +19,33 @@ try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     from sbi.inference.posteriors import DirectPosterior
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+    from ili.utils.ndes_pt import LampeNPE, LampeEnsemble
     ModelClass = NeuralPosterior
     import tarp  # doesn't yet work with pydelfi/python 3.6
+    backend = 'torch'
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
+    backend = 'tensorflow'
 
 
 class _BaseMetric(ABC):
     """Base class for calculating validation metrics.
 
     Args:
-        backend (str): the backend for the posterior models
-            ('sbi' or 'pydelfi')
-        output_path (Path): path where to store outputs
+        labels (List[str]): list of parameter names
+        out_dir (str, Path): directory where to store outputs.
     """
 
     def __init__(
         self,
-        backend: str,
-        output_path: Path,
         labels: Optional[List[str]] = None,
+        out_dir: Optional[Union[str, Path]] = None,
     ):
         """Construct the base metric."""
-        self.backend = backend
-        self.output_path = output_path
+        self.out_dir = out_dir
+        if out_dir is not None:
+            self.out_dir = Path(out_dir)
         self.labels = labels
 
 
@@ -51,24 +53,22 @@ class _SampleBasedMetric(_BaseMetric):
     """Base class for metrics that require sampling from the posterior.
 
     Args:
-        backend (str): The backend used for sampling ('sbi' or 'pydelfi').
-        output_path (Path): The path to save the output.
         num_samples (int): The number of samples to generate.
         sample_method (str, optional): The method used for sampling. Defaults to 'emcee'.
         sample_params (dict, optional): Additional parameters for the sampling method. Defaults to {}.
         labels (List[str], optional): The labels for the metric. Defaults to None.
+        out_dir (str, Path): directory where to store outputs.
     """
 
     def __init__(
         self,
-        backend: str,
-        output_path: Path,
         num_samples: int,
         sample_method: str = 'emcee',
         sample_params: dict = {},
         labels: Optional[List[str]] = None,
+        out_dir: Optional[Path] = None,
     ):
-        super().__init__(backend, output_path, labels)
+        super().__init__(labels, out_dir)
         self.num_samples = num_samples
         self.sample_method = sample_method
         self.sample_params = sample_params
@@ -89,7 +89,8 @@ class _SampleBasedMetric(_BaseMetric):
             return EmceeSampler(posterior, **self.sample_params)
 
         # check if pytorch backend is available
-        if self.backend != 'sbi':
+        global backend
+        if backend != 'torch':
             raise ValueError(
                 'Pyro backend is only available for sbi posteriors')
 
@@ -103,6 +104,10 @@ class _SampleBasedMetric(_BaseMetric):
             # Second case (when ValidationRunner.ensemble_mode = False)
             elif isinstance(posterior, DirectPosterior):
                 return DirectSampler(posterior)
+            # Third case: we have a Lampe NPE poterior
+            elif (isinstance(posterior, LampeNPE) or
+                  isinstance(posterior, LampeEnsemble)):
+                return DirectSampler(posterior)
             else:
                 raise ValueError(
                     'Direct sampling is only available for DirectPosteriors')
@@ -113,6 +118,8 @@ class _SampleBasedMetric(_BaseMetric):
                            **self.sample_params)
 
 
+# Metrics evaluated at a single data point (use x_obs and theta_fid)
+
 class PlotSinglePosterior(_SampleBasedMetric):
     """Perform inference sampling on a single test point and plot the
     posterior in a corner plot.
@@ -120,9 +127,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
     Args:
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
-        backend (str): the backend for the posterior models
-            ('sbi' or 'pydelfi')
-        output_path (Path): path where to store outputs
+        out_dir (str, Path): directory where to store outputs.
     """
 
     def __init__(self, save_samples: bool = False, seed: int = None, **kwargs):
@@ -133,10 +138,10 @@ class PlotSinglePosterior(_SampleBasedMetric):
     def __call__(
         self,
         posterior: ModelClass,
-        x: np.array,
-        theta: np.array,
+        x: Optional[np.array] = None,
+        theta: Optional[np.array] = None,
         x_obs: Optional[np.array] = None,
-        theta_obs: Optional[np.array] = None,
+        theta_fid: Optional[np.array] = None,
         signature: Optional[str] = ""
     ):
         """Given a posterior and test data, plot the inferred posterior of a
@@ -147,22 +152,24 @@ class PlotSinglePosterior(_SampleBasedMetric):
             x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): tensor of observed data
-            theta_obs (np.array, optional): tensor of true parameters for x_obs
+            theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
             signature (str, optional): signature for the output file name
         """
-        ndim = theta.shape[-1]
 
         # choose a random test datapoint if not supplied
-        if x_obs is None or theta_obs is None:
+        if x is None and x_obs is None:
+            raise ValueError("Either x or x_obs must be supplied.")
+        if x_obs is None:
             if self.seed:
                 np.random.seed(self.seed)
             ind = np.random.choice(len(x))
             x_obs = x[ind]
-            theta_obs = theta[ind]
+            theta_fid = theta[ind]
 
         # sample from the posterior
         sampler = self._build_sampler(posterior)
         samples = sampler.sample(self.num_samples, x=x_obs, progress=True)
+        ndim = samples.shape[-1]
 
         # plot
         fig = sns.pairplot(
@@ -173,30 +180,33 @@ class PlotSinglePosterior(_SampleBasedMetric):
         )
         fig.map_lower(sns.kdeplot, levels=4, color=".2")
 
-        for i in range(ndim):
-            for j in range(i + 1):
-                if i == j:
-                    fig.axes[i, i].axvline(theta_obs[i], color="r")
-                else:
-                    fig.axes[i, j].axhline(theta_obs[i], color="r")
-                    fig.axes[i, j].axvline(theta_obs[j], color="r")
-                    fig.axes[i, j].plot(theta_obs[j], theta_obs[i], "ro")
+        if theta_fid is not None:  # do not plot fiducial parameters if None
+            for i in range(ndim):
+                for j in range(i + 1):
+                    if i == j:
+                        fig.axes[i, i].axvline(theta_fid[i], color="r")
+                    else:
+                        fig.axes[i, j].axhline(theta_fid[i], color="r")
+                        fig.axes[i, j].axvline(theta_fid[j], color="r")
+                        fig.axes[i, j].plot(theta_fid[j], theta_fid[i], "ro")
 
         # save
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig
-        filepath = self.output_path / (signature + "plot_single_posterior.jpg")
+        filepath = self.out_dir / (signature + "plot_single_posterior.jpg")
         logging.info(f"Saving single posterior plot to {filepath}...")
         fig.savefig(filepath)
 
         # save single posterior samples if asked
         if self.save_samples:
-            filepath = self.output_path / (signature + "single_samples.npy")
+            filepath = self.out_dir / (signature + "single_samples.npy")
             logging.info(f"Saving single posterior samples to {filepath}...")
             np.save(filepath, samples)
 
         return fig
 
+
+# Metrics evaluated over a whole test set (use x and theta)
 
 class PosteriorSamples(_SampleBasedMetric):
     """
@@ -204,7 +214,7 @@ class PosteriorSamples(_SampleBasedMetric):
     tasks (e.g. nested sampling) or making custom plots.
     """
 
-    def _sample_dataset(self, posterior, x):
+    def _sample_dataset(self, posterior, x, **kwargs):
         """Sample from posterior for all datapoints within a
         test dataset.
 
@@ -220,18 +230,16 @@ class PosteriorSamples(_SampleBasedMetric):
 
         # Calculate shape of posterior samples
         _t = posterior.prior.sample()
-        Ntest = x.shape[0]
+        Ntest = len(x)
         Nparams = _t.shape[0]
         Nsamps = self.num_samples
-        if self.sample_method == "emcee":
-            Nsamps *= sampler.num_chains
 
         posterior_samples = np.zeros((Nsamps, Ntest, Nparams))
         for ii in tqdm.tqdm(range(Ntest)):
             try:
                 # Sample posterior P(theta | x[ii])
                 posterior_samples[:, ii] = sampler.sample(
-                    self.num_samples, x=x[ii], progress=False)
+                    self.num_samples, x=x[ii], progress=False, **kwargs)
             except Warning as w:
                 logging.warning("WARNING\n", w)
                 continue
@@ -245,7 +253,8 @@ class PosteriorSamples(_SampleBasedMetric):
         signature: Optional[str] = "",
         # here for debugging purpose, otherwise error in runner.py line 123
         x_obs: Optional[np.array] = None,
-        theta_obs: Optional[np.array] = None
+        theta_fid: Optional[np.array] = None,
+        **kwargs
     ):
         """Given a posterior and test data, infer posterior samples of a
         test dataset and save to file.
@@ -255,14 +264,14 @@ class PosteriorSamples(_SampleBasedMetric):
             x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): tensor of observed data
-            theta_obs (np.array, optional): tensor of true parameters for x_obs
+            theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
         """
         # Sample the full dataset
-        posterior_samples = self._sample_dataset(posterior, x)
+        posterior_samples = self._sample_dataset(posterior, x, **kwargs)
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return posterior_samples
-        filepath = self.output_path / (signature + "posterior_samples.npy")
+        filepath = self.out_dir / (signature + "posterior_samples.npy")
         logging.info(f"Saving posterior samples to {filepath}...")
         np.save(filepath, posterior_samples)
         return posterior_samples
@@ -280,7 +289,7 @@ class PosteriorCoverage(PosteriorSamples):
     Args:
         num_samples (int): number of posterior samples
         labels (List[str]): list of parameter names
-        output_path (Path): path where to store outputs
+        out_dir (str, Path): directory where to store outputs.
         plot_list (list): list of plot types to save
         save_samples (bool): whether to save posterior samples
     """
@@ -346,9 +355,9 @@ class PosteriorCoverage(PosteriorSamples):
             axis.axhline(navg - navg ** 0.5, color='k', ls="--")
             axis.axhline(navg + navg ** 0.5, color='k', ls="--")
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig
-        filepath = self.output_path / (signature + "ranks_histogram.jpg")
+        filepath = self.out_dir / (signature + "ranks_histogram.jpg")
         logging.info(f"Saving ranks histogram to {filepath}...")
         fig.savefig(filepath)
         return fig
@@ -400,9 +409,9 @@ class PosteriorCoverage(PosteriorSamples):
         for axis in ax:
             axis.grid(visible=True)
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig
-        filepath = self.output_path / (signature + "plot_coverage.jpg")
+        filepath = self.out_dir / (signature + "plot_coverage.jpg")
         logging.info(f"Saving coverage plot to {filepath}...")
         fig.savefig(filepath)
         return fig
@@ -443,9 +452,9 @@ class PosteriorCoverage(PosteriorSamples):
             axs[j].set_xlabel('True')
         axs[0].set_ylabel('Predicted')
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig
-        filepath = self.output_path / (signature + "plot_predictions.jpg")
+        filepath = self.out_dir / (signature + "plot_predictions.jpg")
         fig.savefig(filepath)
         return fig
 
@@ -480,7 +489,6 @@ class PosteriorCoverage(PosteriorSamples):
         Returns:
             plt.Figure: The generated TARP plot.
         """
-
         ecp, alpha = tarp.get_tarp_coverage(
             posterior_samples, theta,
             references=references, metric=metric,
@@ -505,9 +513,9 @@ class PosteriorCoverage(PosteriorSamples):
         ax.set_ylabel("Expected Coverage")
         ax.set_xlabel("Credibility Level")
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig
-        filepath = self.output_path / (signature + "plot_TARP.jpg")
+        filepath = self.out_dir / (signature + "plot_TARP.jpg")
         fig.savefig(filepath)
         return fig
 
@@ -557,16 +565,16 @@ class PosteriorCoverage(PosteriorSamples):
                      f"Median: {median:.3e}", fontsize=14)
         ax.legend()
 
-        if self.output_path is None:
+        if self.out_dir is None:
             return fig, logprobs
 
         # Save the logprobs
-        filepath = self.output_path / (signature + "true_logprobs.npy")
+        filepath = self.out_dir / (signature + "true_logprobs.npy")
         logging.info(f"Saving true logprobs to {filepath}...")
         np.save(filepath, logprobs)
 
         # Save the plot
-        filepath = self.output_path / (signature + "plot_true_logprobs.jpg")
+        filepath = self.out_dir / (signature + "plot_true_logprobs.jpg")
         logging.info(f"Saving true logprobs plot to {filepath}...")
         fig.savefig(filepath)
         return fig, logprobs
@@ -577,11 +585,8 @@ class PosteriorCoverage(PosteriorSamples):
         x: np.array,
         theta: np.array,
         x_obs: Optional[np.array] = None,
-        theta_obs: Optional[np.array] = None,
+        theta_fid: Optional[np.array] = None,
         signature: Optional[str] = "",
-        plot_list: Optional[list] = ["coverage", "histogram",
-                                     "predictions", "tarp",
-                                     "logprob"],
         references: str = "random",
         metric: str = "euclidean",
         num_alpha_bins: Union[int, None] = None,
@@ -597,9 +602,8 @@ class PosteriorCoverage(PosteriorSamples):
             x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): Not used
-            theta_obs (np.array, optional): Not used
+            theta_fid (np.array, optional): Not used
             signature (str, optional): signature for the output file name
-            plot_list (list, optional): list of plot types to save
 
         Args (TARP only):
             references (str, optional): how to select the reference points.
@@ -614,8 +618,10 @@ class PosteriorCoverage(PosteriorSamples):
             norm (bool, optional): whether to normalize the metric.
                 Defaults to True.
             bootstrap (bool, optional): whether to use bootstrapping.
-                Defaults to False.
+                Defaults to True.
         """
+        theta = np.array(theta)
+
         # Sample the full dataset
         if self.save_samples:
             # Call PosteriorSamples to calculate and save samples
@@ -626,22 +632,23 @@ class PosteriorCoverage(PosteriorSamples):
 
         figs = []
         # Save the plots
-        if "coverage" in plot_list:
+        if "coverage" in self.plot_list:
             figs.append(self._plot_coverage(
                 posterior_samples, theta, signature))
-        if "histogram" in plot_list:
+        if "histogram" in self.plot_list:
             figs.append(self._plot_ranks_histogram(
                 posterior_samples, theta, signature))
-        if "predictions" in plot_list:
+        if "predictions" in self.plot_list:
             figs.append(self._plot_predictions(
                 posterior_samples, theta, signature))
-        if "logprob" in plot_list:
+        if "logprob" in self.plot_list:
             self._calc_true_logprob(posterior_samples, theta, signature)
 
         # Specifically for TARP
-        if "tarp" in plot_list:
+        if "tarp" in self.plot_list:
             # check if if backend is sbi
-            if self.backend != 'sbi':
+            global backend
+            if backend != 'torch':
                 raise NotImplementedError(
                     'TARP is not yet supported by pydelfi backend')
             figs.append(self._plot_TARP(posterior_samples, theta, signature,

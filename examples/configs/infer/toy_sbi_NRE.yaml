@@ -8,9 +8,9 @@ prior:
 
 # Specify the inference model
 model:
-  module: 'sbi.inference'
-  class: 'SNRE'  # Ratio Estimation
-  name: 'toy_SNRE'
+  backend: 'sbi'
+  engine: 'NRE'  # Neural Ratio Estimation
+  name: 'toy_NRE'
   nets:
     - model: 'resnet'  # Residual Network classifier
       hidden_features: 50
@@ -24,4 +24,4 @@ train_args:
   learning_rate: 0.001
 
 device: 'cpu'  # Run on CPU
-output_path: './toy'  # Where to save the posterior
+out_dir: './toy'  # Where to save the posterior

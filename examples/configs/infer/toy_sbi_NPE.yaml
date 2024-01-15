@@ -1,4 +1,3 @@
-
 # Specify prior
 prior:
   module: 'ili.utils'
@@ -9,9 +8,9 @@ prior:
 
 # Specify the inference model
 model:
-  backend: 'pydelfi'
-  engine: 'NLE'  # Neural Likelihood Estimation
-  name: 'toy_pydelfi'
+  backend: 'sbi'
+  engine: 'NPE'  # Neural Posterior Estimation
+  name: 'toy_NPE'
   nets:
     - model: 'maf'  # Masked Autoregressive Flow
       hidden_features: 50
@@ -23,7 +22,8 @@ model:
 
 # Specify the neural training hyperparameters
 train_args:
-  batch_size: 32
-  epochs: 300
+  training_batch_size: 32
+  learning_rate: 0.001
 
-out_dir: 'toy'  # Where to save the posterior
+device: 'cpu'  # Run on CPU
+out_dir: './toy'  # Where to save the posterior

@@ -20,4 +20,4 @@ train_args:
 
 
 device: 'cpu'  # Run on CPU
-output_path: './toy'  # Where to save the posterior
+out_dir: './toy'  # Where to save the posterior

@@ -10,13 +10,12 @@ embedding_net:
   module: 'ili.embedding'
   class: 'FCN'
   args:
-    n_data: 100
     n_hidden: [100,100,100]
     act_fn: "SiLU"
 
 model:
-  module: 'sbi.inference'
-  class: 'SNPE_C'
+  backend: 'sbi'
+  engine: 'NPE'  # Neural Posterior Estimation
   nets:
     - model: 'maf'
       hidden_features: 100 
@@ -27,4 +26,4 @@ train_args:
   learning_rate: 0.001
 
 device: 'cpu'
-output_path: 'toy'
+out_dir: 'toy'

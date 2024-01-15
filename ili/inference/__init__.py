@@ -1,5 +1,6 @@
 try:
-    from .runner_sbi import *
+    from .runner_sbi import SBIRunner, SBIRunnerSequential, ABCRunner
+    from .runner_lampe import LampeRunner
 except ModuleNotFoundError:
-    from .pydelfi_wrappers import *
-    from .runner_pydelfi import *
+    from .runner_pydelfi import DelfiRunner
+from .runner import InferenceRunner

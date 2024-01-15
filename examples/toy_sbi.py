@@ -2,8 +2,8 @@ import os
 import argparse
 import numpy as np
 from ili.dataloaders import StaticNumpyLoader
-from ili.inference.runner_sbi import SBIRunner
-from ili.validation.runner import ValidationRunner
+from ili.inference import InferenceRunner
+from ili.validation import ValidationRunner
 
 
 def simulator(params):
@@ -20,7 +20,7 @@ if __name__ == '__main__':
         description="Run SBI inference for toy data.")
     parser.add_argument(
         "--model", type=str,
-        default="SNPE",
+        default="NPE",
         help="Configuration file to use for model training.")
     args = parser.parse_args()
 
@@ -38,7 +38,8 @@ if __name__ == '__main__':
     all_loader = StaticNumpyLoader.from_config("configs/data/toy.yaml")
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl
-    runner = SBIRunner.from_config(f"configs/infer/toy_sbi_{args.model}.yaml")
+    runner = InferenceRunner.from_config(
+        f"configs/infer/toy_sbi_{args.model}.yaml")
     runner(loader=all_loader)
 
     # use the trained posterior model to predict on a single example from

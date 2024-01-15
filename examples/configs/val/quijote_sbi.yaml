@@ -1,7 +1,5 @@
-backend: 'sbi'
-
-posterior_path: 'toy/posterior.pkl'
-output_path: 'toy'
+posterior_file: 'posterior.pkl'
+out_dir: 'toy'
 labels: [ 'Omega_m', 'h', 'sigma_8' ]
 
 metrics:

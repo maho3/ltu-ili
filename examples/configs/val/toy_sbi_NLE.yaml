@@ -1,16 +1,14 @@
-backend: 'sbi'  # sbi or pydelfi backend
-
-posterior_path: './toy/toy_SNRE_posterior.pkl'  # Path to posterior model
-output_path: './toy'  # Where to save the metrics
-labels: ['t1', 't2', 't3']  # Where to save the metrics
+posterior_file: 'toy_NLE_posterior.pkl'  # Path to posterior model
+out_dir: './toy' # Directory to load posterior from and to save the metrics
+labels: ['t1', 't2', 't3']  # Names of the parameters
 
 # If True, run validation for all networks as one ensemble posterior
 # If False, run validation for each network separately
 ensemble_mode: True
 
 metrics:
+  # Plot an example posterior for a single input
   single_example:
-    # Plot an example posterior for a single input
     module: 'ili.validation.metrics'
     class: 'PlotSinglePosterior'
     args:
@@ -26,10 +24,11 @@ metrics:
     module: 'ili.validation.metrics'
     class: 'PosteriorCoverage'
     args:
-      num_samples: 100
-      sample_method: 'slice_np_vectorized'
+      save_samples: True
+      num_samples: 1000
+      sample_method: 'vi'
       sample_params:
-        num_chains: -1  # use all available cores
-        burn_in: 20
-        thin: 1
+        dist: 'maf'
+        n_particles: 32
+        learning_rate: 0.01
       plot_list: ["coverage", "histogram", "predictions", "tarp"]
