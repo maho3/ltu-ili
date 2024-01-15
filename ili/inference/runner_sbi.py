@@ -355,6 +355,24 @@ class SBIRunnerSequential(SBIRunner):
 class ABCRunner(_BaseRunner):
     """Class to run ABC inference models using the sbi package"""
 
+    def __init__(
+            self,
+            prior: Distribution,
+            engine: str,
+            train_args: Dict = {},
+            out_dir: Union[str, Path] = None,
+            device: str = 'cpu',
+            name: Optional[str] = "",
+    ):
+        super().__init__(
+            prior=prior,
+            train_args=train_args,
+            out_dir=out_dir,
+            device=device,
+            name=name,
+        )
+        self.engine = engine
+
     @classmethod
     def from_config(cls, config_path: Path, **kwargs) -> "ABCRunner":
         """Create an sbi runner from a yaml config file

@@ -42,7 +42,9 @@ class _BaseMetric(ABC):
         out_dir: Optional[Union[str, Path]] = None,
     ):
         """Construct the base metric."""
-        self.out_dir = Path(out_dir)
+        self.out_dir = out_dir
+        if out_dir is not None:
+            self.out_dir = Path(out_dir)
         self.labels = labels
 
 

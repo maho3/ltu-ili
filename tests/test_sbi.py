@@ -57,7 +57,7 @@ def test_snpe(monkeypatch):
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized posterior inference)
-    inference_class = sbi.inference.SNPE
+    engine = 'NPE'
 
     # instantiate your neural networks to be used as an ensemble
     nets = [
@@ -84,7 +84,7 @@ def test_snpe(monkeypatch):
     # initialize the trainer
     runner = SBIRunner(
         prior=prior,
-        inference_class=inference_class,
+        engine=engine,
         nets=nets,
         device=device,
         embedding_net=embedding_net,
@@ -235,7 +235,7 @@ def test_snle(monkeypatch):
             loc=[0]*npar, scale=[1]*npar, device=device)
 
         # define an inference class (we are doing amortized likelihood inference)
-        inference_class = sbi.inference.SNLE
+        engine = 'NLE'
 
         # instantiate your neural networks to be used as an ensemble
         nets = [
@@ -255,7 +255,7 @@ def test_snle(monkeypatch):
         # initialize the trainer
         runner = SBIRunner(
             prior=prior,
-            inference_class=inference_class,
+            engine=engine,
             nets=nets,
             device=device,
             embedding_net=None,
@@ -366,7 +366,7 @@ def test_snre():
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
     # define an inference class (we are doing amortized likelihood inference)
-    inference_class = sbi.inference.SNRE
+    engine = 'NRE'
 
     nets = [
         sbi.utils.classifier_nn(
@@ -380,7 +380,7 @@ def test_snre():
     # initialize the trainer
     runner = SBIRunner(
         prior=prior,
-        inference_class=inference_class,
+        engine=engine,
         nets=nets,
         device=device,
         embedding_net=None,
@@ -459,7 +459,7 @@ def test_multiround():
     unittest.TestCase().assertEqual(len(all_loader[1]), 0)
 
     # define an inference class (we are doing amortized posterior inference)
-    inference_class = sbi.inference.SNPE_C
+    engine = 'SNPE'
 
     # instantiate your neural networks to be used as an ensemble
     nets = [
@@ -494,7 +494,7 @@ def test_multiround():
         # initialize the trainer
         runner = SBIRunnerSequential(
             prior=prior,
-            inference_class=inference_class,
+            engine=engine,
             nets=nets,
             device=device,
             embedding_net=embedding_net,
@@ -512,11 +512,11 @@ def test_multiround():
     }
 
     # define an inference class (we are doing approximate bayesian computation)
-    inference_class = sbi.inference.MCABC
+    engine = 'MCABC'
 
     runner = ABCRunner(
         prior=prior,
-        inference_class=inference_class,
+        engine=engine,
         device=device,
         train_args=train_args,
         out_dir='./toy',
@@ -560,7 +560,7 @@ def test_prior():
 
     for p in priors:
         # define an inference class (we are doing amortized posterior inference)
-        inference_class = sbi.inference.SNPE
+        engine = 'NPE'
 
         # instantiate your neural networks to be used as an ensemble
         nets = [
@@ -574,7 +574,7 @@ def test_prior():
         # initialize the trainer
         runner = SBIRunner(
             prior=p,
-            inference_class=inference_class,
+            engine=engine,
             nets=nets,
             device=device,
             embedding_net=None,
@@ -748,8 +748,7 @@ def test_yaml():
                       scale=[0.5, 0.5, 0.5],
                   ),
                   },
-        model={'module':  'sbi.inference',
-               'class': 'SNPE',
+        model={'engine': 'SNPE',
                'nets': [
                    dict(model='maf', hidden_features=50,
                         num_transforms=5, signature='maf1'),
@@ -772,13 +771,13 @@ def test_yaml():
     )
     with open('./toy/infer_snpe.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
-    data['model']['class'] = 'SNLE'
+    data['model']['engine'] = 'SNLE'
     data['model']['nets'] = [
         dict(model='maf', hidden_features=50, num_transforms=5),
         dict(model='made', hidden_features=50, num_transforms=5)]
     with open('./toy/infer_snle.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
-    data['model']['class'] = 'SNRE'
+    data['model']['engine'] = 'SNRE'
     data['model']['nets'] = [
         dict(model='resnet', hidden_features=50, num_blocks=3),
         dict(model='mlp', hidden_features=50)]
@@ -794,8 +793,7 @@ def test_yaml():
                    high=[1, 1, 1],
                ),
                },
-        model={'module':  'sbi.inference',
-               'class': 'SNPE_C',
+        model={'engine': 'SNPE_C',
                'nets': [
                    dict(model='maf', hidden_features=100, num_transforms=2),
                    dict(model='mdn', hidden_features=50, num_components=6)],
@@ -820,8 +818,7 @@ def test_yaml():
                    high=[1, 1, 1],
                ),
                },
-        model={'module':  'sbi.inference',
-               'class': 'MCABC',
+        model={'engine': 'MCABC',
                'name': 'toy_abc',
                'num_workers': 8,
                },
@@ -1365,9 +1362,6 @@ def test_universal():
         nets=nets
     )
     assert isinstance(runner1, SBIRunnerSequential)
-
-    # sbi's NPE and SNPE engines are the same
-    assert runner0.class_name == runner1.class_name
 
     # you can't call an sbi engine that doesn't exist
     unittest.TestCase().assertRaises(

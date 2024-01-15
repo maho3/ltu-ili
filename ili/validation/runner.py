@@ -53,8 +53,9 @@ class ValidationRunner():
     ):
         self.posterior = posterior
         self.metrics = metrics
-        self.out_dir = Path(out_dir)
+        self.out_dir = out_dir
         if self.out_dir is not None:
+            self.out_dir = Path(out_dir)
             self.out_dir.mkdir(parents=True, exist_ok=True)
         self.ensemble_mode = ensemble_mode
         self.name = name
