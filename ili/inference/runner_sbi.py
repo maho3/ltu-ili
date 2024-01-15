@@ -10,11 +10,7 @@ import pickle
 import torch
 import torch.nn as nn
 from pathlib import Path
-<<<<<<< HEAD
-from typing import Dict, List, Callable, Optional
-=======
 from typing import Dict, List, Callable, Optional, Union
->>>>>>> 119-improve-api
 from torch.distributions import Distribution
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
@@ -24,58 +20,20 @@ from ili.utils import load_class, load_from_config, load_nde_sbi
 
 logging.basicConfig(level=logging.INFO)
 
-<<<<<<< HEAD
-default_config = (
-    Path(__file__).parent.parent / "examples/configs/sample_sbi.yaml"
-)
-
-
-class _BaseRunner():
-    def __init__(
-        self,
-        prior: Distribution,
-        inference_class: NeuralInference,
-        train_args: Dict = {},
-        out_dir: Path = None,
-        device: str = 'cpu',
-        name: Optional[str] = "",
-    ):
-        self.prior = prior
-        self.inference_class = inference_class
-        self.class_name = inference_class.__name__
-        self.train_args = train_args
-        self.device = device
-        self.name = name
-        self.out_dir = out_dir
-        if self.out_dir is not None:
-            self.out_dir = Path(self.out_dir)
-            self.out_dir.mkdir(parents=True, exist_ok=True)
-
-=======
->>>>>>> 119-improve-api
 
 class SBIRunner(_BaseRunner):
     """Class to train posterior inference models using the sbi package
 
     Args:
         prior (Distribution): prior on the parameters
-<<<<<<< HEAD
-        inference_class (NeuralInference): sbi inference class used to
-            train neural posteriors
-=======
         engine (str): type of inference engine to use (NPE, NLE, NRE, or
             any sbi inference engine; see _setup_engine)
->>>>>>> 119-improve-api
         nets (List[Callable]): list of neural nets for amortized posteriors,
             likelihood models, or ratio classifiers
         embedding_net (nn.Module): neural network to compress high
             dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
-<<<<<<< HEAD
-        out_dir (Path): directory where to store outputs
-=======
         out_dir (str, Path): directory where to store outputs
->>>>>>> 119-improve-api
         proposal (Distribution): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
             sbi will set proposal = prior unless a proposal is specified.
@@ -89,11 +47,7 @@ class SBIRunner(_BaseRunner):
     def __init__(
         self,
         prior: Distribution,
-<<<<<<< HEAD
-        inference_class: NeuralInference,
-=======
         engine: str,
->>>>>>> 119-improve-api
         nets: List[Callable],
         train_args: Dict = {},
         out_dir: Union[str, Path] = None,

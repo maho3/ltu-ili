@@ -31,14 +31,14 @@ class LampeRunner():
 
     Args:
         prior (Distribution): prior on the parameters
-        inference_class (NeuralInference): sbi inference class used to
-            train neural posteriors
         nets (List[Callable]): list of neural nets for amortized posteriors,
             likelihood models, or ratio classifiers
-        embedding_net (nn.Module): neural network to compress high
-            dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
         out_dir (Path): directory where to store outputs
+        device (str): device to run on
+        engine (str): name of the engine class (NPE only)
+        embedding_net (nn.Module): neural network to compress high
+            dimensional data into lower dimensionality
         proposal (Distribution): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
             we will set proposal = prior unless a proposal is specified.
@@ -56,7 +56,7 @@ class LampeRunner():
         train_args: Dict = {},
         out_dir: Path = None,
         device: str = 'cpu',
-        inference_class: Callable = None,
+        engine: str = 'NPE',
         embedding_net: nn.Module = None,
         proposal: Distribution = None,
         name: Optional[str] = "",
@@ -65,6 +65,7 @@ class LampeRunner():
         self.prior = prior
         self.train_args = train_args
         self.device = device
+        self.engine = engine
         self.name = name
         self.out_dir = out_dir
         if self.out_dir is not None:
