@@ -16,15 +16,12 @@ class _BaseRunner():
     def __init__(
         self,
         prior: Any,
-        inference_class: ModelClass,
         train_args: Dict = {},
         out_dir: Union[str, Path] = None,
         device: str = 'cpu',
         name: Optional[str] = "",
     ):
         self.prior = prior
-        self.inference_class = inference_class
-        self.class_name = inference_class.__name__
         self.train_args = train_args
         self.device = device
         self.name = name

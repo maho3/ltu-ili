@@ -20,8 +20,6 @@ class DelfiRunner(_BaseRunner):
 
     Args:
         prior (Any): prior on the parameters
-        inference_class (Any): pydelfi inference class used to that train
-            neural posteriors
         engine_kwargs (Dict): dictionary of additional keywords for Delfi
             engine
         train_args (Dict): dictionary of hyperparameters for training
@@ -31,7 +29,6 @@ class DelfiRunner(_BaseRunner):
     def __init__(
         self,
         prior: Any,
-        inference_class: Any,
         config_ndes: List[Dict],
         engine_kwargs: Dict = {},
         train_args: Dict = {},
@@ -41,7 +38,6 @@ class DelfiRunner(_BaseRunner):
     ):
         super().__init__(
             prior=prior,
-            inference_class=inference_class,
             train_args=train_args,
             out_dir=out_dir,
             device=device,
@@ -49,6 +45,8 @@ class DelfiRunner(_BaseRunner):
         )
         self.config_ndes = config_ndes
         self.engine_kwargs = engine_kwargs
+        self.inference_class = DelfiWrapper
+        self.engine = 'NLE'
         if device != 'cpu':
             logging.warning(
                 'pydelfi only supports cpu training. Device set to cpu.')
@@ -74,10 +72,6 @@ class DelfiRunner(_BaseRunner):
         for k, v in config["prior"]["args"].items():
             config["prior"]["args"][k] = np.array(v)
         prior = load_from_config(config["prior"])
-        inference_class = load_class(
-            module_name=config["model"]["module"],
-            class_name=config["model"]["class"],
-        )
 
         config_ndes = config["model"]["nets"]
         if 'kwargs' in config["model"]:
@@ -97,7 +91,6 @@ class DelfiRunner(_BaseRunner):
             signatures.append(type_nn.pop("signature", ""))
         return cls(
             prior=prior,
-            inference_class=inference_class,
             config_ndes=config_ndes,
             engine_kwargs=engine_kwargs,
             train_args=train_args,
