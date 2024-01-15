@@ -4,7 +4,7 @@ Module for loading data into the ltu-ili pipeline.
 
 import yaml
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Optional
+from typing import Any, List, Tuple, Optional, Union
 from pathlib import Path
 import numpy as np
 import json
@@ -21,11 +21,15 @@ except ModuleNotFoundError:
 
 class _BaseLoader(ABC):
     @classmethod
-    def from_config(cls, config_path: Path, **kwargs) -> "_BaseLoader":
+    def from_config(
+        cls,
+        config_path: Union[str, Path],
+        **kwargs
+    ) -> "_BaseLoader":
         """Create a data loader from a yaml config file
 
         Args:
-            config_path (Path): path to config file.
+            config_path (str, Path): path to config file.
             **kwargs: optional keyword arguments to overload config file
 
         Returns:
@@ -38,6 +42,52 @@ class _BaseLoader(ABC):
         config.update(kwargs)
 
         return cls(**config)
+
+    @abstractmethod
+    def __len__(self) -> int:
+        """Returns the total number of data points in the dataset
+
+        Returns:
+            int: length of dataset
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_all_data(self) -> Any:
+        """Returns all the loaded data
+
+        Returns:
+            Any: data
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_all_parameters(self) -> Any:
+        """Returns all the loaded parameters
+
+        Returns:
+            Any: parameters
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_obs_data(self) -> Any:
+        """Returns the observed data
+
+        Returns:
+            Any: data
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_fid_parameters(self) -> Any:
+        """Returns the fiducial parameters which we expect the
+        observed data to resemble
+
+        Returns:
+            Any: parameters
+        """
+        return NotImplemented
 
     @abstractmethod
     def __len__(self) -> int:

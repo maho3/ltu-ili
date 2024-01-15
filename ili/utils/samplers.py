@@ -10,6 +10,7 @@ import emcee
 from abc import ABC
 from collections.abc import Sequence
 from typing import Any
+from math import ceil
 
 try:
     import torch
@@ -43,7 +44,7 @@ class _MCMCSampler(ABC):
             posterior: ModelClass,
             num_chains: int = -1,
             thin: int = 10,
-            burn_in: int = 100
+            burn_in: int = 100,
     ) -> None:
         super().__init__()
         self.posterior = posterior
@@ -66,7 +67,8 @@ class EmceeSampler(_MCMCSampler):
     """
 
     def sample(self, nsteps: int, x: np.ndarray,
-               progress: bool = False) -> np.ndarray:
+               progress: bool = False,
+               skip_initial_state_check: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -75,28 +77,49 @@ class EmceeSampler(_MCMCSampler):
             x (np.ndarray): data to evaluate the posterior at
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
-        """
-        theta0 = np.stack([self.posterior.prior.sample()
-                          for i in range(self.num_chains)])
+            skip_initial_state_check (bool, optional): If True, a check that 
+                the initial_state can fully explore the space will be skipped. 
+                Defaults to False.
 
+
+        """
+        # calculate number of samples per chain
+        per_chain = ceil(nsteps / self.num_chains)
+
+        # build posterior to sample
         def log_target(t, x):
-            return np.array(self.posterior.potential(
-                t.astype(np.float32), x.astype(np.float32)
-            ))
+            res = self.posterior.potential(
+                t.astype(np.float32), x.astype(np.float32))
+            if hasattr(res, 'cpu'):
+                res = np.array(res.cpu())
+            return res
+
+        # Initialize walkers
+        theta0 = [self.posterior.prior.sample()
+                  for _ in range(self.num_chains)]
+        if isinstance(theta0[0], np.ndarray):
+            theta0 = np.stack(theta0)
+        else:
+            theta0 = np.array(torch.stack(theta0).cpu())
+
+        # Set up the sampler
         self.sampler = emcee.EnsembleSampler(
             self.num_chains,
             theta0.shape[-1],
             log_target,
             vectorize=False,
-            args=(x,)
+            args=(x,),
         )
+
+        # Sample
         self.sampler.run_mcmc(
             theta0,
-            self.burn_in + nsteps,
+            self.burn_in + per_chain,
             thin_by=self.thin,
             progress=progress,
+            skip_initial_state_check=skip_initial_state_check
         )
-        return self.sampler.get_chain(discard=self.burn_in, flat=True)
+        return self.sampler.get_chain(discard=self.burn_in, flat=True)[:nsteps]
 
 
 class PyroSampler(_MCMCSampler):
