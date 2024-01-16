@@ -160,8 +160,6 @@ class NumpyLoader(_BaseLoader):
     ) -> None:
         self.x = x
         self.theta = theta
-        self.xobs = xobs
-        self.thetaobs = thetaobs
         if len(self.x) != len(self.theta):
             raise Exception(
                 "Stored data and parameters are not of same length.")
