@@ -10,11 +10,11 @@ metrics:
     module: ili.validation.metrics
     class: PlotSinglePosterior
     args:
-      num_samples: 1500
+      num_samples: 10000
       sample_method: slice_np_vectorized
       sample_params:
         burn_in: 100
-        num_chains: 8
+        num_chains: 100
         thin: 10
       save_samples: true
       seed: 123

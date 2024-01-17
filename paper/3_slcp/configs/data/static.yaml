@@ -4,4 +4,4 @@ x_file: '1000_x.npy'
 theta_file: '1000_theta.npy'
 
 xobs_file: 'obs_1.npy'
-thetafid_file: 'obstrue.npy'
+# thetafid_file: 'obstrue.npy'

@@ -17,8 +17,8 @@ model:
 
 # Specify the neural training hyperparameters
 train_args:
-  training_batch_size: 32
-  learning_rate: 0.00001
+  training_batch_size: 64
+  learning_rate: 0.00005
   num_round: 10
 
 device: 'cpu'  # Run on CPU

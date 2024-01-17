@@ -17,7 +17,7 @@ model:
 
 # Specify the neural training hyperparameters
 train_args:
-  training_batch_size: 32
+  training_batch_size: 64
   learning_rate: 0.00001
   num_round: 10
 
