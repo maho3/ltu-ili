@@ -10,7 +10,7 @@ import numpy as np
 import tensorflow as tf
 from pathlib import Path
 from typing import Dict, Any, List, Union, Optional
-from ili.utils import load_class, load_from_config
+from ili.utils import load_from_config, update
 from .pydelfi_wrappers import DelfiWrapper
 from .base import _BaseRunner
 
@@ -67,7 +67,7 @@ class DelfiRunner(_BaseRunner):
             config = yaml.safe_load(fd)
 
         # optionally overload config with kwargs
-        config.update(kwargs)
+        update(config, **kwargs)
 
         # currently, all arguments of pyDELFI priors must be np.arrays
         for k, v in config["prior"]["args"].items():

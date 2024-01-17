@@ -5,7 +5,7 @@ Module to contain a universal inference engine configuration for all backends.
 import yaml
 from typing import Any, Union
 from pathlib import Path
-from ili.utils import load_class
+from ili.utils import update
 
 try:
     from ili.inference import SBIRunner, SBIRunnerSequential
@@ -74,7 +74,7 @@ class InferenceRunner():
             config = yaml.safe_load(fd)
 
         # optionally overload config file with kwargs
-        config.update(kwargs)
+        update(config, **kwargs)
 
         backend = config['model']['backend']
         engine = config['model']['engine']
