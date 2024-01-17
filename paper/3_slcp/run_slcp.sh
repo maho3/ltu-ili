@@ -32,10 +32,10 @@ else
 fi
 
 echo "Running training..."
-python run.py --obs ${obs} --N ${N} --seq ${seq} --inf ${inf}
+python run.py --obs ${obs} --N ${N} --inf ${inf}
 
 echo "Running metrics..."
 conda activate ili-torch
-python metrics.py --obs ${obs} --N ${N} --seq ${seq} --inf ${inf}
+python metrics.py --obs ${obs} --N ${N} --inf ${inf}
 
 echo "Done."
