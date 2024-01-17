@@ -26,6 +26,8 @@ import zuko
 from typing import List, Any
 from collections.abc import Iterable
 from torch.distributions import biject_to, Distribution
+from torch.distributions.transforms import (
+    identity_transform, AffineTransform, Transform)
 
 
 def load_nde_sbi(
@@ -87,13 +89,17 @@ class LampeNPE(nn.Module):
         self,
         nde: nn.Module,
         prior: Distribution,
-        embedding_net: nn.Module = nn.Identity()
+        embedding_net: nn.Module = nn.Identity(),
+        x_transform: Transform = identity_transform,
+        theta_transform: Transform = identity_transform
+
     ):
         super().__init__()
         self.nde = nde
         self.prior = prior
         self.embedding_net = embedding_net
-        self.theta_transform = biject_to(prior.support)
+        self.x_transform = x_transform
+        self.theta_transform = theta_transform
         self._device = 'cpu'
 
     def forward(
@@ -108,10 +114,11 @@ class LampeNPE(nn.Module):
         # sample
         return self.nde(
             self.theta_transform.inv(theta),
-            self.embedding_net(x))
+            self.embedding_net(self.x_transform.inv(x)))
 
     def flow(self, x: torch.Tensor):  # -> Distribution
-        return self.nde.flow(self.embedding_net(x))
+        return self.nde.flow(
+            self.embedding_net(self.x_transform.inv(x)))
 
     def sample(
         self,
@@ -144,7 +151,6 @@ class LampeEnsemble(nn.Module):
         self.weights = weights
         assert len(self.posteriors) == len(self.weights)
         self.prior = self.posteriors[0].prior
-        self.theta_transform = self.posteriors[0].theta_transform
         self._device = posteriors[0]._device
         self.num_components = len(self.posteriors)
 
@@ -185,6 +191,7 @@ class LampeEnsemble(nn.Module):
 def load_nde_lampe(
         model: str,
         embedding_net: nn.Module = nn.Identity(),
+        x_normalize: bool = True,
         ** model_args):
     """Load an nde from lampe.
 
@@ -214,6 +221,7 @@ def load_nde_lampe(
         flow_class = zuko.flows.spline.NSF
 
     def net_constructor(x_batch, theta_batch, prior):
+        # pass data through embedding network
         z_batch = embedding_net(x_batch)
         z_shape = z_batch.shape[1:]
         theta_shape = theta_batch.shape[1:]
@@ -223,16 +231,29 @@ def load_nde_lampe(
         if (len(theta_shape) > 1):
             raise ValueError("Parameters theta must be a vector.")
 
+        # instantiate a neural density estimator
         nde = lampe.inference.NPE(
             theta_dim=theta_shape[0],
             x_dim=z_shape[0],
             build=flow_class,
             **model_args
         )
+
+        # determine transformations
+        x_transform = identity_transform
+        theta_transform = biject_to(prior.support)
+
+        if x_normalize:
+            x_mean = x_batch.mean(dim=0)
+            x_std = x_batch.std(dim=0)
+            x_transform = AffineTransform(loc=x_mean, scale=x_std)
+
         return LampeNPE(
             nde=nde,
             embedding_net=embedding_net,
-            prior=prior
+            prior=prior,
+            x_transform=x_transform,
+            theta_transform=theta_transform
         )
 
     return net_constructor
