@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import json
 import pandas as pd
-from ili.utils import Dataset
+from ili.utils import Dataset, update
 
 try:
     from sbi.simulators.simutils import simulate_in_batches
@@ -40,7 +40,7 @@ class _BaseLoader(ABC):
             config = yaml.safe_load(fd)
 
         # optionally overload config file with kwargs
-        config.update(kwargs)
+        update(config, **kwargs)
 
         return cls(**config)
 

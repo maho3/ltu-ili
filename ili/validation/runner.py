@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 from ili.dataloaders import _BaseLoader
 from ili.validation.metrics import _BaseMetric
-from ili.utils import load_from_config
+from ili.utils import load_from_config, update
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
@@ -80,7 +80,7 @@ class ValidationRunner():
             config = yaml.safe_load(fd)
 
         # optionally overload config file with kwargs
-        config.update(kwargs)
+        update(config, **kwargs)
 
         out_dir = Path(config["out_dir"])
 
