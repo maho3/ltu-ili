@@ -10,15 +10,14 @@ prior:
 model:
   backend: 'lampe'
   engine: 'NPE'
-  name: 'lampe'
+  name: 'toy_lampe'
   nets:
-    - model: 'maf'  # Masked Autoregressive Flow
-      hidden_features: 50
-      num_transforms: 5 
-      signature: "maf"
+    - model: 'nsf'  # Masked Autoregressive Flow
+      hidden_features: 5
+      num_transforms: 2
     - model: 'mdn'  # Mixture Density Network
-      hidden_features: 50
-      num_components: 6
+      hidden_features: 10
+      num_components: 4
 
 # Specify the neural training hyperparameters
 train_args:
