@@ -146,6 +146,7 @@ class LampeEnsemble(nn.Module):
         self.prior = self.posteriors[0].prior
         self.theta_transform = self.posteriors[0].theta_transform
         self._device = posteriors[0]._device
+        self.num_components = len(self.posteriors)
 
     def forward(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         return torch.stack([
@@ -189,7 +190,7 @@ def load_nde_lampe(
 
     Args:
         model (str): model to use.
-            One of: mdn, maf, nsf, made, linear, mlp, resnet.
+            One of: mdn, maf, nsf
         embedding_net (nn.Module, optional): embedding network to use.
             Defaults to nn.Identity().
         **model_args: additional arguments to pass to the model.
@@ -209,6 +210,8 @@ def load_nde_lampe(
 
     if model == 'maf':
         flow_class = zuko.flows.autoregressive.MAF
+    elif model == 'nsf':
+        flow_class = zuko.flows.spline.NSF
 
     def net_constructor(x_batch, theta_batch, prior):
         z_batch = embedding_net(x_batch)
