@@ -16,7 +16,7 @@ from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
 from .base import _BaseRunner
 from ili.dataloaders import _BaseLoader
-from ili.utils import load_class, load_from_config, load_nde_sbi
+from ili.utils import load_class, load_from_config, load_nde_sbi, update
 
 logging.basicConfig(level=logging.INFO)
 
@@ -95,7 +95,7 @@ class SBIRunner(_BaseRunner):
             config = yaml.safe_load(fd)
 
         # optionally overload config with kwargs
-        config.update(kwargs)
+        update(config, **kwargs)
 
         # load prior distribution
         config['prior']['args']['device'] = config['device']
@@ -388,7 +388,7 @@ class ABCRunner(_BaseRunner):
             config = yaml.safe_load(fd)
 
         # optionally overload config with kwargs
-        config.update(kwargs)
+        update(config, **kwargs)
 
         # load prior distribution
         prior = load_from_config(config["prior"])
