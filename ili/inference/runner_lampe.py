@@ -7,6 +7,7 @@ import yaml
 import time
 import logging
 import pickle
+from copy import deepcopy
 from tqdm import tqdm
 import torch
 import torch.nn as nn
@@ -81,8 +82,8 @@ class LampeRunner():
         if self.signatures is None:
             self.signatures = [""]*len(self.nets)
         self.train_args = dict(
-            batch_size=32, learning_rate=1e-3,
-            stop_after_epochs=30, clip_max_norm=10,
+            training_batch_size=50, learning_rate=5e-4,
+            stop_after_epochs=20, clip_max_norm=5,
             validation_fraction=0.1)
         self.train_args.update(train_args)
 
@@ -165,15 +166,17 @@ class LampeRunner():
             # split data into train and validation
             mask = torch.randperm(len(x)) < int(
                 self.train_args['validation_fraction']*len(x))
-            x_train, x_val = x[mask], x[~mask]
-            theta_train, theta_val = theta[mask], theta[~mask]
+            x_train, x_val = x[~mask], x[mask]
+            theta_train, theta_val = theta[~mask], theta[mask]
 
             data_train = TensorDataset(x_train, theta_train)
             data_val = TensorDataset(x_val, theta_val)
-            train_loader = DataLoader(data_train, shuffle=True,
-                                      batch_size=self.train_args["batch_size"])
-            val_loader = DataLoader(data_val, shuffle=False,
-                                    batch_size=self.train_args["batch_size"])
+            train_loader = DataLoader(
+                data_train, shuffle=True,
+                batch_size=self.train_args["training_batch_size"])
+            val_loader = DataLoader(
+                data_val, shuffle=False,
+                batch_size=self.train_args["training_batch_size"])
         else:
             raise ValueError("Loader must be a subclass of _BaseLoader.")
 
@@ -240,7 +243,7 @@ class LampeRunner():
                     # check for convergence
                     if loss_val < best_val:
                         best_val = loss_val
-                        best_model = model.state_dict()
+                        best_model = deepcopy(model.state_dict())
                         wait = 0
                     elif wait > self.train_args["stop_after_epochs"]:
                         break
