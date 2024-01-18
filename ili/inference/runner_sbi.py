@@ -344,6 +344,13 @@ class SBIRunnerSequential(SBIRunner):
 
             # update proposal for next round
             self.proposal = posterior_ensemble.set_default_x(x_obs)
+
+            if rnd < self.num_rounds - 1:
+                # simulate new data for next round
+                theta, x = loader.simulate(self.proposal)
+                x = torch.Tensor(x).to(self.device)
+                theta = torch.Tensor(theta).to(self.device)
+
         logging.info(f"It took {time.time() - t0} seconds to train models.")
 
         if self.out_dir is not None:
