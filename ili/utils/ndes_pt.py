@@ -23,6 +23,7 @@ import torch
 from torch import nn
 import lampe
 import zuko
+from tqdm import tqdm
 from typing import List, Any
 from collections.abc import Iterable
 from torch.distributions import biject_to, Distribution
@@ -101,6 +102,7 @@ class LampeNPE(nn.Module):
         self.x_transform = x_transform
         self.theta_transform = theta_transform
         self._device = 'cpu'
+        self.max_sample_size = 1000
 
     def forward(
         self,
@@ -124,14 +126,39 @@ class LampeNPE(nn.Module):
         self,
         shape: tuple,
         x: torch.Tensor,
-        show_progress_bars: bool = False
+        show_progress_bars: bool = True
     ) -> torch.Tensor:
+        """Accept-reject sampling"""
+
         # check inputs
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
         x = x.to(self._device)
+
         # sample
-        return self.theta_transform(self.flow(x).sample(shape)).cpu()
+        num_samples = np.prod(shape)
+        pbar = tqdm(
+            disable=not show_progress_bars,
+            total=num_samples,
+            desc=f"Drawing {num_samples} posterior samples",
+        )
+
+        batch_size = min(self.max_sample_size, num_samples)
+        num_remaining = num_samples
+        accepted = []
+        while num_remaining > 0:
+            candidates = self.theta_transform(
+                self.flow(x).sample((batch_size,))).cpu()
+            are_accepted = self.prior.support.check(candidates)
+            samples = candidates[are_accepted]
+            accepted.append(samples)
+
+            num_remaining -= len(samples)
+            pbar.update(len(samples))
+        pbar.close()
+
+        samples = torch.cat(accepted, dim=0)[:num_samples]
+        return samples.reshape(*shape, -1)
 
     def to(self, device):
         self._device = device
@@ -192,6 +219,7 @@ def load_nde_lampe(
         model: str,
         embedding_net: nn.Module = nn.Identity(),
         x_normalize: bool = True,
+        theta_normalize: bool = True,
         ** model_args):
     """Load an nde from lampe.
 
@@ -241,12 +269,17 @@ def load_nde_lampe(
 
         # determine transformations
         x_transform = identity_transform
-        theta_transform = biject_to(prior.support)
+        theta_transform = identity_transform
 
         if x_normalize:
             x_mean = x_batch.mean(dim=0)
             x_std = x_batch.std(dim=0)
             x_transform = AffineTransform(loc=x_mean, scale=x_std)
+
+        if theta_normalize:
+            theta_mean = theta_batch.mean(dim=0)
+            theta_std = theta_batch.std(dim=0)
+            theta_transform = AffineTransform(loc=theta_mean, scale=theta_std)
 
         return LampeNPE(
             nde=nde,
