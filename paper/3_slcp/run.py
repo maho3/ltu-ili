@@ -5,7 +5,8 @@ import argparse
 import numpy as np
 from ili.inference import InferenceRunner
 from ili.validation.runner import ValidationRunner
-
+import warnings
+warnings.filterwarnings("ignore")
 
 if __name__ == '__main__':
     # parse arguments
@@ -58,15 +59,16 @@ if __name__ == '__main__':
             train_args=train_args,
         )
         kde = runner(loader=loader)
-        os.remove(join(out_dir, 'samples.npy'))
+        os.remove(join(out_dir, 'samples.pkl'))
         samples = kde.sample(10000).numpy()
         np.save(join(out_dir, 'single_samples.npy'), samples)
         sys.exit(0)
 
     kwargs = dict(
-        out_dir=out_dir,
-        model=dict(engine=args.inf.upper())
+        out_dir=out_dir
     )
+    if seq:
+        kwargs['model'] = dict(engine=args.inf.upper())
     runner = InferenceRunner.from_config(
         join(cfgdir, 'infer', f'{cfgname}.yaml'), **kwargs)
     runner(loader=loader)

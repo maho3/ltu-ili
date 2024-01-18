@@ -1,0 +1,25 @@
+# Specify prior
+prior:
+  module: 'ili.utils'
+  class: 'Uniform'
+  args:
+    low: [-3,-3,-3,-3,-3]
+    high: [3,3,3,3,3]
+
+# Specify the inference model
+model:
+  backend: 'lampe'
+  engine: 'NPE'
+  nets:
+    - model: 'nsf'
+      hidden_features: 50
+      num_transforms: 5
+
+# Specify the neural training hyperparameters
+train_args:
+  training_batch_size: 64
+  learning_rate: 0.00005
+  num_round: 10
+
+device: 'cpu'  # Run on CPU
+out_dir: './slcp/lampe_obs1_N1000'  # Where to save the posterior
