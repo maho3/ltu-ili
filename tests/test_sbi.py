@@ -707,16 +707,10 @@ def test_yaml():
     np.save('toy/xobs.npy', x[0])
 
     # Run for single round
-    def simulator(params):
-        # create toy simulations
-        x = np.arange(10)
-        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
-        y += np.random.randn(len(x))
-        return y
 
     # simulate data and save as numpy files
     theta = np.random.rand(10, 3)  # 10 simulations, 3 parameters
-    x = np.array([simulator(t) for t in theta])
+    x = simulator(theta)
     np.save("toy/theta.npy", theta)
     np.save("toy/x.npy", x)
 
