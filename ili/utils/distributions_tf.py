@@ -15,6 +15,11 @@ class Uniform(Uniform):
         self.high = high
         super().__init__(lower=low, upper=high)
 
+    def logpdf(self, x):
+        if np.any(x < self.low) or np.any(x > self.high):
+            return -np.inf
+        return super().logpdf(x)
+
 
 class IndependentNormal():
     def __init__(self, loc, scale, device='cpu'):
@@ -42,6 +47,11 @@ class MultivariateTruncatedNormal(TruncatedGaussian):
         super().__init__(mean=loc, C=covariance_matrix,
                          lower=low, upper=high)
 
+    def logpdf(self, x):
+        if np.any(x < self.low) or np.any(x > self.high):
+            return -np.inf
+        return super().logpdf(x)
+
 
 class IndependentTruncatedNormal(MultivariateTruncatedNormal):
     """Note the pdf and logpdf as implemented in pydelfi are not normalized."""
@@ -52,3 +62,8 @@ class IndependentTruncatedNormal(MultivariateTruncatedNormal):
         self.low = low
         self.high = high
         super().__init__(loc, np.diag(scale**2), low, high)
+
+    def logpdf(self, x):
+        if np.any(x < self.low) or np.any(x > self.high):
+            return -np.inf
+        return super().logpdf(x)

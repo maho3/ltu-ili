@@ -14,6 +14,8 @@ from ili.utils import Dataset, update
 
 try:
     from sbi.simulators.simutils import simulate_in_batches
+    from sbi.inference import MCMCPosterior
+    from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
     from torch import Tensor
     from torch.utils.data import DataLoader
 except ModuleNotFoundError:
@@ -338,10 +340,18 @@ class SBISimulator(NumpyLoader):
             proposal (Any): Distribution to sample paramaters from
 
         Returns:
-            Tuple[np.array, np.array]: Sampled parameters $\theta$ and
+            Tuple[np.array, np.array]: Sampled parameters $\theta$ and 
                 simulation-outputs $x$.
         """
-        theta = proposal.sample((self.num_simulations,)).cpu()
+        if isinstance(proposal, NeuralPosteriorEnsemble) and \
+                isinstance(proposal.posteriors[0], MCMCPosterior):
+            theta = proposal.sample(
+                (self.num_simulations,),
+                method="slice_np_vectorized",
+                num_chains=10
+            ).cpu()
+        else:
+            theta = proposal.sample((self.num_simulations,)).cpu()
         x = simulate_in_batches(self.simulator, theta)
         theta, x = theta.numpy(), x.numpy()
 

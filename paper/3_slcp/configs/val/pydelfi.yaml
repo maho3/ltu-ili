@@ -14,7 +14,7 @@ metrics:
       sample_method: emcee
       sample_params:
         burn_in: 100
-        num_chains: 10
+        num_chains: 30
         thin: 10
       save_samples: true
       seed: 123
