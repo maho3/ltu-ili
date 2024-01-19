@@ -620,7 +620,7 @@ class PosteriorCoverage(PosteriorSamples):
             bootstrap (bool, optional): whether to use bootstrapping.
                 Defaults to True.
         """
-        theta = np.array(theta)
+        theta = np.array(theta.cpu())
 
         # Sample the full dataset
         if self.save_samples:
