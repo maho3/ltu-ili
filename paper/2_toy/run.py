@@ -1,6 +1,7 @@
 from os.path import join
 import argparse
 from ili.dataloaders import SBISimulator, StaticNumpyLoader
+from ili.inference import InferenceRunner
 from ili.validation.runner import ValidationRunner
 from gen import simulator
 
@@ -15,7 +16,7 @@ if __name__ == '__main__':
         help="Configuration file to use for model training.")
     parser.add_argument(
         "--cfgdir", type=str,
-        default='.',)
+        default='./configs',)
     args = parser.parse_args()
     model = args.model
     cfgdir = args.cfgdir
@@ -25,11 +26,7 @@ if __name__ == '__main__':
     train_loader.set_simulator(simulator)
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl
-    if model == 'pydelfi':
-        from ili.inference.runner_pydelfi import DelfiRunner as Runner
-    else:
-        from ili.inference.runner_sbi import SBIRunnerSequential as Runner
-    runner = Runner.from_config(join(cfgdir, f"inf_{model}.yaml"))
+    runner = InferenceRunner.from_config(join(cfgdir, f"inf_{model}.yaml"))
     runner(loader=train_loader)
 
     # use the trained posterior model to predict on a single example from

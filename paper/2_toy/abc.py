@@ -8,7 +8,7 @@ from gen import simulator
 if __name__ == '__main__':
     # parse arguments
     model = 'abc'
-    cfgdir = '.'
+    cfgdir = './configs'
 
     # reload all simulator examples as a dataloader
     train_loader = SBISimulator.from_config(join(cfgdir, "data_train.yaml"))
