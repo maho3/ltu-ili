@@ -294,7 +294,7 @@ class SBISimulator(NumpyLoader):
             )
 
         # Load stored data (if specified)
-        xobs = np.load(self.xobs_path)
+        xobs = np.load(self.xobs_path, allow_pickle=True)
         x = np.array([])
         theta = np.array([])
         thetafid = None
@@ -303,7 +303,7 @@ class SBISimulator(NumpyLoader):
         else:
             self.x_path = self.in_dir / x_file
             if self.x_path.is_file():
-                x = np.load(self.x_path)
+                x = np.load(self.x_path, allow_pickle=True)
         if theta_file is None:
             self.theta_path = None
         else:
@@ -314,7 +314,7 @@ class SBISimulator(NumpyLoader):
             self.thetafid_path = None
         else:
             self.thetafid_path = self.in_dir / thetafid_file
-            thetafid = np.load(self.thetafid_path)
+            thetafid = np.load(self.thetafid_path, allow_pickle=True)
 
         super().__init__(x=x, theta=theta, xobs=xobs, thetafid=thetafid)
 
@@ -411,13 +411,13 @@ class SummarizerDatasetLoader(NumpyLoader):
             self.xobs = None
         else:
             self.xobs_path = self.in_dir / xobs_file
-            self.xobs = np.load(self.xobs_path)
+            self.xobs = np.load(self.xobs_path, allow_pickle=True)
         if thetafid_file is None:
             self.thetafid_path = None
             self.thetafid = None
         else:
             self.thetafid_path = self.in_dir / thetafid_file
-            self.thetafid = np.load(self.thetafid_path)
+            self.thetafid = np.load(self.thetafid_path, allow_pickle=True)
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset
