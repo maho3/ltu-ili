@@ -9,7 +9,6 @@ import logging
 import pickle
 import torch
 import torch.nn as nn
-from torch import optim
 from pathlib import Path
 from typing import Dict, List, Callable, Optional, Union
 from torch.distributions import Distribution
@@ -190,28 +189,37 @@ class SBIRunner(_BaseRunner):
                      proposal: Optional[Distribution],
                      in_train: torch.Tensor = None):
         """Train a single round of inference for an ensemble of models."""
-        # split into training and validation if not specified
-        if in_train is None:
-            # TODO: load these from file?
-            Ntrain = int(len(x) * self.train_args['validation_fraction'])
-            in_train = torch.randperm(len(x)) > Ntrain
-            train_indices = torch.argwhere(in_train).flatten()
-            val_indices = torch.argwhere(~in_train).flatten()
 
-        posteriors, summaries = [], []
-        for i, model in enumerate(models):
-            logging.info(f"Training model {i+1} / {len(models)}.")
-
-            # append simulations
+        # append data to models
+        for model in models:
             if ("NPE" in self.engine):
                 model = model.append_simulations(theta, x, proposal=proposal)
             else:
                 model = model.append_simulations(theta, x)
 
+        # split into training and validation if not specified
+        if in_train is None:
+            # TODO: load these from file?
+            starting_round = 0  # TODO: won't work for SNPE_A
+            x, _, _ = model.get_simulations(starting_round)
+            num_examples = x.shape[0]
+            permuted_indices = torch.randperm(num_examples)
+            num_training_examples = int(
+                (1 - self.train_args['validation_fraction']) * num_examples)
+            train_indices, val_indices = (
+                permuted_indices[:num_training_examples],
+                permuted_indices[num_training_examples:],
+            )
+
+        posteriors, summaries = [], []
+        for i, model in enumerate(models):
+            logging.info(f"Training model {i+1} / {len(models)}.")
+
             # hack to initialize sbi model without training (Issue #127)
             first_round = False
             if model._neural_net is None:
-                model.train(**self.train_args, resume_training=False,
+                model.train(learning_rate=self.train_args['learning_rate'],
+                            resume_training=False,
                             max_num_epochs=-1)
                 model._epochs_since_last_improvement = 0
                 first_round = True
@@ -223,7 +231,7 @@ class SBIRunner(_BaseRunner):
             # train
             if ("NPE" in self.engine) & first_round:
                 model.train(**self.train_args, resume_training=True,
-                            force_first_round_loss=first_round)
+                            force_first_round_loss=True)
             else:
                 model.epoch, model._val_log_prob = 0, float("-Inf")
                 model.train(**self.train_args,  resume_training=True)
