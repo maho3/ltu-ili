@@ -231,20 +231,20 @@ class StaticNumpyLoader(NumpyLoader):
         self.theta_path = self.in_dir / theta_file
 
         # Load stored data (if specified)
-        x = np.load(self.x_path)
-        theta = np.load(self.theta_path)
+        x = np.load(self.x_path, allow_pickle=True)
+        theta = np.load(self.theta_path, allow_pickle=True)
         if xobs_file is None:
             self.xobs_path = None
             xobs = None
         else:
             self.xobs_path = self.in_dir / xobs_file
-            xobs = np.load(self.xobs_path)
+            xobs = np.load(self.xobs_path, allow_pickle=True)
         if thetafid_file is None:
             self.thetafid_path = None
             thetafid = None
         else:
             self.thetafid_path = self.in_dir / thetafid_file
-            thetafid = np.load(self.thetafid_path)
+            thetafid = np.load(self.thetafid_path, allow_pickle=True)
 
         super().__init__(x=x, theta=theta, xobs=xobs, thetafid=thetafid)
 
