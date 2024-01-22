@@ -9,6 +9,7 @@ import logging
 import pickle
 import torch
 import torch.nn as nn
+from torch import optim
 from pathlib import Path
 from typing import Dict, List, Callable, Optional, Union
 from torch.distributions import Distribution
@@ -71,12 +72,18 @@ class SBIRunner(_BaseRunner):
         self.engine = engine
         self.nets = nets
         self.embedding_net = embedding_net
-        self.train_args = train_args
-        if "num_round" in train_args:
-            self.num_rounds = train_args["num_round"]
-            self.train_args.pop("num_round")
-        else:
-            self.num_rounds = 1
+        self.num_rounds = self.train_args.pop("num_round", 1)
+
+        train_default = dict(
+            training_batch_size=50,
+            learning_rate=5e-4,
+            validation_fraction=0.1,
+            stop_after_epochs=20,
+            clip_max_norm=5,
+        )
+        train_default.update(self.train_args)
+        self.train_args = train_default
+
         self.signatures = signatures
         if self.signatures is None:
             self.signatures = [""]*len(self.nets)
@@ -180,8 +187,17 @@ class SBIRunner(_BaseRunner):
 
     def _train_round(self, models: List[NeuralInference],
                      x: torch.Tensor, theta: torch.Tensor,
-                     proposal: Optional[Distribution]):
+                     proposal: Optional[Distribution],
+                     in_train: torch.Tensor = None):
         """Train a single round of inference for an ensemble of models."""
+        # split into training and validation if not specified
+        if in_train is None:
+            # TODO: load these from file?
+            Ntrain = int(len(x) * self.train_args['validation_fraction'])
+            in_train = torch.randperm(len(x)) > Ntrain
+            train_indices = torch.argwhere(in_train).flatten()
+            val_indices = torch.argwhere(~in_train).flatten()
+
         posteriors, summaries = [], []
         for i, model in enumerate(models):
             logging.info(f"Training model {i+1} / {len(models)}.")
@@ -192,8 +208,25 @@ class SBIRunner(_BaseRunner):
             else:
                 model = model.append_simulations(theta, x)
 
+            # hack to initialize sbi model without training (Issue #127)
+            first_round = False
+            if model._neural_net is None:
+                model.train(**self.train_args, resume_training=False,
+                            max_num_epochs=-1)
+                model._epochs_since_last_improvement = 0
+                first_round = True
+
+            # set train/validation splits
+            model.train_indices = train_indices
+            model.val_indices = val_indices
+
             # train
-            _ = model.train(**self.train_args)
+            if ("NPE" in self.engine) & first_round:
+                model.train(**self.train_args, resume_training=True,
+                            force_first_round_loss=first_round)
+            else:
+                model.epoch, model._val_log_prob = 0, float("-Inf")
+                model.train(**self.train_args,  resume_training=True)
 
             # save model
             posteriors.append(model.build_posterior())
@@ -201,7 +234,7 @@ class SBIRunner(_BaseRunner):
 
         # ensemble all trained models, weighted by validation loss
         val_logprob = torch.tensor(
-            [float(x["best_validation_log_prob"][0]) for x in summaries]
+            [float(x["best_validation_log_prob"][-1]) for x in summaries]
         ).to(self.device)
         # Exponentiate with numerical stability
         weights = torch.exp(val_logprob - val_logprob.max())
