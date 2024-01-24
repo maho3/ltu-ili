@@ -23,7 +23,7 @@ import torch
 from torch import nn
 import lampe
 import zuko
-from typing import List, Any
+from typing import List, Any, Optional
 from collections.abc import Iterable
 from torch.distributions import biject_to, Distribution
 
@@ -94,7 +94,7 @@ class LampeNPE(nn.Module):
         self.prior = prior
         self.embedding_net = embedding_net
         self.theta_transform = biject_to(prior.support)
-        self._device = 'cpu'
+        #self._device = 'cpu'
 
     def forward(
         self,
@@ -104,7 +104,7 @@ class LampeNPE(nn.Module):
         # check inputs
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
-        x = x.to(self._device)
+        #x = x.to(self._device)
         # sample
         return self.nde(
             self.theta_transform.inv(theta),
@@ -124,7 +124,7 @@ class LampeNPE(nn.Module):
             x = torch.Tensor(x)
         x = x.to(self._device)
         # sample
-        return self.theta_transform(self.flow(x).sample(shape)).cpu()
+        return self.theta_transform(self.flow(x).sample(shape))#.cpu()
 
     def to(self, device):
         self._device = device
@@ -162,13 +162,13 @@ class LampeEnsemble(nn.Module):
         # determine number of samples per model
         num_samples = np.prod(shape)
         per_model = torch.round(
-            num_samples * self.weights/self.weights.sum()).numpy().astype(int)
+            num_samples * self.weights/self.weights.sum())#.numpy().astype(int)
         if show_progress_bars:
             logging.info(f"Sampling models with {per_model} samples each.")
 
         # sample
         samples = torch.cat([
-            nde.sample((N,), x, show_progress_bars=show_progress_bars)
+            nde.sample((int(N),), x, show_progress_bars=show_progress_bars)
             for nde, N in zip(self.posteriors, per_model)
         ], dim=0)
         return samples.reshape(*shape, -1)
@@ -184,6 +184,7 @@ class LampeEnsemble(nn.Module):
 def load_nde_lampe(
         model: str,
         embedding_net: nn.Module = nn.Identity(),
+        device: Optional[str] = None,
         ** model_args):
     """Load an nde from lampe.
 
@@ -226,6 +227,8 @@ def load_nde_lampe(
             build=flow_class,
             **model_args
         )
+        if device is not None:
+            nde = nde.to(device)
         return LampeNPE(
             nde=nde,
             embedding_net=embedding_net,

@@ -132,6 +132,7 @@ class LampeRunner():
 
         # load inference class and neural nets
         nets = [load_nde_lampe(embedding_net=embedding_net,
+                                device = config["device"],
                                **model_args)
                 for model_args in config['model']['nets']]
 
@@ -183,18 +184,18 @@ class LampeRunner():
         loss = NPELoss(model)
         model.train()
 
-        loss_train = torch.stack([
-            stepper(loss(theta, x))
-            for x, theta in train_loader
-        ]).mean().item()
-
+        loss_train = []
+        for x, theta in train_loader:
+            x, theta = x.to(self.device), theta.to(self.device)
+            loss_train.append(stepper(loss(theta, x)))
+        loss_train = torch.stack(loss_train).mean().item()
         model.eval()
         with torch.no_grad():
-            loss_val = torch.stack([
-                loss(theta, x)
-                for x, theta in val_loader
-            ]).mean().item()
-
+            loss_val = []
+            for x, theta in val_loader:
+                x, theta = x.to(self.device), theta.to(self.device)
+                loss_val.append(loss(theta, x))
+            loss_val = torch.stack(loss_val).mean().item()
         return loss_train, loss_val
 
     def _train_round(self, models: List[Callable],
@@ -205,8 +206,11 @@ class LampeRunner():
         for i, model in enumerate(models):
             logging.info(f"Training model {i+1} / {len(models)}.")
 
+
             # initialize model
             x_, y_ = next(iter(train_loader))
+            if self.device is not None:
+                x_, y_ = x_.to(self.device), y_.to(self.device)
             model = model(x_, y_, self.prior).to(self.device)
 
             # define optimizer
