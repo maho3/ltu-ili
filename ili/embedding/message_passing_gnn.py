@@ -8,9 +8,8 @@ from torch import Tensor
 
 from ili.embedding.fcn import FCN
 
-def get_mlp(in_channels, out_channels, hidden_layers,):
+def get_mlp(in_channels, hidden_layers,):
     fcn = FCN(
-        n_data =out_channels,
         n_hidden = hidden_layers
     )
     fcn.initalize_model(in_channels)
@@ -33,8 +32,7 @@ class EdgeUpdate(torch.nn.Module):
         super().__init__()
         self.mlp = get_mlp(
             in_channels=edge_in_channels,
-            out_channels=edge_out_channels,
-            hidden_layers=hidden_layers,
+            hidden_layers=hidden_layers + [edge_out_channels,],
         )
 
     def forward(self, h_i: Tensor, h_j: Tensor, edge_attr: Tensor, u: Tensor) -> Tensor:
@@ -82,8 +80,7 @@ class NodeUpdate(MessagePassing):
         super().__init__(aggr=aggr)
         self.mlp = get_mlp(
             in_channels=in_channels,
-            out_channels=out_channels,
-            hidden_layers=hidden_layers,
+            hidden_layers=hidden_layers + [out_channels,],
         )
 
     def forward(
@@ -195,7 +192,10 @@ class GraphNetwork(torch.nn.Module):
                     hidden_layers=hidden_layers,
                 )
             )
-        self.global_mlp = get_mlp(node_features_hidden_dim, global_output_dim, hidden_layers=hidden_layers)
+        self.global_mlp = get_mlp(
+            node_features_hidden_dim, 
+            hidden_layers=hidden_layers + [global_output_dim,],
+        )
 
     def forward(self, data):
         h, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
