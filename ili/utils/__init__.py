@@ -1,4 +1,4 @@
-from .import_utils import load_class, load_from_config
+from .import_utils import load_class, load_from_config, update
 from .dataset import Dataset
 
 try:

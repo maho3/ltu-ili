@@ -36,3 +36,18 @@ def load_from_config(config: Dict) -> Any:
         object (Any): the object of choice
     """
     return load_class(config['module'], config['class'])(**config["args"])
+
+
+def update(config: Dict, **kwargs) -> Dict:
+    """Recursively update a dictionary with another dictionary.
+
+    Args:
+        config (Dict): dictionary to be updated
+        **kwargs: dictionary with updates
+    """
+    for k, v in kwargs.items():
+        if isinstance(v, dict) and k in config:
+            config[k] = update(config.get(k, {}), **v)
+        else:
+            config[k] = v
+    return config

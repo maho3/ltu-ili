@@ -9,42 +9,16 @@ import logging
 import pickle
 import torch
 import torch.nn as nn
-import sbi
 from pathlib import Path
-from typing import Dict, List, Callable, Optional
+from typing import Dict, List, Callable, Optional, Union
 from torch.distributions import Distribution
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+from .base import _BaseRunner
 from ili.dataloaders import _BaseLoader
-from ili.utils import load_class, load_from_config, load_nde_sbi
+from ili.utils import load_class, load_from_config, load_nde_sbi, update
 
 logging.basicConfig(level=logging.INFO)
-
-default_config = (
-    Path(__file__).parent.parent / "examples/configs/sample_sbi.yaml"
-)
-
-
-class _BaseRunner():
-    def __init__(
-        self,
-        prior: Distribution,
-        inference_class: NeuralInference,
-        train_args: Dict = {},
-        out_dir: Path = None,
-        device: str = 'cpu',
-        name: Optional[str] = "",
-    ):
-        self.prior = prior
-        self.inference_class = inference_class
-        self.class_name = inference_class.__name__
-        self.train_args = train_args
-        self.device = device
-        self.name = name
-        self.out_dir = out_dir
-        if self.out_dir is not None:
-            self.out_dir = Path(self.out_dir)
-            self.out_dir.mkdir(parents=True, exist_ok=True)
 
 
 class SBIRunner(_BaseRunner):
@@ -52,14 +26,14 @@ class SBIRunner(_BaseRunner):
 
     Args:
         prior (Distribution): prior on the parameters
-        inference_class (NeuralInference): sbi inference class used to
-            train neural posteriors
+        engine (str): type of inference engine to use (NPE, NLE, NRE, or
+            any sbi inference engine; see _setup_engine)
         nets (List[Callable]): list of neural nets for amortized posteriors,
             likelihood models, or ratio classifiers
         embedding_net (nn.Module): neural network to compress high
             dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
-        out_dir (Path): directory where to store outputs
+        out_dir (str, Path): directory where to store outputs
         proposal (Distribution): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
             sbi will set proposal = prior unless a proposal is specified.
@@ -73,10 +47,10 @@ class SBIRunner(_BaseRunner):
     def __init__(
         self,
         prior: Distribution,
-        inference_class: NeuralInference,
+        engine: str,
         nets: List[Callable],
         train_args: Dict = {},
-        out_dir: Path = None,
+        out_dir: Union[str, Path] = None,
         device: str = 'cpu',
         embedding_net: nn.Module = None,
         proposal: Distribution = None,
@@ -85,7 +59,6 @@ class SBIRunner(_BaseRunner):
     ):
         super().__init__(
             prior=prior,
-            inference_class=inference_class,
             train_args=train_args,
             out_dir=out_dir,
             device=device,
@@ -95,6 +68,7 @@ class SBIRunner(_BaseRunner):
             self.proposal = prior
         else:
             self.proposal = proposal
+        self.engine = engine
         self.nets = nets
         self.embedding_net = embedding_net
         self.train_args = train_args
@@ -121,7 +95,7 @@ class SBIRunner(_BaseRunner):
             config = yaml.safe_load(fd)
 
         # optionally overload config with kwargs
-        config.update(kwargs)
+        update(config, **kwargs)
 
         # load prior distribution
         config['prior']['args']['device'] = config['device']
@@ -153,11 +127,8 @@ class SBIRunner(_BaseRunner):
             signatures.append(type_nn.pop("signature", ""))
 
         # load inference class and neural nets
-        inference_class = load_class(
-            module_name=config["model"]["module"],
-            class_name=config["model"]["class"],
-        )
-        nets = [load_nde_sbi(config['model']['class'],
+        engine = config["model"]["engine"]
+        nets = [load_nde_sbi(config['model']['engine'],
                              embedding_net=embedding_net,
                              **model_args)
                 for model_args in config['model']['nets']]
@@ -166,7 +137,7 @@ class SBIRunner(_BaseRunner):
         return cls(
             prior=prior,
             proposal=proposal,
-            inference_class=inference_class,
+            engine=engine,
             nets=nets,
             device=config["device"],
             embedding_net=embedding_net,
@@ -178,23 +149,34 @@ class SBIRunner(_BaseRunner):
 
     def _setup_engine(self, net: nn.Module):
         """Instantiate an sbi inference engine (SNPE/SNLE/SNRE)."""
-        if ("NPE" in self.class_name) or ("NLE" in self.class_name):
-            return self.inference_class(
+        if self.engine[0] == 'S':
+            engine_name = self.engine
+        else:
+            engine_name = 'S'+self.engine
+        try:
+            inference_class = load_class('sbi.inference', engine_name)
+        except ImportError:
+            raise ValueError(
+                f"Model class {self.engine} not supported. "
+                "Please choose one of NPE/NLE/NRE or SNPE/SNLE/SNRE or "
+                "an inference class in sbi.inference."
+            )
+
+        if ("NPE" in self.engine) or ("NLE" in self.engine):
+            return inference_class(
                 prior=self.prior,
                 density_estimator=net,
                 device=self.device,
             )
-        elif ("NRE" in self.class_name):
-            return self.inference_class(
+        elif ("NRE" in self.engine):
+            return inference_class(
                 prior=self.prior,
                 classifier=net,
                 device=self.device,
             )
         else:
             raise ValueError(
-                f"Model class {self.class_name} not supported. "
-                "Please choose one of SNPE, SNLE, or SNRE."
-            )
+                f"Model class {self.engine} not supported with SBIRunner.")
 
     def _train_round(self, models: List[NeuralInference],
                      x: torch.Tensor, theta: torch.Tensor,
@@ -205,7 +187,7 @@ class SBIRunner(_BaseRunner):
             logging.info(f"Training model {i+1} / {len(models)}.")
 
             # append simulations
-            if ("NPE" in self.class_name):
+            if ("NPE" in self.engine):
                 model = model.append_simulations(theta, x, proposal=proposal)
             else:
                 model = model.append_simulations(theta, x)
@@ -262,7 +244,7 @@ class SBIRunner(_BaseRunner):
             torch.manual_seed(seed)
 
         # setup training engines for each model in the ensemble
-        logging.info(f"MODEL INFERENCE CLASS: {self.class_name}")
+        logging.info(f"MODEL INFERENCE CLASS: {self.engine}")
         models = [self._setup_engine(net) for net in self.nets]
 
         # load single-round data
@@ -320,7 +302,7 @@ class SBIRunnerSequential(SBIRunner):
             torch.manual_seed(seed)
 
         # setup training engines for each model in the ensemble
-        logging.info(f"MODEL INFERENCE CLASS: {self.class_name}")
+        logging.info(f"MODEL INFERENCE CLASS: {self.engine}")
         models = [self._setup_engine(net) for net in self.nets]
 
         # load observed and pre-run data
@@ -362,6 +344,13 @@ class SBIRunnerSequential(SBIRunner):
 
             # update proposal for next round
             self.proposal = posterior_ensemble.set_default_x(x_obs)
+
+            if rnd < self.num_rounds - 1:
+                # simulate new data for next round
+                theta, x = loader.simulate(self.proposal)
+                x = torch.Tensor(x).to(self.device)
+                theta = torch.Tensor(theta).to(self.device)
+
         logging.info(f"It took {time.time() - t0} seconds to train models.")
 
         if self.out_dir is not None:
@@ -372,6 +361,24 @@ class SBIRunnerSequential(SBIRunner):
 
 class ABCRunner(_BaseRunner):
     """Class to run ABC inference models using the sbi package"""
+
+    def __init__(
+            self,
+            prior: Distribution,
+            engine: str,
+            train_args: Dict = {},
+            out_dir: Union[str, Path] = None,
+            device: str = 'cpu',
+            name: Optional[str] = "",
+    ):
+        super().__init__(
+            prior=prior,
+            train_args=train_args,
+            out_dir=out_dir,
+            device=device,
+            name=name,
+        )
+        self.engine = engine
 
     @classmethod
     def from_config(cls, config_path: Path, **kwargs) -> "ABCRunner":
@@ -388,16 +395,13 @@ class ABCRunner(_BaseRunner):
             config = yaml.safe_load(fd)
 
         # optionally overload config with kwargs
-        config.update(kwargs)
+        update(config, **kwargs)
 
         # load prior distribution
         prior = load_from_config(config["prior"])
 
-        # load inference class
-        inference_class = load_class(
-            module_name=config["model"]["module"],
-            class_name=config["model"]["class"],
-        )
+        # parse inference engine
+        engine = config["model"]["engine"]
 
         # load logistics
         train_args = config["train_args"]
@@ -408,7 +412,7 @@ class ABCRunner(_BaseRunner):
 
         return cls(
             prior=prior,
-            inference_class=inference_class,
+            engine=engine,
             device=config["device"],
             train_args=train_args,
             out_dir=out_dir,
@@ -424,12 +428,13 @@ class ABCRunner(_BaseRunner):
         """
         t0 = time.time()
 
-        logging.info(f"MODEL INFERENCE CLASS: {self.inference_class.__name__}")
+        logging.info(f"MODEL INFERENCE CLASS: {self.engine}")
 
         x_obs = loader.get_obs_data()
 
         # setup and train each architecture
-        model = self.inference_class(
+        inference_class = load_class('sbi.inference', self.engine)
+        model = inference_class(
             prior=self.prior,
             simulator=loader.simulator
         )
