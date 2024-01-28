@@ -423,9 +423,6 @@ def test_multiround():
     np.save('toy/theta.npy', theta)
     np.save('toy/x.npy', x)
 
-    np.save('toy/theta.npy', theta)
-    np.save('toy/x.npy', x)
-
     # setup a dataloader which can simulate
     # first uses existing data, second simulates all rounds
     all_loader = [

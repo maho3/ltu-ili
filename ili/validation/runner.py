@@ -92,7 +92,8 @@ class ValidationRunner():
         elif interface == 'tensorflow':
             posterior_ensemble = DelfiWrapper.load_engine(
                 out_dir / config["posterior_file"])
-            signatures = [""]*posterior_ensemble.num_components  # TODO: fix
+            # Note, pydelfi models don't currently use signatures
+            signatures = [""]*posterior_ensemble.num_components
         else:
             raise NotImplementedError
         name = posterior_ensemble.name

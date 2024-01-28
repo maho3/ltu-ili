@@ -259,7 +259,8 @@ class SBISimulator(NumpyLoader):
         xobs_file (str): filename used for observed x values
         num_simulations (int): number of simulations to run at each call
         simulator (callable): function taking the parameters as an
-            argument and returns data
+            argument and returns data. NOTE: This must take a tuple of
+            parameters and output a torch.Tensor of shape (1, *data.shape).
         save_simulated (Optional[bool]): whether to save simulated data.
             Concatenates to previous data if True. Defaults to False.
         x_file (Optional[str]): filename of the stored first-round
@@ -340,7 +341,7 @@ class SBISimulator(NumpyLoader):
         """
         theta = proposal.sample((self.num_simulations,)).cpu()
         x = simulate_in_batches(self.simulator, theta)
-        
+
         # Get device returns -1 for cpu, integers for CUDA tensors
         if x.get_device() != -1:
             x = x.cpu()
