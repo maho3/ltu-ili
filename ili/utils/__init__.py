@@ -1,4 +1,4 @@
-from .import_utils import load_class, load_from_config
+from .import_utils import load_class, load_from_config, update
 from .dataset import Dataset
 
 try:
@@ -12,8 +12,10 @@ try:
         MultivariateNormal, LowRankMultivariateNormal,
         IndependentTruncatedNormal
     )
+    from .ndes_pt import load_nde_sbi
 except ImportError:
     from .distributions_tf import (
         Uniform, IndependentNormal,
         MultivariateTruncatedNormal, IndependentTruncatedNormal
     )
+    from .ndes_tf import load_nde_pydelfi

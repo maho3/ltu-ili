@@ -1,8 +1,7 @@
 import os
 import numpy as np
 from ili.dataloaders import SBISimulator
-from ili.inference.runner_sbi import ABCRunner
-from ili.validation.runner import ValidationRunner
+from ili.inference import ABCRunner
 
 
 def simulator(params):

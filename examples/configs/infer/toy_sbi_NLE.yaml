@@ -8,9 +8,9 @@ prior:
 
 # Specify the inference model
 model:
-  module: 'sbi.inference'
-  class: 'SNLE' # Likelihood Estimation
-  name: 'toy_SNLE'
+  backend: 'sbi'
+  engine: 'NLE'  # Neural Likelihood Estimation
+  name: 'toy_NLE'
   nets:
     - model: 'maf'  # Masked Autoregressive Flow
       hidden_features: 50 
@@ -25,4 +25,4 @@ train_args:
   learning_rate: 0.001
 
 device: 'cpu'  # Run on CPU
-output_path: './toy'  # Where to save the posterior
+out_dir: './toy'  # Where to save the posterior

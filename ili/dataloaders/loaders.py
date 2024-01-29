@@ -4,14 +4,12 @@ Module for loading data into the ltu-ili pipeline.
 
 import yaml
 from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Optional
+from typing import Any, List, Tuple, Optional, Union
 from pathlib import Path
 import numpy as np
 import json
 import pandas as pd
-import logging
-import os
-from ili.utils import Dataset
+from ili.utils import Dataset, update
 
 try:
     from sbi.simulators.simutils import simulate_in_batches
@@ -23,22 +21,71 @@ class _BaseLoader(ABC):
     @classmethod
     def from_config(
         cls,
-        config_path: Path,
-        stage: str = None
+        config_path: Union[str, Path],
+        **kwargs
     ) -> "_BaseLoader":
         """Create a data loader from a yaml config file
 
         Args:
-            config_path (Path): path to config file.
-            stage (str, optional): Data split to load (train, val, or test)
+            config_path (str, Path): path to config file.
+            **kwargs: optional keyword arguments to overload config file
+
         Returns:
             BaseLoader: the sbi runner specified by the config file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
-        if stage:
-            config['stage'] = stage
+
+        # optionally overload config file with kwargs
+        update(config, **kwargs)
+
         return cls(**config)
+
+    @abstractmethod
+    def __len__(self) -> int:
+        """Returns the total number of data points in the dataset
+
+        Returns:
+            int: length of dataset
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_all_data(self) -> Any:
+        """Returns all the loaded data
+
+        Returns:
+            Any: data
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_all_parameters(self) -> Any:
+        """Returns all the loaded parameters
+
+        Returns:
+            Any: parameters
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_obs_data(self) -> Any:
+        """Returns the observed data
+
+        Returns:
+            Any: data
+        """
+        return NotImplemented
+
+    @abstractmethod
+    def get_fid_parameters(self) -> Any:
+        """Returns the fiducial parameters which we expect the
+        observed data to resemble
+
+        Returns:
+            Any: parameters
+        """
+        return NotImplemented
 
     @abstractmethod
     def __len__(self) -> int:
@@ -184,20 +231,20 @@ class StaticNumpyLoader(NumpyLoader):
         self.theta_path = self.in_dir / theta_file
 
         # Load stored data (if specified)
-        x = np.load(self.x_path)
-        theta = np.load(self.theta_path)
+        x = np.load(self.x_path, allow_pickle=True)
+        theta = np.load(self.theta_path, allow_pickle=True)
         if xobs_file is None:
             self.xobs_path = None
             xobs = None
         else:
             self.xobs_path = self.in_dir / xobs_file
-            xobs = np.load(self.xobs_path)
+            xobs = np.load(self.xobs_path, allow_pickle=True)
         if thetafid_file is None:
             self.thetafid_path = None
             thetafid = None
         else:
             self.thetafid_path = self.in_dir / thetafid_file
-            thetafid = np.load(self.thetafid_path)
+            thetafid = np.load(self.thetafid_path, allow_pickle=True)
 
         super().__init__(x=x, theta=theta, xobs=xobs, thetafid=thetafid)
 
@@ -212,7 +259,8 @@ class SBISimulator(NumpyLoader):
         xobs_file (str): filename used for observed x values
         num_simulations (int): number of simulations to run at each call
         simulator (callable): function taking the parameters as an
-            argument and returns data
+            argument and returns data. NOTE: This must take a tuple of
+            parameters and output a torch.Tensor of shape (1, *data.shape).
         save_simulated (Optional[bool]): whether to save simulated data.
             Concatenates to previous data if True. Defaults to False.
         x_file (Optional[str]): filename of the stored first-round
@@ -247,7 +295,7 @@ class SBISimulator(NumpyLoader):
             )
 
         # Load stored data (if specified)
-        xobs = np.load(self.xobs_path)
+        xobs = np.load(self.xobs_path, allow_pickle=True)
         x = np.array([])
         theta = np.array([])
         thetafid = None
@@ -256,7 +304,7 @@ class SBISimulator(NumpyLoader):
         else:
             self.x_path = self.in_dir / x_file
             if self.x_path.is_file():
-                x = np.load(self.x_path)
+                x = np.load(self.x_path, allow_pickle=True)
         if theta_file is None:
             self.theta_path = None
         else:
@@ -267,7 +315,7 @@ class SBISimulator(NumpyLoader):
             self.thetafid_path = None
         else:
             self.thetafid_path = self.in_dir / thetafid_file
-            thetafid = np.load(self.thetafid_path)
+            thetafid = np.load(self.thetafid_path, allow_pickle=True)
 
         super().__init__(x=x, theta=theta, xobs=xobs, thetafid=thetafid)
 
@@ -293,6 +341,10 @@ class SBISimulator(NumpyLoader):
         """
         theta = proposal.sample((self.num_simulations,)).cpu()
         x = simulate_in_batches(self.simulator, theta)
+
+        # Get device returns -1 for cpu, integers for CUDA tensors
+        if x.get_device() != -1:
+            x = x.cpu()
         theta, x = theta.numpy(), x.numpy()
         print(self.x.shape, x.shape)
 
@@ -364,13 +416,13 @@ class SummarizerDatasetLoader(NumpyLoader):
             self.xobs = None
         else:
             self.xobs_path = self.in_dir / xobs_file
-            self.xobs = np.load(self.xobs_path)
+            self.xobs = np.load(self.xobs_path, allow_pickle=True)
         if thetafid_file is None:
             self.thetafid_path = None
             self.thetafid = None
         else:
             self.thetafid_path = self.in_dir / thetafid_file
-            self.thetafid = np.load(self.thetafid_path)
+            self.thetafid = np.load(self.thetafid_path, allow_pickle=True)
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset

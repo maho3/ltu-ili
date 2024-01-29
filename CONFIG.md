@@ -1,18 +1,39 @@
 # Configuration
 
-This document provides guidance to configuring an inference pipeline with ltu-ili and includes links and references to the various functionality options. There are three stages to the inference pipeline:
+This tutorial provides examples on how to configure an ltu-ili inference pipeline from `yaml` configuration files. For an introduction to the iPython interface, see [tutorial.ipynb](notebooks/tutorial.ipynb).
+
+There are three stages to the inference pipeline:
 - [**Data Loading**](#data-loading): Loading various structured data into memory
 - [**Training**](#training): Training neural networks from the loaded data and saving them to file.
 - [**Validation**](#validation): Loading neural networks from file, sampling posteriors on the test set, and computing metrics.
 
-In general, these steps are designed to be independent. For example, if you wanted to try out a different training model, all you would need to do is change the training configuration, and the data loading and validation stages should integrate (nearly) seamlessly with the new model. Each pipeline stage specified below can be instantiated from `json`-like configuration files or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb).
+In general, these steps are designed to be independent. For example, if you wanted to try out a different training model, all you would need to do is change the training configuration, and the data loading and validation stages should integrate (nearly) seamlessly with the new model. 
+
+Once you have configuration files, running a pipeline is as easy as:
+```python
+from ili.dataloaders import StaticNumpyLoader
+from ili.inference import InferenceRunner
+from ili.validation import ValidationRunner
+
+# load data
+loader = StaticNumpyLoader.from_config('path/to/data_config.yaml')
+
+# train models
+inference = InferenceRunner.from_config('path/to/training_config.yaml')
+inference.train(loader)
+
+# measure validation metrics
+validation = ValidationRunner.from_config('path/to/validation_config.yaml')
+validation.run(loader, inference)
+```
+We will now describe and provide examples of each of these configuration files.
 
 ## Data Loading
-We have four primary objects for dataloading:
+We provide four primary objects for dataloading:
 - [`NumpyLoader`](./ili/dataloaders/loaders.py#L47): Loads data and parameters from `np.array`'s stored in memory.
 - [`StaticNumpyLoader`](./ili/dataloaders/loaders.py#L81): Loads data and parameters from `.npy` files on disk.
-- [`SummarizerDatasetLoader`](./ili/dataloaders/loaders.py#L101): Loads data following the [`ili_summarizer.Dataset`](https://github.com/florpi/ili-summarizer/blob/3d9d4005cfbc187afdbfbed2a5a4414bc07902ef/summarizer/dataset.py#L6) convention, as `xarray.DataArray`'s stored in `.nc` files on disk. Also, it loads parameters from `.txt` files on disk.
 - [`SBISimulator`](./ili/dataloaders/loaders.py#L208): Contains a `simulate` function which, when given new parameters, generates new data. This interface is then used to train multiround inference with e.g. `SBIRunnerSequential`. It also can seperately load `.npy` files of test data and parameters from disk, for validation.
+- [`SummarizerDatasetLoader`](./ili/dataloaders/loaders.py#L101): Loads data following the [`ili_summarizer.Dataset`](https://github.com/florpi/ili-summarizer/blob/3d9d4005cfbc187afdbfbed2a5a4414bc07902ef/summarizer/dataset.py#L6) convention, as `xarray.DataArray`'s stored in `.nc` files on disk. Also, it loads parameters from `.txt` files on disk.
 
 `NumpyLoader`s are only built from inline initialization, but the remaining classes can take config files that look like:
 
@@ -24,6 +45,22 @@ in_dir: './toy'  # contains x_file and theta_file
 x_file: 'x.npy'
 theta_file: 'theta.npy'
 ```
+
+
+```bash
+# SBISimulator configuration
+
+in_dir: './toy'  # where to find initial data
+
+xobs_file: 'xobs.npy'  # the observed data around which to center simulations
+thetafid_file: 'thetafid.npy'  # only if true parameters are known
+
+x_file: 'x.npy'  # file name of the initial data
+theta_file: 'theta.npy'  # file name of the initial parameters
+num_simulations: 400  # number of simulations to generate per round
+save_simulated: False  # whether to concatenate the simulated data into x_file and theta_file
+```
+
 
 ```bash
 # SummarizerDatasetLoader configuration
@@ -56,127 +93,85 @@ You are also welcome to design your own dataloading objects. They will work with
 ## Training
 There are three available training engines in ltu-ili, SBIRunner and SBIRunnerSequential for `sbi` (PyTorch) models, and PydelfiRunner for `pydelfi` (Tensorflow) models. Each of these engines can be configured from a `yaml`-like configuration file or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb).
 
-### SBIRunner
-Here's an example configuration for `SBIRunner`:
-```bash
+Here's a detailed example of an `InferenceRunner` configuration for training Sequential Neural Posterior Estimation (SNPE) using the `sbi` backend and an ensemble of architectures: a mixture density network (`mdn`), a masked autoregressive flows (`maf`), and a neural spline flow (`nsf`).
+
+```yaml
+# Specify prior (same as initial proposal distribution)
 prior:
-  module: 'sbi.utils'
-  class: 'BoxUniform'
+  module: 'ili.utils'
+  class: 'Uniform'  # Using a uniform prior over 3 parameters
   args:
     low: [0,0,0]
     high: [1,1,1]
 
+# Specify the embedding network to prepend the NDE (optional)
+embedding_net:
+  module: 'ili.embedding'
+  class: 'FCN'  # Fully-connected network
+  args:
+    n_hidden: [100,100,100]  # width of hidden layers
+    act_fn: "SiLU"  # activation function
+
+# Specify the inference model
 model:
-  module: 'sbi.inference'
-  class: 'SNPE_C'
-  name: 'run_SNPE'
-  neural_posteriors:
-    - model: 'maf'
+  backend: 'sbi'  # sbi or pydelfi
+  engine: 'SNPE'  # Sequential Neural Posterior Estimation
+  name: "toy_SNPE"  # name of the ensemble posterior
+  nets:
+    - model: 'mdn'  # Mixture Density Network
+      hidden_features: 50  # width of hidden layers
+      num_components: 4  # number of gaussian mixture components
+      signature: "m1"  # name of this neural network in the ensemble
+    - model: 'maf'  # Masked Autoregressive Flow
+      hidden_features: 50  
+      num_transforms: 5  # number of flow transformations
+      signature: "m2"
+    - model: 'nsf'  # Neural Autoregressive Flow
       hidden_features: 50 
       num_transforms: 5
-      signature: 'maf1'
-    - model: 'maf'
-      hidden_features: 50 
-      num_transforms: 5
-      signature: 'maf2'
-    - model: 'mdn'
-      hidden_features: 50 
-      num_components: 2
+      signature: "m3"
     
+# Specify the neural training hyperparameters
 train_args:
-  training_batch_size: 32
-  learning_rate: 0.001
-  validation_fraction: 0.1
-  stop_after_epochs: 20
-  clip_max_norm: 5.0
+  # Adam optimizer
+  training_batch_size: 32  # batch size for training
+  learning_rate: 0.001  # learning rate
+  clip_max_norm: 5.0  # maximum gradient norm for gradient clipping
 
-device: 'cpu'
-output_path: './toy'
+  # Early stopping
+  validation_fraction: 0.1  # fraction of training data to use for validation
+  stop_after_epochs: 20  # stop after this many epochs without improvement
+
+  # Sequential learning
+  num_round: 5  # number of rounds of simulations
+
+device: 'cpu'  # Run on CPU
+out_dir: './toy'  # Where to save the posterior
 ```
+Now, let's break down each of these configuration parameters.
 
-The **prior** distribution specifies our prior belief on the true distribution of the inference parameters. The default here, `sbi.utils.BoxUniform`, is an extension of `torch.distribution.Uniform` modified to have a `log_prob` function which outputs a scalar value. In practice, our prior can be any [`torch.distribution`](https://pytorch.org/docs/stable/distributions.html) class which has a scalar `log_prob` function.
+The **prior** distribution specifies our prior belief on the true distribution of the inference parameters. We include a variety of pre-implemented distributions, listed for each backend in [this file](./ili/utils/__init__.py).
 
-The **model** configuration specifies how we train our neural networks to produce posterior inference. There are three available classes of methods: posterior estimation ([`SNPE_A`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/inference/snpe/snpe_a.py#L24), [`SNPE_C`](https://github.com/mackelab/sbi/blob/main/sbi/inference/snpe/snpe_c.py)), likelihood estimation ([`SNLE_A`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/inference/snle/snle_a.py#L14)), and likelihood ratio estimation ([`SNRE_A`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/inference/snre/snre_a.py#L12), [`SNRE_B`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/inference/snre/snre_b.py#L12), [`SNRE_C`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/inference/snre/snre_b.py#L12)). We have provided links (and references therein) to the implementation of each of these methods, but for a general review of the differences between these models, see Section 3B in [Cranmer et al. 2020](https://arxiv.org/abs/1911.01429).
+The **embedding_net** configuration allows one to specify additional neural layers which will prepend the input layer of the above neural density estimators. This can be used to extract more complex features from the data. We provide an example of a fully-connected network (`ili.embedding.FCN`), but we also have an example of a CNN-like embedding network in [tutorial.ipynb](notebooks/tutorial.ipynb).
 
-All implemented methods allow you to specify an ensemble of independently-trained neural networks. This ensembling is key to reducing our sensitivity to stochasticity in the training process. However, the choice of model affects what neural network architectures are implemented on the backend. See the references to each individual model to see what architecture configurations are available.
-- `SNPE` models build architectures using [`sbi.utils.posterior_nn`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/utils/get_nn_models.py#L177) and support:
-  - Mixture Density Networks ([`mdn`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/mdn.py#L14))
-  - Masked Autoregressive Flows ([`maf`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/flow.py#L97))
-  - Neural Spline Flows ([`nsf`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/flow.py#L293))
-  - Masked Autoencoders for Density Estimation ([`made`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/flow.py#L24)). 
-- `SNLE` models use [`sbi.utils.likelihood_nn`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/utils/get_nn_models.py#L93) and support:
-  - Mixture Density Networks ([`mdn`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/mdn.py#L14))
-  - Masked Autoregressive Flows ([`maf`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/flow.py#L97))
-  - Neural Spline Flows ([`nsf`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/flow.py#L293))
-  - Masked Autoencoders for Density Estimation ([`made`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/flow.py#L24)). 
-- `SNRE` models use [`sbi.utils.classifier_nn`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/utils/get_nn_models.py#L19) and support:
-  - Linear classifiers ([`linear`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/classifier.py#L85))
-  - Multilayer Perceptrons ([`mlp`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/classifier.py#L136))
-  - ResNets ([`resnet`](https://github.com/mackelab/sbi/blob/6c4fa7a6fd254d48d0c18640c832f2d80ab2257a/sbi/neural_nets/classifier.py#L194)).
+The **model** configuration specifies how we train our neural networks to produce posterior inference. There are two available backends (`sbi` or `pydelfi`) and six available training engines: Neural Posterior Estimation (`NPE`), Neural Likelihood Estimation (`NLE`), and Neural Ratio Estimation (`NRE`). We have provided links (and references therein) to the implementation of each of these methods, but for a general review of the differences between these models, see Section 3B in [Cranmer et al. 2020](https://arxiv.org/abs/1911.01429).
 
-Within the model configuration, you can specify a name for your ensemble posterior and a name for each individual neural network, with the `name` and `signature` parameters, respectively. These names are used to save the trained models to file, and can be referenced later in the validation stage using its `posterior_path` argument.
+The **model** configuration allows you to specify an ensemble of independently-trained neural density estimators. The configuration options for each NDE is given in [this file](./ili/utils/ndes.py).
 
-The **embedding_net** configuration allows one to specify additional neural layers which will prepend the input layer of the above neural density estimators. The default `sbi` architectures listed above are generally quite shallow, so its a good idea to make use of embedding architectures, especially for complex data. We include a fully-connected network (`ili.embedding.FCN`), but we also have an example of a CNN-like embedding network in [tutorial.ipynb](notebooks/tutorial.ipynb).
+Only certain NDEs and training engines are compatible with either the sbi or pydelfi backends. See the table below for a summary of the available options:
 
-The **train_args** are used to configure the training optimizer and early stopping criterion. All `sbi` models use the Adam optimizer. Lastly, **device** specifies whether to use Pytorch's `cpu` or `cuda` backend, and **output_path** specifies where to save your models after they are done training.
+| Training Engine | sbi | pydelfi |
+|----------|----------|----------|
+|   Neural Posterior Estimation (`NPE`, `SNPE`)   |   mdn, maf, nsf, made   |      |
+|   Neural Likelihood Estimation (`NLE`, `SNLE`)   |   mdn, maf, nsf, made   |   mdn, maf   |
+|   Neural Ratio Estimation (`NRE`, `SNRE`)   |   linear, mlp, resnet   |      |
+
+Lastly, the **train_args** are used to configure the training optimizer, the early stopping criterion, and the number of rounds of inference (for Sequential models). All `sbi` models use the Adam optimizer. Lastly, **device** specifies whether to use Pytorch's `cpu` or `cuda` backend, and **out_dir** specifies where to save your models after they are done training.
 
 **Notes**: 
  * Newly added `sbi` training engines, such as `MNLE`, don't yet work in our framework. Also, the `nsf` and `made` architectures unfortunately don't work if you're using `cuda` for GPU acceleration (yet!).
  * Nicolas Chartier did extensive tests of model design choices for the `sbi` package and their impact on inference, including effects of model architectures, prior vs. proposal distribution, and data vector length. See [this notebook](https://github.com/maho3/ltu-ili/blob/backup_2023-20-11/notebooks/example_quijote_sbi_appendDummy.ipynb) for advice in choosing these hyperparameters.
 
-
-### SBIRunnerSequential
-`SBIRunnerSequential` differs from `SBIRunner` in that it allows for multiround sampling for active learning inference. The configuration for `SBIRunnerSequential` is almost exactly the same as that of `SBIRunner`, except there is an added customizable parameter in `train_args` called `num_round` which specifies the number of rounds of simulation-training that the runner should do during training.
-
-### PydelfiRunner
-Here's an example configuration for `PydelfiRunner`
-```bash
-n_params: 3
-n_data: 10
-
-prior:
-  module: 'pydelfi.priors'
-  class: 'Uniform'
-  args:
-    lower: [0,0,0]
-    upper: [1,1,1]
-
-model:
-  module: 'ili.inference.pydelfi_wrappers'
-  class: 'DelfiWrapper'
-  name: 'run_delfi'
-  kwargs:
-    nwalkers: 20
-  nets:
-    - module: 'pydelfi.ndes'
-      class: 'MixtureDensityNetwork'
-      args: 
-        n_components: 12
-        n_hidden: [64,64]
-        activations: ['tanh','tanh']
-    - module: 'pydelfi.ndes'
-      class: 'ConditionalMaskedAutoregressiveFlow'
-      args: 
-        n_hiddens: [50,50]
-        n_mades: 2
-        act_fun: 'tanh'
-    
-train_args:
-  batch_size: 32
-  epochs: 300
-
-output_path: 'toy'
-```
-The `PydelfiRunner` configuration is very similar  to that of `SBIRunner`. The biggest differences are that there are no explicit embedding networks and there is only one inference engine, `DelfiWrapper`. The `DelfiWrapper` engine follows a likelihood estimation methodology, based on the same paper as that for the `SNLE_A` implementatioin in `sbi`. 
-
-The `prior` configuration can be any of the implemented distributions in [`pydelfi.priors`](https://github.com/justinalsing/pydelfi/blob/master/pydelfi/priors.py). The training engine supports the following models in `pydelfi.ndes`:
-- [`MixtureDensityNetwork`](https://github.com/justinalsing/pydelfi/blob/9b1bf65c7171d4bd8b10a903b01a6fad5311e5ba/pydelfi/ndes.py#L268C7-L268C28)
-- [`ConditionalMaskedAutoregressiveFlow`](https://github.com/justinalsing/pydelfi/blob/9b1bf65c7171d4bd8b10a903b01a6fad5311e5ba/pydelfi/ndes.py#L191)
-- [`ConditionalGaussianMade`](https://github.com/justinalsing/pydelfi/blob/9b1bf65c7171d4bd8b10a903b01a6fad5311e5ba/pydelfi/ndes.py#L6)
-
-Unlike in `sbi`, one can customize the number of hidden layers and types of activation functions in each of these architectures.
-
-The training procedure is controlled through the `train_args` parameters. `PydelfiRunner` uses an Adam optimizer and enforces a strict maximum number of training epochs, without using an early stopping criterion. Lastly, you must manually specify the dimensionality of your parameter and data vectors (in `n_params` and `n_data`), whereas these are handled automatically in `sbi`.
 
 ## Validation
 Here's an example configuration for a `ValidationRunner` object.
@@ -233,12 +228,25 @@ All current implemented validation metrics follow the general formula of:
 
 There are two available sampler backends in [`ili.utils.samplers`](ili/utils/samplers.py) to generate posterior samples, one that uses PyTorch's [`pyro`](https://github.com/pyro-ppl/pyro) and one that uses [`emcee`](https://github.com/dfm/emcee). The choice of training engine will constrain which sampler you can use.
 - `pydelfi` models can only use the `emcee` sampler.
-- `sbi`'s `SNLE` or `SNRE` models can use either the `emcee` or `pyro` samplers. The `pyro` samplers include several MCMC methods like slice sampling (`'slice_np'`, `'slice_np_vectorized'`), Hamiltonian Monte Carlo (`'hmc'`), and the NUTS sampler (`'nuts'`). From my experience, `slice_np_vectorized` works the fastest on CPU architectures for simple posteriors.
-- `sbi`'s `SNPE` models can use any of the `emcee` or `pyro` samplers. However, as they are amortized posterior estimators, they can also do fast direct estimation of the `log_prob` of samples, thus allowing for super fast Rejection Sampling. It is recommended to use this with the `'direct'` sample method for `SNPE` models.
+- `sbi`'s `NLE` or `NRE` models can use either the `emcee` or `pyro` samplers. The `pyro` samplers include several MCMC methods like slice sampling (`'slice_np'`, `'slice_np_vectorized'`), Hamiltonian Monte Carlo (`'hmc'`), and the NUTS sampler (`'nuts'`). From my experience, `slice_np_vectorized` works the fastest on CPU architectures for simple posteriors.
+- `sbi`'s `NPE` models can use any of the `emcee` or `pyro` samplers. However, as they are amortized posterior estimators, they can also do fast direct estimation of the `log_prob` of samples, thus allowing for super fast Rejection Sampling. It is recommended to use this with the `'direct'` sample method for `SNPE` models.
 
 The `ensemble_mode` parameter allows you to specify whether you want to sample jointly from the ensemble of neural networks trained in your inference stage (`True`) or from each one individually (`False`). This can be useful for analyzing multiple trained architectures individually or for debugging for issues in training.
 
 The `sampler_params` interface for specifying the number, length, and thinning of MCMC chains has been made identical for all implemented samplers.
+
+## Overloading configuration files
+Lastly, we provide the ability to overload configuration files within the `.from_config` function of each stage. This is very useful for running multipl experiments with the same base configuration file, but with slight changes to the hyperparameters. For example, if you wanted to run the same experiment with different learning rates, you could do:
+```python
+# experiment 1
+exp1 = InferenceRunner.from_config('path/to/config.yaml', train_args={'learning_rate': 1e-3}, out_dir='./exp1')
+exp1(loader)
+
+# experiment 2
+exp2 = InferenceRunner.from_config('path/to/config.yaml', train_args={'learning_rate': 1e-4}, out_dir='./exp2')
+exp2(loader)
+```
+For an example on how this can be used for hyperparameter search, see [examples/README.md](./examples/README.md).
 
 ## Notes
 All of the above configuration details are subject to change with the constant evolution of `ltu-ili`. If you notice anything to be not as documented, please write us an issue!

@@ -9,58 +9,32 @@ import logging
 import pickle
 import torch
 import torch.nn as nn
-import sbi
 from pathlib import Path
-from typing import Dict, List, Callable, Optional
-from torch.distributions import Independent
+from typing import Dict, List, Callable, Optional, Union
+from torch.distributions import Distribution
 from sbi.inference import NeuralInference
 from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+from .base import _BaseRunner
 from ili.dataloaders import _BaseLoader
-from ili.utils import load_class, load_from_config
+from ili.utils import load_class, load_from_config, load_nde_sbi, update
 
 logging.basicConfig(level=logging.INFO)
-
-default_config = (
-    Path(__file__).parent.parent / "examples/configs/sample_sbi.yaml"
-)
-
-
-class _BaseRunner():
-    def __init__(
-        self,
-        prior: Independent,
-        inference_class: NeuralInference,
-        train_args: Dict = {},
-        output_path: Path = None,
-        device: str = 'cpu',
-        name: Optional[str] = "",
-    ):
-        self.prior = prior
-        self.inference_class = inference_class
-        self.class_name = inference_class.__name__
-        self.train_args = train_args
-        self.device = device
-        self.name = name
-        self.output_path = output_path
-        if self.output_path is not None:
-            self.output_path = Path(self.output_path)
-            self.output_path.mkdir(parents=True, exist_ok=True)
 
 
 class SBIRunner(_BaseRunner):
     """Class to train posterior inference models using the sbi package
 
     Args:
-        prior (Independent): prior on the parameters
-        inference_class (NeuralInference): sbi inference class used to
-            train neural posteriors
+        prior (Distribution): prior on the parameters
+        engine (str): type of inference engine to use (NPE, NLE, NRE, or
+            any sbi inference engine; see _setup_engine)
         nets (List[Callable]): list of neural nets for amortized posteriors,
             likelihood models, or ratio classifiers
         embedding_net (nn.Module): neural network to compress high
             dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
-        output_path (Path): path where to store outputs
-        proposal (Independent): proposal distribution from which existing
+        out_dir (str, Path): directory where to store outputs
+        proposal (Distribution): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
             sbi will set proposal = prior unless a proposal is specified.
             While it is possible to choose a prior on parameters different
@@ -72,22 +46,21 @@ class SBIRunner(_BaseRunner):
 
     def __init__(
         self,
-        prior: Independent,
-        inference_class: NeuralInference,
+        prior: Distribution,
+        engine: str,
         nets: List[Callable],
         train_args: Dict = {},
-        output_path: Path = None,
+        out_dir: Union[str, Path] = None,
         device: str = 'cpu',
         embedding_net: nn.Module = None,
-        proposal: Independent = None,
+        proposal: Distribution = None,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = None,
     ):
         super().__init__(
             prior=prior,
-            inference_class=inference_class,
             train_args=train_args,
-            output_path=output_path,
+            out_dir=out_dir,
             device=device,
             name=name,
         )
@@ -95,6 +68,7 @@ class SBIRunner(_BaseRunner):
             self.proposal = prior
         else:
             self.proposal = proposal
+        self.engine = engine
         self.nets = nets
         self.embedding_net = embedding_net
         self.train_args = train_args
@@ -108,16 +82,20 @@ class SBIRunner(_BaseRunner):
             self.signatures = [""]*len(self.nets)
 
     @classmethod
-    def from_config(cls, config_path: Path) -> "SBIRunner":
+    def from_config(cls, config_path: Path, **kwargs) -> "SBIRunner":
         """Create an sbi runner from a yaml config file
 
         Args:
             config_path (Path, optional): path to config file
+            **kwargs: optional keyword arguments to overload config file
         Returns:
             SBIRunner: the sbi runner specified by the config file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
+
+        # optionally overload config with kwargs
+        update(config, **kwargs)
 
         # load prior distribution
         config['prior']['args']['device'] = config['device']
@@ -137,111 +115,79 @@ class SBIRunner(_BaseRunner):
         else:
             embedding_net = nn.Identity()
 
-        # load inference class and neural nets
-        inference_class = load_class(
-            module_name=config["model"]["module"],
-            class_name=config["model"]["class"],
-        )
-        nets = cls.load_nets(
-            embedding_net=embedding_net,
-            class_name=config["model"]["class"],
-            posteriors_config=config["model"]["nets"],
-        )
-
         # load logistics
         train_args = config["train_args"]
-        output_path = Path(config["output_path"])
+        out_dir = Path(config["out_dir"])
         if "name" in config["model"]:
             name = config["model"]["name"]+"_"
         else:
             name = ""
         signatures = []
         for type_nn in config["model"]["nets"]:
-            if "signature" in type_nn:
-                signatures.append(type_nn["signature"] + "_")
-            else:
-                signatures.append("")
+            signatures.append(type_nn.pop("signature", ""))
+
+        # load inference class and neural nets
+        engine = config["model"]["engine"]
+        nets = [load_nde_sbi(config['model']['engine'],
+                             embedding_net=embedding_net,
+                             **model_args)
+                for model_args in config['model']['nets']]
+
+        # initialize
         return cls(
             prior=prior,
             proposal=proposal,
-            inference_class=inference_class,
+            engine=engine,
             nets=nets,
             device=config["device"],
             embedding_net=embedding_net,
             train_args=train_args,
-            output_path=output_path,
+            out_dir=out_dir,
             signatures=signatures,
             name=name,
         )
 
-    @classmethod
-    def load_nets(
-        cls,
-        class_name: str,
-        posteriors_config: List[Dict],
-        embedding_net: nn.Module = nn.Identity(),
-    ) -> List[Callable]:
-        """Load the inference model
-
-        Args:
-            embedding_net (nn.Module): neural network to compress data
-            class_name (str): name of the inference class
-            posterior_config(List[Dict]): list with configurations for each
-                neural posterior model in the ensemble
-
-        Returns:
-            List[Callable]: list of pytorch neural network models with forward
-                methods
-        """
-        # determine the correct model type
-        def _build_model(embedding_net, model_args):
-            if "NPE" in class_name:
-                return sbi.utils.posterior_nn(
-                    embedding_net=embedding_net, **model_args)
-            elif "NLE" in class_name:
-                return sbi.utils.likelihood_nn(
-                    embedding_net=embedding_net, **model_args)
-            elif "NRE" in class_name:
-                return sbi.utils.classifier_nn(
-                    embedding_net_x=embedding_net, **model_args)
-            else:
-                raise ValueError(
-                    f"Model class {class_name} not supported. "
-                    "Please choose one of SNPE, SNLE, or SNRE."
-                )
-        return [_build_model(embedding_net, model_args)
-                for model_args in posteriors_config]
-
     def _setup_engine(self, net: nn.Module):
         """Instantiate an sbi inference engine (SNPE/SNLE/SNRE)."""
-        if ("NPE" in self.class_name) or ("NLE" in self.class_name):
-            return self.inference_class(
+        if self.engine[0] == 'S':
+            engine_name = self.engine
+        else:
+            engine_name = 'S'+self.engine
+        try:
+            inference_class = load_class('sbi.inference', engine_name)
+        except ImportError:
+            raise ValueError(
+                f"Model class {self.engine} not supported. "
+                "Please choose one of NPE/NLE/NRE or SNPE/SNLE/SNRE or "
+                "an inference class in sbi.inference."
+            )
+
+        if ("NPE" in self.engine) or ("NLE" in self.engine):
+            return inference_class(
                 prior=self.prior,
                 density_estimator=net,
                 device=self.device,
             )
-        elif ("NRE" in self.class_name):
-            return self.inference_class(
+        elif ("NRE" in self.engine):
+            return inference_class(
                 prior=self.prior,
                 classifier=net,
                 device=self.device,
             )
         else:
             raise ValueError(
-                f"Model class {self.class_name} not supported. "
-                "Please choose one of SNPE, SNLE, or SNRE."
-            )
+                f"Model class {self.engine} not supported with SBIRunner.")
 
     def _train_round(self, models: List[NeuralInference],
                      x: torch.Tensor, theta: torch.Tensor,
-                     proposal: Optional[Independent]):
+                     proposal: Optional[Distribution]):
         """Train a single round of inference for an ensemble of models."""
         posteriors, summaries = [], []
         for i, model in enumerate(models):
             logging.info(f"Training model {i+1} / {len(models)}.")
 
             # append simulations
-            if ("NPE" in self.class_name):
+            if ("NPE" in self.engine):
                 model = model.append_simulations(theta, x, proposal=proposal)
             else:
                 model = model.append_simulations(theta, x)
@@ -277,12 +223,12 @@ class SBIRunner(_BaseRunner):
                      summaries: List[Dict]):
         """Save models to file."""
 
-        logging.info(f"Saving model to {self.output_path}")
+        logging.info(f"Saving model to {self.out_dir}")
         str_p = self.name + "posterior.pkl"
         str_s = self.name + "summary.json"
-        with open(self.output_path / str_p, "wb") as handle:
+        with open(self.out_dir / str_p, "wb") as handle:
             pickle.dump(posterior_ensemble, handle)
-        with open(self.output_path / str_s, "w") as handle:
+        with open(self.out_dir / str_s, "w") as handle:
             json.dump(summaries, handle)
 
     def __call__(self, loader: _BaseLoader, seed: int = None):
@@ -298,7 +244,7 @@ class SBIRunner(_BaseRunner):
             torch.manual_seed(seed)
 
         # setup training engines for each model in the ensemble
-        logging.info(f"MODEL INFERENCE CLASS: {self.class_name}")
+        logging.info(f"MODEL INFERENCE CLASS: {self.engine}")
         models = [self._setup_engine(net) for net in self.nets]
 
         # load single-round data
@@ -320,7 +266,7 @@ class SBIRunner(_BaseRunner):
         logging.info(f"It took {time.time() - t0} seconds to train models.")
 
         # save if output path is specified
-        if self.output_path is not None:
+        if self.out_dir is not None:
             self._save_models(posterior_ensemble, summaries)
 
         return posterior_ensemble, summaries
@@ -339,13 +285,24 @@ class SBIRunnerSequential(SBIRunner):
             loader (_BaseLoader): data loader with ability to simulate
                 data-parameter pairs
         """
+        # Check arguments
+        if not hasattr(loader, "get_obs_data"):
+            raise ValueError(
+                "For sequential inference, the loader must have a method "
+                "get_obs_data() that returns the observed data."
+            )
+        if not hasattr(loader, "simulate"):
+            raise ValueError(
+                "For sequential inference, the loader must have a method "
+                "simulate() that returns simulated data-parameter pairs."
+            )
 
         # set seed for reproducibility
         if seed is not None:
             torch.manual_seed(seed)
 
         # setup training engines for each model in the ensemble
-        logging.info(f"MODEL INFERENCE CLASS: {self.class_name}")
+        logging.info(f"MODEL INFERENCE CLASS: {self.engine}")
         models = [self._setup_engine(net) for net in self.nets]
 
         # load observed and pre-run data
@@ -387,9 +344,16 @@ class SBIRunnerSequential(SBIRunner):
 
             # update proposal for next round
             self.proposal = posterior_ensemble.set_default_x(x_obs)
+
+            if rnd < self.num_rounds - 1:
+                # simulate new data for next round
+                theta, x = loader.simulate(self.proposal)
+                x = torch.Tensor(x).to(self.device)
+                theta = torch.Tensor(theta).to(self.device)
+
         logging.info(f"It took {time.time() - t0} seconds to train models.")
 
-        if self.output_path is not None:
+        if self.out_dir is not None:
             self._save_models(posterior_ensemble, summaries)
 
         return posterior_ensemble, summaries
@@ -398,40 +362,60 @@ class SBIRunnerSequential(SBIRunner):
 class ABCRunner(_BaseRunner):
     """Class to run ABC inference models using the sbi package"""
 
+    def __init__(
+            self,
+            prior: Distribution,
+            engine: str,
+            train_args: Dict = {},
+            out_dir: Union[str, Path] = None,
+            device: str = 'cpu',
+            name: Optional[str] = "",
+    ):
+        super().__init__(
+            prior=prior,
+            train_args=train_args,
+            out_dir=out_dir,
+            device=device,
+            name=name,
+        )
+        self.engine = engine
+
     @classmethod
-    def from_config(cls, config_path: Path) -> "ABCRunner":
+    def from_config(cls, config_path: Path, **kwargs) -> "ABCRunner":
         """Create an sbi runner from a yaml config file
 
         Args:
             config_path (Path, optional): path to config file
+            **kwargs: optional keyword arguments to overload config file
+
         Returns:
             SBIRunner: the sbi runner specified by the config file
         """
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
 
+        # optionally overload config with kwargs
+        update(config, **kwargs)
+
         # load prior distribution
         prior = load_from_config(config["prior"])
 
-        # load inference class
-        inference_class = load_class(
-            module_name=config["model"]["module"],
-            class_name=config["model"]["class"],
-        )
+        # parse inference engine
+        engine = config["model"]["engine"]
 
         # load logistics
         train_args = config["train_args"]
-        output_path = Path(config["output_path"])
+        out_dir = Path(config["out_dir"])
         name = ""
         if "name" in config["model"]:
             name = config["model"]["name"]+"_"
 
         return cls(
             prior=prior,
-            inference_class=inference_class,
+            engine=engine,
             device=config["device"],
             train_args=train_args,
-            output_path=output_path,
+            out_dir=out_dir,
             name=name,
         )
 
@@ -444,21 +428,22 @@ class ABCRunner(_BaseRunner):
         """
         t0 = time.time()
 
-        logging.info(f"MODEL INFERENCE CLASS: {self.inference_class.__name__}")
+        logging.info(f"MODEL INFERENCE CLASS: {self.engine}")
 
         x_obs = loader.get_obs_data()
 
         # setup and train each architecture
-        model = self.inference_class(
+        inference_class = load_class('sbi.inference', self.engine)
+        model = inference_class(
             prior=self.prior,
             simulator=loader.simulator
         )
         samples = model(x_obs, return_summary=False, **self.train_args)
 
         # save if output path is specified
-        if self.output_path is not None:
+        if self.out_dir is not None:
             str_p = self.name + "samples.pkl"
-            with open(self.output_path / str_p, "wb") as handle:
+            with open(self.out_dir / str_p, "wb") as handle:
                 pickle.dump(samples, handle)
 
         logging.info(

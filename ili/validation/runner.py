@@ -8,60 +8,70 @@ import time
 import yaml
 import matplotlib as mpl
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union, Dict
 from ili.dataloaders import _BaseLoader
 from ili.validation.metrics import _BaseMetric
-from ili.utils import load_from_config
+from ili.utils import load_from_config, update
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+    interface = 'torch'
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
+    interface = 'tensorflow'
 
 logging.basicConfig(level=logging.INFO)
 
 
-class ValidationRunner:
+class ValidationRunner():
     """Class to measure validation metrics of posterior inference models
 
     Args:
         posterior (ModelClass): trained sbi posterior inference engine
-        metrics (List[_BaseMetric]): list of metric objects to measure on
-            the test set
-        backend (str): the backend for the posterior models
-            ('sbi' or 'pydelfi')
-        output_path (Path): path where to store outputs
+        metrics (Dict[str, _BaseMetric]): dictionary of named metric objects 
+            to measure on the test set
+        out_dir (str, Path): directory where to load posterior and store outputs
+        ensemble_mode (Optional[bool], optional): whether to evaluate metrics
+            on each posterior in the ensemble separately or on the ensemble
+            posterior. Defaults to True.
+        name (Optional[str], optional): name of the posterior. Defaults to "".
+        signatures (Optional[List[str]], optional): list of signatures for
+            each posterior in the ensemble. Defaults to [].
     """
 
     def __init__(
         self,
         posterior: ModelClass,  # see imports
-        metrics: List[_BaseMetric],
-        backend: str,
-        output_path: Path,
+        metrics: Dict[str, _BaseMetric],
+        out_dir: Union[str, Path],
         ensemble_mode: Optional[bool] = True,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = [],
     ):
         self.posterior = posterior
         self.metrics = metrics
-        self.backend = backend
-        self.output_path = output_path
-        if self.output_path is not None:
-            self.output_path.mkdir(parents=True, exist_ok=True)
+        self.out_dir = out_dir
+        if self.out_dir is not None:
+            self.out_dir = Path(out_dir)
+            self.out_dir.mkdir(parents=True, exist_ok=True)
         self.ensemble_mode = ensemble_mode
         self.name = name
         self.signatures = signatures
 
     @classmethod
-    def from_config(cls, config_path) -> "ValidationRunner":
+    def from_config(
+        cls,
+        config_path: Union[str, Path],
+        **kwargs
+    ) -> "ValidationRunner":
         """Create a validation runner from a yaml config file
 
         Args:
-            config_path (Path, optional): path to config file.
+            config_path (str, Path): path to config file.
+            **kwargs: optional keyword arguments to overload config file
         Returns:
             ValidationRunner: the validation runner specified by the config
                 file
@@ -69,18 +79,24 @@ class ValidationRunner:
         with open(config_path, "r") as fd:
             config = yaml.safe_load(fd)
 
-        backend = config['backend']
-        if backend == 'sbi':
+        # optionally overload config file with kwargs
+        update(config, **kwargs)
+
+        out_dir = Path(config["out_dir"])
+
+        global interface
+        if interface == 'torch':
             posterior_ensemble = cls.load_posterior_sbi(
-                config["posterior_path"])
+                out_dir / config["posterior_file"])
             signatures = posterior_ensemble.signatures
-        elif backend == 'pydelfi':
-            posterior_ensemble = DelfiWrapper.load_engine(config["meta_path"])
+        elif interface == 'tensorflow':
+            posterior_ensemble = DelfiWrapper.load_engine(
+                out_dir / config["posterior_file"])
+            # Note, pydelfi models don't currently use signatures
             signatures = [""]*posterior_ensemble.num_components
         else:
             raise NotImplementedError
         name = posterior_ensemble.name
-        output_path = Path(config["output_path"])
         if "style_path" in config:
             mpl.style.use(config["style_path"])
         if "ensemble_mode" in config:
@@ -99,34 +115,30 @@ class ValidationRunner:
 
         metrics = {}
         for key, value in config["metrics"].items():
-            value["args"]["backend"] = backend
-            value["args"]["output_path"] = output_path
+            value["args"]["out_dir"] = out_dir
             value["args"]["labels"] = config["labels"]
             metrics[key] = load_from_config(value)
 
         return cls(
-            backend=backend,
             posterior=posterior_ensemble,
             metrics=metrics,
-            output_path=output_path,
+            out_dir=out_dir,
             ensemble_mode=ensemble_mode,
             name=name,
             signatures=signatures,
         )
 
     @classmethod
-    def load_posterior_sbi(cls, path):
+    def load_posterior_sbi(cls, path: Union[str, Path]):
         """Load a pretrained sbi posterior from file
 
         Args:
-            path (Path): path to stored .pkl of trained sbi posterior
+            path (str, Path): path to stored .pkl of trained sbi posterior
         Returns:
             posterior (ModelClass): the posterior of interest
         """
         with open(path, "rb") as handle:
             posterior = pickle.load(handle)
-        if not hasattr(posterior, 'name'):
-            posterior.name = ''
         return posterior
 
     def __call__(self, loader: _BaseLoader):
@@ -147,11 +159,12 @@ class ValidationRunner:
         theta_fid = loader.get_fid_parameters()
 
         # evaluate metrics on each posterior in the ensemble separately
-        if ((not self.ensemble_mode) and (self.backend == 'sbi') and
+        global interface
+        if ((not self.ensemble_mode) and (interface == 'torch') and
                 isinstance(self.posterior, NeuralPosteriorEnsemble)):
             n = 0
             for posterior_model in self.posterior.posteriors:
-                signature = self.signatures[n]
+                signature = self.signatures[n]+"_"
                 n += 1
                 for metric in self.metrics.values():
                     logging.info(
@@ -161,7 +174,8 @@ class ValidationRunner:
         # evaluate metrics on the ensemble posterior
         else:
             # evaluate metrics
-            signature = self.name+"".join(self.signatures)
+            sigcat = [f"{t}_" for t in self.signatures if t != ""]
+            signature = self.name+"".join(sigcat)
             for metric in self.metrics.values():
                 logging.info(f"Running metric {metric.__class__.__name__}.")
                 metric(self.posterior, x_test, theta_test,

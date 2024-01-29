@@ -1,7 +1,5 @@
-backend: 'sbi'
-
-posterior_path: './toy/toy_mr_posterior.pkl'
-output_path: './toy'
+posterior_file: 'toy_SNPE_posterior.pkl'
+out_dir: './toy'
 style_path: './style.mcstyle'  # Optional matplotlib style file
 labels: ['t1', 't2', 't3']
 

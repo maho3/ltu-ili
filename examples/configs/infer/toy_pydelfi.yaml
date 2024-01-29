@@ -1,7 +1,4 @@
 
-n_params: 3  # Number of parameters to be inferred
-n_data: 10  # Dimesionality of input data
-
 # Specify prior
 prior:
   module: 'ili.utils'
@@ -12,28 +9,21 @@ prior:
 
 # Specify the inference model
 model:
-  module: 'ili.inference.pydelfi_wrappers'
-  class: 'DelfiWrapper'  # Likelihood Estimation with pydelfi
+  backend: 'pydelfi'
+  engine: 'NLE'  # Neural Likelihood Estimation
   name: 'toy_pydelfi'
-  kwargs:
-    nwalkers: 20  # Number of walkers for MCMC
   nets:
-    - module: 'pydelfi.ndes'
-      class: 'MixtureDensityNetwork'
-      args: 
-        n_components: 12
-        n_hidden: [64,64]
-        activations: ['tanh','tanh']
-    - module: 'pydelfi.ndes'
-      class: 'ConditionalMaskedAutoregressiveFlow'
-      args: 
-        n_hiddens: [50,50]
-        n_mades: 2
-        act_fun: 'tanh'
+    - model: 'maf'  # Masked Autoregressive Flow
+      hidden_features: 50
+      num_transforms: 5 
+      signature: "maf"
+    - model: 'mdn'  # Mixture Density Network
+      hidden_features: 50 
+      num_components: 6
 
 # Specify the neural training hyperparameters
 train_args:
   batch_size: 32
   epochs: 300
 
-output_path: 'toy'  # Where to save the posterior
+out_dir: 'toy'  # Where to save the posterior
