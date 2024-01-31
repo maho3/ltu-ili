@@ -229,7 +229,7 @@ class LampeRunner():
             best_val = float('inf')
             wait = 0
             summary = {'training_log_probs': [], 'validation_log_probs': []}
-            with tqdm(iter(range(10000)), unit=' epochs') as tq:
+            with tqdm(iter(range(self.train_args["max_epochs"])), unit=' epochs') as tq:
                 for epoch in tq:
                     loss_train, loss_val = self._train_epoch(
                         model=model,
