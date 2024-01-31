@@ -26,15 +26,17 @@ trainer = ili.inference.InferenceRunner.load(
 
 posterior, _ = trainer(loader)                  # Run training to map data -> parameters
 
-samples = posterior.sample(X[0], (1000,))       # Generate 1000 samples from the posterior for input x[0]
+samples = posterior.sample(                     # Generate 1000 samples from the posterior for input x[0]
+  x=X[0], sample_shape=(1000,)
+)
 ```
 Beyond this simple example, LtU-ILI comes with a wide range of customizable complexity, including:
   * Posterior-, Likelihood-, and Ratio-Estimation methods for ILI, including Sequential learning analogs
-  * Various neural density estimators (Mixture Density Networks, Conditional Normalizing Flows, ResNet-like ratio classifiers))
+  * Various neural density estimators (Mixture Density Networks, Conditional Normalizing Flows, ResNet-like ratio classifiers)
   * Fully-customizable, exotic embedding networks (including CNNs and Graph Neural Networks)
   * A unified interface for multiple ILI backends ([sbi](https://github.com/sbi-dev/sbi), [pydelfi](https://github.com/justinalsing/pydelfi), and [lampe](https://lampe.readthedocs.io/en/stable/))
   * Multiple marginal and multivariate posterior coverage metrics
-  * A Jupyter and command line interfaces
+  * Jupyter and command-line interfaces
   * A parallelizable configuration framework for efficient hyperparameter tuning and production runs
 
 
