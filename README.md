@@ -8,9 +8,9 @@ LtU-ILI
 [![codecov](https://codecov.io/gh/maho3/ltu-ili/graph/badge.svg?token=8QNMK453GE)](https://codecov.io/gh/maho3/ltu-ili)
 [![docs](https://readthedocs.org/projects/ltu-ili/badge/?version=latest)](https://ltu-ili.readthedocs.io/en/latest/?badge=latest)
 
-The Learning the Universe Implicit Likelihood Inference (LtU-ILI) pipeline is a framework for performing robust, ML-enabled statistical inference for astronomical applications. The pipeline supports and implements the various methodologies of implicit likelihood inference (also called simulation-based inference or likelihood-free inference), i.e. the practice of learning to represent Bayesian posteriors using neural networks trained on simulations (see [this paper](https://arxiv.org/abs/1911.01429) for a review).
+The **Learning the Universe Implicit Likelihood Inference (LtU-ILI)** pipeline is an all-in-one framework for performing machine learning parameter inference in astrophysics and cosmology. Given labeled training data ${(x_i,\theta_i)}_{i=1}^N$ or a stochastic simulator $x(\theta)$, LtU-ILI is designed to automatically train state-of-the-art neural networks to learn the data-parameter relationship and produce robust, well-calibrated posterior inference.
 
-The major design principles of LtU-ILI are accessiblility, modularity, and generalizablity. For any training set of data-parameter pairs (including those with image- or graph-like inputs), one can use state-of-the-art methods to build neural networks to construct tight, well-calibrated Bayesian posteriors on unobserved parameters with well-calibrated uncertainty quantification. The pipeline is quick and easy to set up; here's an example of training a [Masked Autoregressive Flow (MAF)](https://arxiv.org/abs/1705.07057) network to predict a univariate posterior:
+The pipeline is quick and easy to set up; here's an example of training a [Masked Autoregressive Flow (MAF)](https://arxiv.org/abs/1705.07057) network to predict a posterior over parameters $y$, given input data $x$:
 
 ```python
 ...  # Imports
@@ -18,23 +18,23 @@ The major design principles of LtU-ILI are accessiblility, modularity, and gener
 X, Y = load_data()                              # Load training data and parameters
 loader = ili.data.NumpyLoader(X, Y)             # Create a data loader
 
-trainer = ili.inference.SBIRunner(
-  prior = sbi.utils.BoxUniform(low=-1, high=1), # Define a prior 
-  inference_class = sbi.inference.SNPE,         # Choose an inference method
-  nets = [sbi.utils.posterior_nn(model='maf')]  # Define a neural network architecture
+trainer = ili.inference.InferenceRunner.load(
+  backend = 'sbi', engine='NPE',                # Choose a backend and inference engine (here, Neural Posterior Estimation)
+  prior = ili.utils.Uniform(low=-1, high=1),    # Define a prior 
+  nets = [sbi.utils.posterior_nn(model='maf')]  # Define a neural network architecture (here, MAF)
 )
 
 posterior, _ = trainer(loader)                  # Run training to map data -> parameters
 
-samples = posterior.sample(x[0], (1000,))       # Generate 1000 samples from the posterior
+samples = posterior.sample(X[0], (1000,))       # Generate 1000 samples from the posterior for input x[0]
 ```
 Beyond this simple example, LtU-ILI comes with a wide range of customizable complexity, including:
-  * Posterior-, Likelihood-, and Ratio-Estimation methods for ILI
-  * Diversity of neural density estimators (Mixture Density Networks, ResNet-like ratio classifiers, various Conditional Normalizing Flows)
-  * Fully-customizable information embedding networks 
-  * A unified interface for multiple ILI backends ([sbi](https://github.com/sbi-dev/sbi), [pydelfi](https://github.com/justinalsing/pydelfi))
-  * Various marginal and multivariate posterior coverage metrics
-  * Jupyter and command line interfaces
+  * Posterior-, Likelihood-, and Ratio-Estimation methods for ILI, including Sequential learning analogs
+  * Various neural density estimators (Mixture Density Networks, Conditional Normalizing Flows, ResNet-like ratio classifiers))
+  * Fully-customizable, exotic embedding networks (including CNNs and Graph Neural Networks)
+  * A unified interface for multiple ILI backends ([sbi](https://github.com/sbi-dev/sbi), [pydelfi](https://github.com/justinalsing/pydelfi), and [lampe](https://lampe.readthedocs.io/en/stable/))
+  * Multiple marginal and multivariate posterior coverage metrics
+  * A Jupyter and command line interfaces
   * A parallelizable configuration framework for efficient hyperparameter tuning and production runs
 
 
