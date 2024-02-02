@@ -254,7 +254,7 @@ class LampeRunner():
                     else:
                         wait += 1
                 else:
-                    logging.warning("Training did not converge in 10k epochs.")
+                    logging.warning(f"Training did not converge in {self.train_args['max_epochs']} epochs.")
                 summary['best_validation_log_prob'] = -best_val
                 summary['epochs_trained'] = epoch
 
