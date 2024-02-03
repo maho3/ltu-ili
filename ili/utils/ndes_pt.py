@@ -101,7 +101,7 @@ class LampeNPE(nn.Module):
         self.embedding_net = embedding_net
         self.x_transform = x_transform
         self.theta_transform = theta_transform
-        #self._device = 'cpu'
+        # self._device = 'cpu'
         self.max_sample_size = 1000
 
     def forward(
@@ -112,7 +112,7 @@ class LampeNPE(nn.Module):
         # check inputs
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
-        #x = x.to(self._device)
+        # x = x.to(self._device)
         # sample
         return self.nde(
             self.theta_transform.inv(theta),
@@ -148,7 +148,7 @@ class LampeNPE(nn.Module):
         accepted = []
         while num_remaining > 0:
             candidates = self.theta_transform(
-                self.flow(x).sample((batch_size,)))#.cpu()
+                self.flow(x).sample((batch_size,)))  # .cpu()
             are_accepted = self.prior.support.check(candidates)
             samples = candidates[are_accepted]
             accepted.append(samples)
@@ -196,7 +196,7 @@ class LampeEnsemble(nn.Module):
         # determine number of samples per model
         num_samples = np.prod(shape)
         per_model = torch.round(
-            num_samples * self.weights/self.weights.sum())#.numpy().astype(int)
+            num_samples * self.weights/self.weights.sum())  # .numpy().astype(int)
         if show_progress_bars:
             logging.info(f"Sampling models with {per_model} samples each.")
 

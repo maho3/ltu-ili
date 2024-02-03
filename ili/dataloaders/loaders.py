@@ -233,20 +233,20 @@ class StaticNumpyLoader(NumpyLoader):
         self.theta_path = self.in_dir / theta_file
 
         # Load stored data (if specified)
-        x = np.load(self.x_path)
-        theta = np.load(self.theta_path)
+        x = np.load(self.x_path, allow_pickle=True)
+        theta = np.load(self.theta_path, allow_pickle=True)
         if xobs_file is None:
             self.xobs_path = None
             xobs = None
         else:
             self.xobs_path = self.in_dir / xobs_file
-            xobs = np.load(self.xobs_path)
+            xobs = np.load(self.xobs_path, allow_pickle=True)
         if thetafid_file is None:
             self.thetafid_path = None
             thetafid = None
         else:
             self.thetafid_path = self.in_dir / thetafid_file
-            thetafid = np.load(self.thetafid_path)
+            thetafid = np.load(self.thetafid_path, allow_pickle=True)
 
         super().__init__(x=x, theta=theta, xobs=xobs, thetafid=thetafid)
 
@@ -261,7 +261,8 @@ class SBISimulator(NumpyLoader):
         xobs_file (str): filename used for observed x values
         num_simulations (int): number of simulations to run at each call
         simulator (callable): function taking the parameters as an
-            argument and returns data
+            argument and returns data. NOTE: This must take a tuple of
+            parameters and output a torch.Tensor of shape (1, *data.shape).
         save_simulated (Optional[bool]): whether to save simulated data.
             Concatenates to previous data if True. Defaults to False.
         x_file (Optional[str]): filename of the stored first-round
@@ -296,7 +297,7 @@ class SBISimulator(NumpyLoader):
             )
 
         # Load stored data (if specified)
-        xobs = np.load(self.xobs_path)
+        xobs = np.load(self.xobs_path, allow_pickle=True)
         x = np.array([])
         theta = np.array([])
         thetafid = None
@@ -305,7 +306,7 @@ class SBISimulator(NumpyLoader):
         else:
             self.x_path = self.in_dir / x_file
             if self.x_path.is_file():
-                x = np.load(self.x_path)
+                x = np.load(self.x_path, allow_pickle=True)
         if theta_file is None:
             self.theta_path = None
         else:
@@ -316,7 +317,7 @@ class SBISimulator(NumpyLoader):
             self.thetafid_path = None
         else:
             self.thetafid_path = self.in_dir / thetafid_file
-            thetafid = np.load(self.thetafid_path)
+            thetafid = np.load(self.thetafid_path, allow_pickle=True)
 
         super().__init__(x=x, theta=theta, xobs=xobs, thetafid=thetafid)
 
@@ -342,6 +343,10 @@ class SBISimulator(NumpyLoader):
         """
         theta = proposal.sample((self.num_simulations,)).cpu()
         x = simulate_in_batches(self.simulator, theta)
+
+        # Get device returns -1 for cpu, integers for CUDA tensors
+        if x.get_device() != -1:
+            x = x.cpu()
         theta, x = theta.numpy(), x.numpy()
 
         # Save simulated data (concatenates to previous data)
@@ -412,13 +417,13 @@ class SummarizerDatasetLoader(NumpyLoader):
             self.xobs = None
         else:
             self.xobs_path = self.in_dir / xobs_file
-            self.xobs = np.load(self.xobs_path)
+            self.xobs = np.load(self.xobs_path, allow_pickle=True)
         if thetafid_file is None:
             self.thetafid_path = None
             self.thetafid = None
         else:
             self.thetafid_path = self.in_dir / thetafid_file
-            self.thetafid = np.load(self.thetafid_path)
+            self.thetafid = np.load(self.thetafid_path, allow_pickle=True)
 
     def __len__(self) -> int:
         """Returns the total number of data points in the dataset

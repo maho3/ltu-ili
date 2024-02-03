@@ -113,8 +113,11 @@ def test_snpe(monkeypatch):
     log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
 
     # use ltu-ili's built-in validation metrics to plot the posterior
+    if os.path.isfile('./toy/single_samples.npy'):
+        os.remove('./toy/single_samples.npy')
+
     metric = PlotSinglePosterior(
-        out_dir=None, num_samples=nsamples,
+        out_dir='./toy', num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
         seed=1, save_samples=True
     )
@@ -122,6 +125,15 @@ def test_snpe(monkeypatch):
         posterior=posterior,
         x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta
+    )
+    # check that samples were saved
+    unittest.TestCase().assertTrue(os.path.isfile('./toy/single_samples.npy'))
+
+    # PlotSinglePosterior must be given x or x_obs
+    unittest.TestCase().assertRaises(
+        ValueError,
+        metric,
+        posterior=posterior,
     )
 
     # calculate and plot the rank statistics + TARP to describe univariate
@@ -419,9 +431,6 @@ def test_multiround():
     x0 = simulator(theta0)
     np.save('toy/thetaobs.npy', theta0[0])
     np.save('toy/xobs.npy', x0[0])
-
-    np.save('toy/theta.npy', theta)
-    np.save('toy/x.npy', x)
 
     np.save('toy/theta.npy', theta)
     np.save('toy/x.npy', x)
@@ -1298,7 +1307,7 @@ def test_loaders():
 
 
 def test_universal():
-    # -------
+    """Test SBIRunner's integration with the universal configuration"""
     # Setup a toy problem
 
     # construct a working directory
@@ -1356,6 +1365,16 @@ def test_universal():
         nets=nets
     )
     assert isinstance(runner1, SBIRunnerSequential)
+
+    # misspecified backend
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='andre',
+        engine='SNPE',
+        prior=prior,
+        nets=nets
+    )
 
     # you can't call an sbi engine that doesn't exist
     unittest.TestCase().assertRaises(
@@ -1444,8 +1463,72 @@ def test_universal():
         engine='ANDRE',
         model='nsf', hidden_features=50, num_components=2
     )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_sbi,
+        engine='NPE',
+        model='andre', hidden_features=50, num_components=2
+    )
 
     # test that it works if you underspecify
     model = load_nde_sbi(
         engine='NLE',
         model='maf', hidden_features=50)
+
+
+def test_misc():
+    """Test miscellaneous problems with SBIRunner."""
+
+    # create synthetic catalog
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
+
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+
+    # make a dataloader
+    loader = NumpyLoader(x=x, theta=theta)
+
+    # define a prior
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
+
+    # define an inference class (we are doing amortized posterior inference)
+    engine = 'NPE'
+
+    # instantiate your neural networks to be used as an ensemble
+    nets = [
+        sbi.utils.posterior_nn(
+            model='maf', hidden_features=50, num_transforms=5),
+        sbi.utils.posterior_nn(
+            model='mdn', hidden_features=50, num_components=2)
+    ]
+
+    # test for misspecified engine
+    runner = SBIRunner(
+        prior=prior,
+        engine='ANDRE',
+        nets=nets,
+        device=device,
+    )
+    unittest.TestCase().assertRaises(
+        AttributeError,
+        runner._setup_engine,
+        net=nets[0],
+    )
+
+    # SBIRunnerSequential shouldn't work without get_obs_data or simulate
+    runner = SBIRunnerSequential(
+        prior=prior,
+        engine='SNPE',
+        nets=nets,
+        device=device,
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        runner,
+        loader=loader
+    )

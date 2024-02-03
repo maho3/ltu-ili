@@ -9,7 +9,7 @@ import numpy as np
 from math import ceil
 from typing import Dict, List, Callable, Optional, Union
 from pydelfi.delfi import Delfi
-from ili.utils import load_class, load_from_config, load_nde_pydelfi
+from ili.utils import load_nde_pydelfi
 
 
 class DelfiWrapper(Delfi):

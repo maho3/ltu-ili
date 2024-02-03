@@ -8,7 +8,7 @@ import time
 import yaml
 import matplotlib as mpl
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict
 from ili.dataloaders import _BaseLoader
 from ili.validation.metrics import _BaseMetric
 from ili.utils import load_from_config, update
@@ -31,8 +31,8 @@ class ValidationRunner():
 
     Args:
         posterior (ModelClass): trained sbi posterior inference engine
-        metrics (List[_BaseMetric]): list of metric objects to measure on
-            the test set
+        metrics (Dict[str, _BaseMetric]): dictionary of named metric objects 
+            to measure on the test set
         out_dir (str, Path): directory where to load posterior and store outputs
         ensemble_mode (Optional[bool], optional): whether to evaluate metrics
             on each posterior in the ensemble separately or on the ensemble
@@ -45,7 +45,7 @@ class ValidationRunner():
     def __init__(
         self,
         posterior: ModelClass,  # see imports
-        metrics: List[_BaseMetric],
+        metrics: Dict[str, _BaseMetric],
         out_dir: Union[str, Path],
         ensemble_mode: Optional[bool] = True,
         name: Optional[str] = "",
@@ -92,7 +92,8 @@ class ValidationRunner():
         elif interface == 'tensorflow':
             posterior_ensemble = DelfiWrapper.load_engine(
                 out_dir / config["posterior_file"])
-            signatures = [""]*posterior_ensemble.num_components  # TODO: fix
+            # Note, pydelfi models don't currently use signatures
+            signatures = [""]*posterior_ensemble.num_components
         else:
             raise NotImplementedError
         name = posterior_ensemble.name
@@ -138,8 +139,6 @@ class ValidationRunner():
         """
         with open(path, "rb") as handle:
             posterior = pickle.load(handle)
-        if not hasattr(posterior, 'name'):
-            posterior.name = ''
         return posterior
 
     def __call__(self, loader: _BaseLoader):
