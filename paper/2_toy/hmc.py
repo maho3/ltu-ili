@@ -51,9 +51,17 @@ if __name__ == '__main__':
         idata = pm.sample(10000, chains=8, cores=4, tune=10000,
                           step=pm.NUTS(target_accept=0.99),
                           return_inferencedata=False,
-                          progressbar=True, discard_tuned_samples=True)
+                          progressbar=True, discard_tuned_samples=True,
+                          compute_convergence_checks=True)
 
     # Save samples
     samples = idata['theta', ::10]
     print(samples.shape)
     np.save(join(wdir, 'hmc_samples.npy'), samples)
+
+    # calculate Gelman-Rubin
+    import arviz
+    ess = arviz.ess(idata)
+    rhat = arviz.rhat(idata)
+    print('\nESS:', ess)
+    print('\nRhat:', rhat)
