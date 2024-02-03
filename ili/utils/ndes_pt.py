@@ -101,7 +101,7 @@ class LampeNPE(nn.Module):
         self.embedding_net = embedding_net
         self.x_transform = x_transform
         self.theta_transform = theta_transform
-        # self._device = 'cpu'
+        self._device = 'cpu'
         self.max_sample_size = 1000
 
     def forward(
@@ -112,7 +112,7 @@ class LampeNPE(nn.Module):
         # check inputs
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
-        # x = x.to(self._device)
+        x = x.to(self._device)
         # sample
         return self.nde(
             self.theta_transform.inv(theta),

@@ -228,10 +228,9 @@ class DirectSampler(ABC):
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
         """
-        if isinstance(x, Sequence):
-            x = torch.Tensor(x)
-            if hasattr(self.posterior, '_device'):
-                x = x.to(self.posterior._device)
+        x = torch.Tensor(x)
+        if hasattr(self.posterior, '_device'):
+            x = x.to(self.posterior._device)
         return self.posterior.sample(
             (nsteps,), x=x,
             show_progress_bars=progress

@@ -84,6 +84,7 @@ class LampeRunner():
         self.train_args = dict(
             training_batch_size=50, learning_rate=5e-4,
             stop_after_epochs=20, clip_max_norm=5,
+            max_epochs=int(1e10),
             validation_fraction=0.1)
         self.train_args.update(train_args)
 
@@ -134,7 +135,7 @@ class LampeRunner():
 
         # load inference class and neural nets
         nets = [load_nde_lampe(embedding_net=embedding_net,
-                                device = config["device"],
+                               device=config["device"],
                                **model_args)
                 for model_args in config['model']['nets']]
 
@@ -210,7 +211,6 @@ class LampeRunner():
         for i, model in enumerate(models):
             logging.info(f"Training model {i+1} / {len(models)}.")
 
-
             # initialize model
             x_, y_ = next(iter(train_loader))
             if self.device is not None:
@@ -254,7 +254,8 @@ class LampeRunner():
                     else:
                         wait += 1
                 else:
-                    logging.warning(f"Training did not converge in {self.train_args['max_epochs']} epochs.")
+                    logging.warning(
+                        f"Training did not converge in {self.train_args['max_epochs']} epochs.")
                 summary['best_validation_log_prob'] = -best_val
                 summary['epochs_trained'] = epoch
 
