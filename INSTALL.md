@@ -18,6 +18,7 @@ Here is a quick guide for getting started with the ltu-ili framework.
     # install with sbi backend
     conda create -n ili-sbi python=3.10
     conda activate ili-sbi
+    pip install --upgrade pip
     pip install -e "ltu-ili[sbi]"
     ```
     and below is the equivalent for the pydelfi backend:
@@ -25,6 +26,7 @@ Here is a quick guide for getting started with the ltu-ili framework.
     # install with pydelfi backend
     conda create -n ili-pydelfi python=3.6
     conda activate ili-pydelfi
+    pip install --upgrade pip
     pip install -e "ltu-ili[pydelfi]"
     ```
 
