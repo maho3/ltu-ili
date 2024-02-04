@@ -228,10 +228,22 @@ def load_nde_lampe(
         theta_normalize: bool = True,
         ** model_args):
     """Load an nde from lampe.
+    Models include:
+        - mdn: Mixture Density Network (https://publications.aston.ac.uk/id/eprint/373/1/NCRG_94_004.pdf)
+        - maf: Masked Autoregressive Flow (https://arxiv.org/abs/1705.07057)
+        - nsf: Neural Spline Flow (https://arxiv.org/abs/1906.04032)
+        - cnf: Continuous Normalizing Flow (https://arxiv.org/abs/1810.01367)
+        - nice: Non-linear Independent Components Estimation (https://arxiv.org/abs/1410.8516)
+        - gf: Gaussianization Flow (https://arxiv.org/abs/2003.01941)
+        - sospf: Sum-of-Squares Polynomial Flow (https://arxiv.org/abs/1905.02325)
+        - naf: Neural Autoregressive Flow (https://arxiv.org/abs/1804.00779)
+        - unaf: Unconstrained Neural Autoregressive Flow (https://arxiv.org/abs/1908.05164)
+
+    For more info, see zuko at https://zuko.readthedocs.io/en/stable/index.html
 
     Args:
         model (str): model to use.
-            One of: mdn, maf, nsf
+            One of: mdn, maf, nsf, ncsf, cnf, nice, sospf, gf, naf.
         embedding_net (nn.Module, optional): embedding network to use.
             Defaults to nn.Identity().
         **model_args: additional arguments to pass to the model.
@@ -242,7 +254,7 @@ def load_nde_lampe(
         model_args['hidden_features'] = [model_args['hidden_features']] * 3
         model_args['components'] = model_args.pop('num_components', 2)
         flow_class = zuko.flows.mixture.GMM
-    else:
+    else:  # for all flow models
         if not (set(model_args.keys()) <= {'hidden_features', 'num_transforms'}):
             raise ValueError(f"Model {model} arguments mispecified.")
         model_args['hidden_features'] = [
@@ -253,6 +265,20 @@ def load_nde_lampe(
         flow_class = zuko.flows.autoregressive.MAF
     elif model == 'nsf':
         flow_class = zuko.flows.spline.NSF
+    elif model == 'cnf':
+        flow_class = zuko.flows.continuous.CNF
+    elif model == 'nice':
+        flow_class = zuko.flows.coupling.NICE
+    elif model == 'gf':
+        flow_class = zuko.flows.gaussianization.GF
+    elif model == 'sospf':
+        flow_class = zuko.flows.polynomial.SOSPF
+    elif model == 'naf':
+        flow_class = zuko.flows.neural.NAF
+    elif model == 'unaf':
+        flow_class = zuko.flows.neural.UNAF
+    else:
+        raise ValueError(f"Model {model} not implemented.")
 
     def net_constructor(x_batch, theta_batch, prior):
         # pass data through embedding network
