@@ -17,7 +17,8 @@ Here is a quick guide for getting started with the ltu-ili framework.
     ```bash
     # install with torch
     conda create -n ili-torch python=3.10
-    conda activate ili-torchf
+    conda activate ili-torch
+    pip install --upgrade pip
     pip install -e "ltu-ili[torch]"
     ```
     and below is the equivalent for the tensorflow backend:
@@ -25,6 +26,7 @@ Here is a quick guide for getting started with the ltu-ili framework.
     # install with tf backend
     conda create -n ili-tf python=3.6
     conda activate ili-tf
+    pip install --upgrade pip
     pip install -e "ltu-ili[tensorflow]"
     ```
 
