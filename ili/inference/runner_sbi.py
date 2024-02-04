@@ -186,8 +186,7 @@ class SBIRunner(_BaseRunner):
 
     def _train_round(self, models: List[NeuralInference],
                      x: torch.Tensor, theta: torch.Tensor,
-                     proposal: Optional[Distribution],
-                     in_train: torch.Tensor = None):
+                     proposal: Optional[Distribution]):
         """Train a single round of inference for an ensemble of models."""
 
         # append data to models
@@ -198,18 +197,16 @@ class SBIRunner(_BaseRunner):
                 model = model.append_simulations(theta, x)
 
         # split into training and validation if not specified
-        if in_train is None:
-            # TODO: load these from file?
-            starting_round = 0  # TODO: won't work for SNPE_A
-            x, _, _ = model.get_simulations(starting_round)
-            num_examples = x.shape[0]
-            permuted_indices = torch.randperm(num_examples)
-            num_training_examples = int(
-                (1 - self.train_args['validation_fraction']) * num_examples)
-            train_indices, val_indices = (
-                permuted_indices[:num_training_examples],
-                permuted_indices[num_training_examples:],
-            )
+        starting_round = 0  # TODO: won't work for SNPE_A
+        x, _, _ = model.get_simulations(starting_round)
+        num_examples = x.shape[0]
+        permuted_indices = torch.randperm(num_examples)
+        num_training_examples = int(
+            (1 - self.train_args['validation_fraction']) * num_examples)
+        train_indices, val_indices = (
+            permuted_indices[:num_training_examples],
+            permuted_indices[num_training_examples:],
+        )
 
         posteriors, summaries = [], []
         for i, model in enumerate(models):

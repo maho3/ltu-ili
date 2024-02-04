@@ -68,9 +68,17 @@ def test_toy():
         prior=prior,
         train_args=train_args,
         out_dir=Path('toy_pydelfi')
-
     )
     runner(loader=all_loader)
+
+    # DelfiRunner should correct the device to cpu
+    runner = DelfiRunner(
+        config_ndes=config_ndes,
+        prior=prior,
+        train_args=train_args,
+        out_dir=Path('toy_pydelfi'),
+        device='andre'
+    )
 
     # use the trained posterior model to predict on a single example from
     # the test set
@@ -299,6 +307,7 @@ def test_yaml():
     with open('./toy_pydelfi/infer_noname.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
     data['model']['name'] = 'test_pydelfi'
+    data['model']['engine_kwargs'] = {'progress_bar': False}  # check kwargs
     with open('./toy_pydelfi/infer.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 

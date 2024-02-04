@@ -7,6 +7,8 @@ from ili.validation import ValidationRunner
 
 def simulator(params):
     # create toy simulations
+    # NOTE: For use with SBISimulator, this function takes
+    # a tuple of parameters and outputs data of shape (1, *data_shape)
     x = np.arange(10)
     y = params @ np.array([3*np.sin(x), x ** 2, -2*x])
     y += np.random.randn(len(params), len(x))
