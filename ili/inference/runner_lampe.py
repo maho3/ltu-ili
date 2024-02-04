@@ -1,5 +1,5 @@
 """
-Module to train posterior inference models using the sbi package
+Module to train posterior inference models using the lampe package
 """
 
 import json
@@ -22,30 +22,22 @@ from ili.utils import load_from_config, LampeEnsemble, load_nde_lampe
 
 logging.basicConfig(level=logging.INFO)
 
-default_config = (
-    Path(__file__).parent.parent / "examples/configs/sample_sbi.yaml"
-)
-
 
 class LampeRunner():
-    """Class to train posterior inference models using the lampe package
+    """Class to train NPE posterior inference models using the lampe package.
+    Follows methodology of: https://arxiv.org/abs/1711.01861
 
     Args:
         prior (Distribution): prior on the parameters
         nets (List[Callable]): list of neural nets for amortized posteriors,
             likelihood models, or ratio classifiers
+        engine (str): name of the engine class (NPE only)
         train_args (Dict): dictionary of hyperparameters for training
         out_dir (Path): directory where to store outputs
         device (str): device to run on
-        engine (str): name of the engine class (NPE only)
-        embedding_net (nn.Module): neural network to compress high
-            dimensional data into lower dimensionality
         proposal (Distribution): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
             we will set proposal = prior unless a proposal is specified.
-            While it is possible to choose a prior on parameters different
-            than the proposal for SNPE, we advise to leave proposal to None
-            unless for test purposes.
         name (str): name of the model (for saving purposes)
         signatures (List[str]): list of signatures for each neural net
     """
@@ -54,39 +46,39 @@ class LampeRunner():
         self,
         prior: Distribution,
         nets: List[Callable],
+        engine: str = 'NPE',
         train_args: Dict = {},
         out_dir: Path = None,
         device: str = 'cpu',
-        engine: str = 'NPE',
-        embedding_net: nn.Module = None,
         proposal: Distribution = None,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = None,
     ):
         self.prior = prior
-        self.train_args = train_args
-        self.device = device
-        self.engine = engine
-        self.name = name
-        self.out_dir = out_dir
-        if self.out_dir is not None:
-            self.out_dir = Path(self.out_dir)
-            self.out_dir.mkdir(parents=True, exist_ok=True)
         self.nets = nets
-        if proposal is None:
-            self.proposal = prior
-        else:
-            self.proposal = proposal
-        self.embedding_net = embedding_net
-        self.signatures = signatures
-        if self.signatures is None:
-            self.signatures = [""]*len(self.nets)
+        if engine != 'NPE':
+            logging.warning(
+                'lampe only supports NPE engine. Engine set to NPE.')
+        self.engine = 'NPE'
         self.train_args = dict(
             training_batch_size=50, learning_rate=5e-4,
             stop_after_epochs=30, clip_max_norm=5,
             max_epochs=int(1e10),
             validation_fraction=0.1)
         self.train_args.update(train_args)
+        self.out_dir = out_dir
+        if self.out_dir is not None:
+            self.out_dir = Path(self.out_dir)
+            self.out_dir.mkdir(parents=True, exist_ok=True)
+        self.device = device
+        if proposal is None:
+            self.proposal = prior
+        else:
+            self.proposal = proposal
+        self.name = name
+        self.signatures = signatures
+        if self.signatures is None:
+            self.signatures = [""]*len(self.nets)
 
     @classmethod
     def from_config(cls, config_path: Path, **kwargs) -> "LampeRunner":
@@ -142,14 +134,13 @@ class LampeRunner():
         # initialize
         return cls(
             prior=prior,
-            proposal=proposal,
             nets=nets,
-            device=config["device"],
-            embedding_net=embedding_net,
             train_args=train_args,
             out_dir=out_dir,
-            signatures=signatures,
+            device=config["device"],
+            proposal=proposal,
             name=name,
+            signatures=signatures,
         )
 
     def _prepare_loader(self, loader: _BaseLoader):
