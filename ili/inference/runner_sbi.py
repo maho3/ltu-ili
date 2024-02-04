@@ -196,9 +196,11 @@ class SBIRunner(_BaseRunner):
             else:
                 model = model.append_simulations(theta, x)
 
-        # split into training and validation if not specified
-        starting_round = 0  # TODO: won't work for SNPE_A
+        # get all previous simulations
+        starting_round = 0  # NOTE: won't work for SNPE_A, but we don't use it
         x, _, _ = model.get_simulations(starting_round)
+
+        # split into training and validation randomly
         num_examples = x.shape[0]
         permuted_indices = torch.randperm(num_examples)
         num_training_examples = int(
@@ -212,7 +214,7 @@ class SBIRunner(_BaseRunner):
         for i, model in enumerate(models):
             logging.info(f"Training model {i+1} / {len(models)}.")
 
-            # hack to initialize sbi model without training (Issue #127)
+            # hack to initialize sbi model without training (ref. issue #127)
             first_round = False
             if model._neural_net is None:
                 model.train(learning_rate=self.train_args['learning_rate'],
