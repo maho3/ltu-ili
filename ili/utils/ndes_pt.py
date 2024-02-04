@@ -113,10 +113,14 @@ class LampeNPE(nn.Module):
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
         x = x.to(self._device)
-        # sample
-        return self.nde(
+
+        logprob = self.nde(
             self.theta_transform.inv(theta),
             self.embedding_net(self.x_transform.inv(x)))
+        log_abs_det_jacobian = self.theta_transform.log_abs_det_jacobian(
+            theta, theta  # just for shape
+        )  # for Affine/IdentityTransform, this outputs a constant
+        return logprob - log_abs_det_jacobian
 
     def flow(self, x: torch.Tensor):  # -> Distribution
         return self.nde.flow(
@@ -205,6 +209,7 @@ class LampeEnsemble(nn.Module):
             nde.sample((int(N),), x, show_progress_bars=show_progress_bars)
             for nde, N in zip(self.posteriors, per_model)
         ], dim=0)
+        samples = samples[:num_samples]
         return samples.reshape(*shape, -1)
 
     def log_prob(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -277,12 +282,14 @@ def load_nde_lampe(
         if x_normalize:
             x_mean = x_batch.mean(dim=0)
             x_std = x_batch.std(dim=0)
-            x_transform = AffineTransform(loc=x_mean, scale=x_std)
+            x_transform = AffineTransform(
+                loc=x_mean, scale=x_std, event_dim=1)
 
         if theta_normalize:
             theta_mean = theta_batch.mean(dim=0)
             theta_std = theta_batch.std(dim=0)
-            theta_transform = AffineTransform(loc=theta_mean, scale=theta_std)
+            theta_transform = AffineTransform(
+                loc=theta_mean, scale=theta_std, event_dim=1)
 
         return LampeNPE(
             nde=nde,

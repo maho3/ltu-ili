@@ -83,7 +83,7 @@ class LampeRunner():
             self.signatures = [""]*len(self.nets)
         self.train_args = dict(
             training_batch_size=50, learning_rate=5e-4,
-            stop_after_epochs=20, clip_max_norm=5,
+            stop_after_epochs=30, clip_max_norm=5,
             max_epochs=int(1e10),
             validation_fraction=0.1)
         self.train_args.update(train_args)
@@ -189,33 +189,39 @@ class LampeRunner():
         loss = NPELoss(model)
         model.train()
 
-        loss_train = []
+        loss_train, count = [], 0
         for x, theta in train_loader:
             x, theta = x.to(self.device), theta.to(self.device)
-            loss_train.append(stepper(loss(theta, x)))
-        loss_train = torch.stack(loss_train).mean().item()
+            loss_train.append(stepper(loss(theta, x)) * len(theta))
+            count += len(theta)
+        loss_train = torch.stack(loss_train).sum().item()/count
+
         model.eval()
         with torch.no_grad():
-            loss_val = []
+            loss_val, count = [], 0
             for x, theta in val_loader:
                 x, theta = x.to(self.device), theta.to(self.device)
-                loss_val.append(loss(theta, x))
-            loss_val = torch.stack(loss_val).mean().item()
+                loss_val.append(loss(theta, x) * len(theta))
+                count += len(theta)
+            loss_val = torch.stack(loss_val).sum().item()/count
         return loss_train, loss_val
 
     def _train_round(self, models: List[Callable],
                      train_loader: DataLoader, val_loader: DataLoader):
         """Train a single round of inference for an ensemble of models."""
 
-        posteriors, summaries = [], []
-        for i, model in enumerate(models):
-            logging.info(f"Training model {i+1} / {len(models)}.")
+        # initialize models
+        x_, y_ = next(iter(train_loader))
+        if self.device is not None:
+            x_, y_ = x_.to(self.device), y_.to(self.device)
+        models_rnd = [
+            model(x_, y_, self.prior).to(self.device)
+            for model in models
+        ]
 
-            # initialize model
-            x_, y_ = next(iter(train_loader))
-            if self.device is not None:
-                x_, y_ = x_.to(self.device), y_.to(self.device)
-            model = model(x_, y_, self.prior).to(self.device)
+        posteriors, summaries = [], []
+        for i, model in enumerate(models_rnd):
+            logging.info(f"Training model {i+1} / {len(models_rnd)}.")
 
             # define optimizer
             optimizer = torch.optim.Adam(
@@ -229,7 +235,8 @@ class LampeRunner():
             best_val = float('inf')
             wait = 0
             summary = {'training_log_probs': [], 'validation_log_probs': []}
-            with tqdm(iter(range(self.train_args["max_epochs"])), unit=' epochs') as tq:
+            with tqdm(iter(range(self.train_args["max_epochs"])),
+                      unit=' epochs') as tq:
                 for epoch in tq:
                     loss_train, loss_val = self._train_epoch(
                         model=model,
@@ -255,7 +262,8 @@ class LampeRunner():
                         wait += 1
                 else:
                     logging.warning(
-                        f"Training did not converge in {self.train_args['max_epochs']} epochs.")
+                        "Training did not converge in "
+                        f"{self.train_args['max_epochs']} epochs.")
                 summary['best_validation_log_prob'] = -best_val
                 summary['epochs_trained'] = epoch
 
