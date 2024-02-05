@@ -89,7 +89,7 @@ jobs:
       - name: Test with pytest
         run: |
           echo "Running lampe tests"
-          COVERAGE_FILE=.coverage_sbi python3 -m coverage run --source=ili -m pytest tests/test_lampe.py
+          COVERAGE_FILE=.coverage_lampe python3 -m coverage run --source=ili -m pytest tests/test_lampe.py
         shell: bash
       - name: Archive lampe code coverage results
         uses: actions/upload-artifact@v3
