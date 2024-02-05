@@ -481,20 +481,18 @@ class TorchLoader(_BaseLoader):
     """A class for using TorchDataloaders.
 
     Args:
-        x (Tensor): Array of training data of
-            shape (Ndata, \*data.shape)
-        theta (Tensor): Array of training parameters of
-            shape (Ndata, \*parameters.shape)
-        xobs (Optional[Tensor]): Array of observed data of
-            shape (\*data.shape). Defaults to None.
-        thetafid (Optional[Tensor]): Array of fiducial
-            parameters of shape (\*parameters.shape). Defaults to None.
+        train_loader (DataLoader): dataloader for training
+            outputting (data, parameters)
+        val_loader (DataLoader): dataloader for validation
+            outputting (data, parameters). Defaults to None.
+        xobs (Optional[Tensor]): observed data. Defaults to None.
+        thetafid (Optional[Tensor]): fiducial parameters. Defaults to None.
     """
 
     def __init__(
         self,
         train_loader: DataLoader,
-        val_loader: DataLoader,
+        val_loader: DataLoader = None,
         xobs: Optional[Tensor] = None,
         thetafid: Optional[Tensor] = None
     ) -> None:
@@ -512,7 +510,7 @@ class TorchLoader(_BaseLoader):
         return len(self.train_loader)
 
     def get_all_data(self) -> Tensor:
-        """Returns all the loaded data for training
+        """Returns all the loaded data for training.
 
         Returns:
             Tensor: data

@@ -137,7 +137,7 @@ class LampeNPE(nn.Module):
         # check inputs
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
-        x = x.to(self._device)
+            x = x.to(self._device)
 
         # sample
         num_samples = np.prod(shape)
@@ -261,24 +261,22 @@ def load_nde_lampe(
             model_args['hidden_features']] * 2
         model_args['transforms'] = model_args.pop('num_transforms', 2)
 
-    if model == 'maf':
-        flow_class = zuko.flows.autoregressive.MAF
-    elif model == 'nsf':
-        flow_class = zuko.flows.spline.NSF
-    elif model == 'cnf':
-        flow_class = zuko.flows.continuous.CNF
-    elif model == 'nice':
-        flow_class = zuko.flows.coupling.NICE
-    elif model == 'gf':
-        flow_class = zuko.flows.gaussianization.GF
-    elif model == 'sospf':
-        flow_class = zuko.flows.polynomial.SOSPF
-    elif model == 'naf':
-        flow_class = zuko.flows.neural.NAF
-    elif model == 'unaf':
-        flow_class = zuko.flows.neural.UNAF
-    else:
-        raise ValueError(f"Model {model} not implemented.")
+        if model == 'maf':
+            flow_class = zuko.flows.autoregressive.MAF
+        elif model == 'nsf':
+            flow_class = zuko.flows.spline.NSF
+        elif model == 'cnf':
+            flow_class = zuko.flows.continuous.CNF
+        elif model == 'nice':
+            flow_class = zuko.flows.coupling.NICE
+        elif model == 'gf':
+            flow_class = zuko.flows.gaussianization.GF
+        elif model == 'sospf':
+            flow_class = zuko.flows.polynomial.SOSPF
+        elif model == 'naf':
+            flow_class = zuko.flows.neural.NAF
+        elif model == 'unaf':
+            flow_class = zuko.flows.neural.UNAF
 
     def net_constructor(x_batch, theta_batch, prior):
         # pass data through embedding network
