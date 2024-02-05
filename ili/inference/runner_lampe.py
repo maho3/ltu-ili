@@ -175,15 +175,27 @@ class LampeRunner():
 
         return train_loader, val_loader
 
+    def _loss(self, model, theta, x):
+        """Return neg importance-weighted probability as loss."""
+        log_posterior = model(theta, x)
+        if self.prior == self.proposal:
+            return -log_posterior.mean()
+
+        log_prior = self.prior.log_prob(theta)
+        log_proposal = self.proposal.log_prob(theta)
+
+        negloss = torch.exp(log_prior - log_proposal) * log_posterior
+        return -negloss.mean()
+
     def _train_epoch(self, model, train_loader, val_loader, stepper):
         """Train a single epoch of a neural network model."""
-        loss = NPELoss(model)
         model.train()
 
         loss_train, count = [], 0
         for x, theta in train_loader:
             x, theta = x.to(self.device), theta.to(self.device)
-            loss_train.append(stepper(loss(theta, x)) * len(theta))
+            loss_train.append(
+                stepper(self._loss(model, theta, x)) * len(theta))
             count += len(theta)
         loss_train = torch.stack(loss_train).sum().item()/count
 
@@ -192,7 +204,7 @@ class LampeRunner():
             loss_val, count = [], 0
             for x, theta in val_loader:
                 x, theta = x.to(self.device), theta.to(self.device)
-                loss_val.append(loss(theta, x) * len(theta))
+                loss_val.append(self._loss(model, theta, x) * len(theta))
                 count += len(theta)
             loss_val = torch.stack(loss_val).sum().item()/count
         return loss_train, loss_val
