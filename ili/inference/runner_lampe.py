@@ -13,7 +13,6 @@ import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
 import lampe
-from lampe.inference import NPELoss
 from pathlib import Path
 from typing import Dict, List, Callable, Optional
 from torch.distributions import Distribution
@@ -172,7 +171,6 @@ class LampeRunner():
                 batch_size=self.train_args["training_batch_size"])
         else:
             raise ValueError("Loader must be a subclass of _BaseLoader.")
-
         return train_loader, val_loader
 
     def _loss(self, model, theta, x):
@@ -215,8 +213,6 @@ class LampeRunner():
 
         # initialize models
         x_, y_ = next(iter(train_loader))
-        if self.device is not None:
-            x_, y_ = x_.to(self.device), y_.to(self.device)
         models_rnd = [
             model(x_, y_, self.prior).to(self.device)
             for model in models

@@ -25,8 +25,8 @@ import lampe
 import zuko
 from tqdm import tqdm
 from typing import List, Any, Optional
-from collections.abc import Iterable
-from torch.distributions import biject_to, Distribution
+from copy import deepcopy
+from torch.distributions import Distribution
 from torch.distributions.transforms import (
     identity_transform, AffineTransform, Transform)
 
@@ -93,7 +93,6 @@ class LampeNPE(nn.Module):
         embedding_net: nn.Module = nn.Identity(),
         x_transform: Transform = identity_transform,
         theta_transform: Transform = identity_transform
-
     ):
         super().__init__()
         self.nde = nde
@@ -124,7 +123,7 @@ class LampeNPE(nn.Module):
 
     def flow(self, x: torch.Tensor):  # -> Distribution
         return self.nde.flow(
-            self.embedding_net(self.x_transform.inv(x)))
+            self.embedding_net(self.x_transform.inv(x)).float())
 
     def sample(
         self,
@@ -137,7 +136,7 @@ class LampeNPE(nn.Module):
         # check inputs
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
-            x = x.to(self._device)
+        x = x.to(self._device)
 
         # sample
         num_samples = np.prod(shape)
@@ -152,7 +151,7 @@ class LampeNPE(nn.Module):
         accepted = []
         while num_remaining > 0:
             candidates = self.theta_transform(
-                self.flow(x).sample((batch_size,)))  # .cpu()
+                self.flow(x).sample((batch_size,)))
             are_accepted = self.prior.support.check(candidates)
             samples = candidates[are_accepted]
             accepted.append(samples)
@@ -223,10 +222,10 @@ class LampeEnsemble(nn.Module):
 def load_nde_lampe(
         model: str,
         embedding_net: nn.Module = nn.Identity(),
-        device: Optional[str] = None,
+        device: Optional[str] = 'cpu',
         x_normalize: bool = True,
         theta_normalize: bool = True,
-        ** model_args):
+        **model_args):
     """Load an nde from lampe.
     Models include:
         - mdn: Mixture Density Network (https://publications.aston.ac.uk/id/eprint/373/1/NCRG_94_004.pdf)
@@ -246,6 +245,11 @@ def load_nde_lampe(
             One of: mdn, maf, nsf, ncsf, cnf, nice, sospf, gf, naf.
         embedding_net (nn.Module, optional): embedding network to use.
             Defaults to nn.Identity().
+        device (str, optional): device to use. Defaults to 'cpu'.
+        x_normalize (bool, optional): whether to z-normalize x.
+            Defaults to True.
+        theta_normalize (bool, optional): whether to z-normalize theta.
+            Defaults to True.
         **model_args: additional arguments to pass to the model.
     """
     if model == 'mdn':
@@ -278,6 +282,8 @@ def load_nde_lampe(
         elif model == 'unaf':
             flow_class = zuko.flows.neural.UNAF
 
+    embedding_net = deepcopy(embedding_net)
+
     def net_constructor(x_batch, theta_batch, prior):
         # pass data through embedding network
         z_batch = embedding_net(x_batch)
@@ -295,32 +301,31 @@ def load_nde_lampe(
             x_dim=z_shape[0],
             build=flow_class,
             **model_args
-        )
-        if device is not None:
-            nde = nde.to(device)
+        ).to(device)
 
         # determine transformations
         x_transform = identity_transform
         theta_transform = identity_transform
 
         if x_normalize:
-            x_mean = x_batch.mean(dim=0)
-            x_std = x_batch.std(dim=0)
+            x_mean = x_batch.mean(dim=0).to(device)
+            x_std = x_batch.std(dim=0).to(device)
             x_transform = AffineTransform(
                 loc=x_mean, scale=x_std, event_dim=1)
 
         if theta_normalize:
-            theta_mean = theta_batch.mean(dim=0)
-            theta_std = theta_batch.std(dim=0)
+            theta_mean = theta_batch.mean(dim=0).to(device)
+            theta_std = theta_batch.std(dim=0).to(device)
             theta_transform = AffineTransform(
                 loc=theta_mean, scale=theta_std, event_dim=1)
 
-        return LampeNPE(
+        npe = LampeNPE(
             nde=nde,
             embedding_net=embedding_net,
             prior=prior,
             x_transform=x_transform,
             theta_transform=theta_transform
-        )
+        ).to(device)
+        return npe
 
     return net_constructor
