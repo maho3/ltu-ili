@@ -80,8 +80,6 @@ class EmceeSampler(_MCMCSampler):
             skip_initial_state_check (bool, optional): If True, a check that 
                 the initial_state can fully explore the space will be skipped. 
                 Defaults to False.
-
-
         """
         # calculate number of samples per chain
         per_chain = ceil(nsteps / self.num_chains)
@@ -91,7 +89,7 @@ class EmceeSampler(_MCMCSampler):
             res = self.posterior.potential(
                 t.astype(np.float32), x.astype(np.float32))
             if hasattr(res, 'cpu'):
-                res = np.array(res.cpu())
+                res = np.array(res.detach().cpu())
             return res
 
         # Initialize walkers

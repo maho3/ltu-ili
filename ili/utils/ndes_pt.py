@@ -111,7 +111,10 @@ class LampeNPE(nn.Module):
         # check inputs
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
+        if isinstance(theta, (list, np.ndarray)):
+            theta = torch.Tensor(theta)
         x = x.to(self._device)
+        theta = theta.to(self._device)
 
         logprob = self.nde(
             self.theta_transform.inv(theta),
@@ -120,6 +123,8 @@ class LampeNPE(nn.Module):
             theta, theta  # just for shape
         )  # for Affine/IdentityTransform, this outputs a constant
         return logprob - log_abs_det_jacobian
+
+    potential = forward
 
     def flow(self, x: torch.Tensor):  # -> Distribution
         return self.nde.flow(
@@ -140,6 +145,8 @@ class LampeNPE(nn.Module):
 
         # sample
         num_samples = np.prod(shape)
+        if num_samples == 0:
+            return torch.empty(shape)
         pbar = tqdm(
             disable=not show_progress_bars,
             total=num_samples,
@@ -189,6 +196,8 @@ class LampeEnsemble(nn.Module):
             weight * npe(theta, x)
             for weight, npe in zip(self.weights, self.posteriors)
         ], dim=-1)
+
+    potential = forward
 
     def sample(
         self,
@@ -285,6 +294,9 @@ def load_nde_lampe(
     embedding_net = deepcopy(embedding_net)
 
     def net_constructor(x_batch, theta_batch, prior):
+        if hasattr(embedding_net, 'initalize_model'):
+            embedding_net.initalize_model(x_batch.shape[-1])
+
         # pass data through embedding network
         z_batch = embedding_net(x_batch)
         z_shape = z_batch.shape[1:]
