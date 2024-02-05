@@ -27,8 +27,7 @@ def test_npe(monkeypatch):
     monkeypatch.setattr(plt, 'show', lambda: None)
 
     # construct a working directory
-    if not os.path.isdir("toy"):
-        os.mkdir("toy")
+    os.mkdirs("./toy_lampe", exist_ok=True)
 
     # create synthetic catalog
     def simulator(params):
@@ -113,11 +112,11 @@ def test_npe(monkeypatch):
     log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
 
     # use ltu-ili's built-in validation metrics to plot the posterior
-    if os.path.isfile('./toy/single_samples.npy'):
-        os.remove('./toy/single_samples.npy')
+    if os.path.isfile('./toy_lampe/single_samples.npy'):
+        os.remove('./toy_lampe/single_samples.npy')
 
     metric = PlotSinglePosterior(
-        out_dir='./toy', num_samples=nsamples,
+        out_dir='./toy_lampe', num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
         seed=1, save_samples=True
     )
@@ -127,11 +126,11 @@ def test_npe(monkeypatch):
         x=x, theta=theta
     )
     # check that samples were saved
-    unittest.TestCase().assertTrue(os.path.isfile('./toy/single_samples.npy'))
+    unittest.TestCase().assertTrue(os.path.isfile('./toy_lampe/single_samples.npy'))
 
     # calculate and plot the rank statistics + TARP to describe univariate
     metric = PosteriorCoverage(
-        out_dir=Path('./toy'), num_samples=nsamples,
+        out_dir=Path('./toy_lampe'), num_samples=nsamples,
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
         plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"],
         save_samples=True,
