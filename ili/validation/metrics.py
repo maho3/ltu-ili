@@ -19,6 +19,7 @@ try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     from sbi.inference.posteriors import DirectPosterior
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+    from ili.utils.ndes_pt import LampeNPE, LampeEnsemble
     ModelClass = NeuralPosterior
     import tarp  # doesn't yet work with pydelfi/python 3.6
     backend = 'torch'
@@ -102,6 +103,10 @@ class _SampleBasedMetric(_BaseMetric):
                 return DirectSampler(posterior)
             # Second case (when ValidationRunner.ensemble_mode = False)
             elif isinstance(posterior, DirectPosterior):
+                return DirectSampler(posterior)
+            # Third case: we have a Lampe NPE poterior
+            elif (isinstance(posterior, LampeNPE) or
+                  isinstance(posterior, LampeEnsemble)):
                 return DirectSampler(posterior)
             else:
                 raise ValueError(
@@ -225,7 +230,7 @@ class PosteriorSamples(_SampleBasedMetric):
 
         # Calculate shape of posterior samples
         _t = posterior.prior.sample()
-        Ntest = x.shape[0]
+        Ntest = len(x)
         Nparams = _t.shape[0]
         Nsamps = self.num_samples
 
@@ -615,6 +620,8 @@ class PosteriorCoverage(PosteriorSamples):
             bootstrap (bool, optional): whether to use bootstrapping.
                 Defaults to True.
         """
+        theta = np.array(theta)
+
         # Sample the full dataset
         if self.save_samples:
             # Call PosteriorSamples to calculate and save samples

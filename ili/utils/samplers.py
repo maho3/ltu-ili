@@ -8,6 +8,8 @@ import os
 import numpy as np
 import emcee
 from abc import ABC
+from collections.abc import Sequence
+from typing import Any
 from math import ceil
 
 try:
@@ -78,8 +80,6 @@ class EmceeSampler(_MCMCSampler):
             skip_initial_state_check (bool, optional): If True, a check that 
                 the initial_state can fully explore the space will be skipped. 
                 Defaults to False.
-
-
         """
         # calculate number of samples per chain
         per_chain = ceil(nsteps / self.num_chains)
@@ -89,7 +89,7 @@ class EmceeSampler(_MCMCSampler):
             res = self.posterior.potential(
                 t.astype(np.float32), x.astype(np.float32))
             if hasattr(res, 'cpu'):
-                res = np.array(res.cpu())
+                res = np.array(res.detach().cpu())
             return res
 
         # Initialize walkers
@@ -216,7 +216,7 @@ class DirectSampler(ABC):
     def __init__(self, posterior: ModelClass) -> None:
         self.posterior = posterior
 
-    def sample(self, nsteps: int, x: np.ndarray, progress: bool = False) -> np.ndarray:
+    def sample(self, nsteps: int, x: Any, progress: bool = False) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -226,8 +226,14 @@ class DirectSampler(ABC):
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
         """
+        try:
+            x = torch.as_tensor(x)
+            if hasattr(self.posterior, '_device'):
+                x = x.to(self.posterior._device)
+        except ValueError:
+            pass
         return self.posterior.sample(
-            (nsteps,), x=torch.Tensor(x).to(self.posterior._device),
+            (nsteps,), x=x,
             show_progress_bars=progress
         ).detach().cpu().numpy()
 
