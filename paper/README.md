@@ -1,0 +1,3 @@
+This directory contains scripts and notebooks necessary for running the examples described in the software release paper (arxiv:XXXXX).
+
+Currently, the examples are not conveniently built for running but are provided as reference to the configurations used for the paper. This directory will eventually be updated to include a more unified and accessible interface, as well as public data hosting. If you are interested in using any of the quoted datasets, contact the corresponding author, Matthew Ho at <matthew.annam.ho@gmail.com>.
