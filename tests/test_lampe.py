@@ -256,10 +256,15 @@ def test_yaml():
 
     # Yaml file for infer
     data = dict(
-        prior={
+        proposal={
             'module': 'ili.utils',
             'class': 'Uniform',
             'args': {'low': [0, 0, 0], 'high': [1, 1, 1]},
+        },
+        prior={
+            'module': 'ili.utils',
+            'class': 'IndependentNormal',
+            'args': {'loc': [0, 0, 0], 'scale': [0.1, 0.1, 0.1]},
         },
         model={
             'engine': 'NPE',
@@ -305,4 +310,54 @@ def test_yaml():
 
 
 def test_universal(monkeypatch):
-    pass
+    # construct a working directory
+    os.makedirs("./toy_lampe", exist_ok=True)
+
+    # create synthetic catalog
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
+
+    theta = np.random.rand(100, 3)  # 100 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+
+    # define a prior
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
+
+    # define training arguments
+    nets = [
+        ili.utils.load_nde_lampe(
+            model='mdn', hidden_features=50, num_components=2),
+    ]
+
+    # check that the correct trainers are loaded
+    runner = InferenceRunner.load(
+        backend='lampe',
+        engine='NPE',
+        prior=prior,
+        nets=nets
+    )
+    assert isinstance(runner, LampeRunner)
+
+    # test wrong engine
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='lampe',
+        engine='ANDRE',
+        prior=prior,
+        nets=nets
+    )
+
+    # test wrong backend
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='pydelfi',
+        engine='NPE',
+        prior=prior,
+        nets=nets
+    )
