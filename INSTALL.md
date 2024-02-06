@@ -1,36 +1,30 @@
 Installation
 ============
 
-There are two backends to ltu-ili which provide access to different inference engines, namely [sbi](https://github.com/mackelab/sbi), [lampe](https://lampe.readthedocs.io/en/stable/index.html), and [pydelfi](https://github.com/justinalsing/pydelfi). sbi and lampe use a PyTorch backend, while pydelfi uses Tensorflow. This codebase provides simultaneous support for both of these backends, but they cannot (yet!) be installed at the same time due to dependency issues. As a result, we recommend you install them separately in two distinct virtual environments.
+There are two distinct installations of ltu-ili which provide access to different inference engines, namely the pytorch ([sbi](https://github.com/mackelab/sbi) and [lampe](https://lampe.readthedocs.io/en/stable/index.html)) and the tensorflow ([pydelfi](https://github.com/justinalsing/pydelfi)) installations. This codebase provides simultaneous support for both of these backends, but they cannot (yet!) be installed at the same time due to dependency issues. As a result, we recommend you install them separately in two distinct virtual environments.
 
 **Note**: The pydelfi backend requires tensorflow==1.15, which fails on Mac OS with M1/M2 chips.
 
 ## Basic installation
 
-Here is a quick guide for getting started with the ltu-ili framework.
+First, create a virtual environment with an appropriate Python version for your choice of backend (i.e. Python>=3.7 for sbi/lampe or Python==3.6 for pydelfi). Then, install `ltu-ili` with a direct link to the Github. That is, do either:
+```bash
+# to install with torch (sbi/lampe)
+conda create -n ili-torch python=3.10 
+conda activate ili-torch
+pip install --upgrade pip
+pip install -e git+https://github.com/maho3/ltu-ili#egg=ltu-ili
+```
+OR
+```bash
+# to install with tensorflow (pydelfi)
+conda create -n ili-tf python=3.6
+conda activate ili-tf
+pip install --upgrade pip
+pip install -e git+https://github.com/maho3/ltu-ili#egg=ltu-ili
+```
+Note, the `ltu-ili` installation will automatically recognize your python version and install the appropriate backend (pytorch or tensorflow).
 
-1. First, clone the main branch of the ltu-ili repository onto your local machine.
-    ```bash
-    git clone git@github.com:maho3/ltu-ili.git
-    ```
-2. Next, create a new virtual environment with an appropriate python version for your choice of backend (i.e. Python>=3.7 for sbi/lampe or Python==3.6 for pydelfi). Then, install the appropriate configuration of ltu-ili into your environment with `pip install -e`. Below is code for installing ltu-ili with the torch backend with [conda](https://docs.anaconda.com/):
-    ```bash
-    # install with torch
-    conda create -n ili-torch python=3.10
-    conda activate ili-torch
-    pip install --upgrade pip
-    pip install -e "ltu-ili[torch]"
-    ```
-    and below is the equivalent for the tensorflow backend:
-    ```bash
-    # install with tf backend
-    conda create -n ili-tf python=3.6
-    conda activate ili-tf
-    pip install --upgrade pip
-    pip install -e "ltu-ili[tensorflow]"
-    ```
-
-After this, ltu-ili and all its required dependencies should be correctly set up in your virtual environment.
 ## Verify installation
 
 ### Toy example
