@@ -279,6 +279,13 @@ def test_yaml():
     data['model']['name'] = 'test_lampe'
     with open('./toy_lampe/infer.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
+    data['embedding_net'] = {
+        'module': 'ili.embedding',
+        'class': 'FCN',
+        'args': {'n_hidden': [10, 10], 'act_fn': 'SiLU'}
+    }
+    with open('./toy_lampe/infer_embed.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for validation
     data = dict(
@@ -303,6 +310,8 @@ def test_yaml():
     runner = LampeRunner.from_config("./toy_lampe/infer.yml")
     runner(loader=all_loader)
     runner = LampeRunner.from_config("./toy_lampe/infer_noname.yml")
+    runner(loader=all_loader)
+    runner = LampeRunner.from_config("./toy_lampe/infer_embed.yml")
     runner(loader=all_loader)
     ValidationRunner.from_config("./toy_lampe/val.yml")
 

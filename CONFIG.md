@@ -92,7 +92,7 @@ save_simulated: False  # whether to concatenate the simulated data into x_file a
 You are also welcome to design your own dataloading objects. They will work with NPE/NLE/NRE models so long as they contain the functions: `__len__`, `get_all_data`, and `get_all_parameters`. For SNPE/SNLE/SNRE models, they must also contain the `simulate` and `get_obs_data` functions. See the [_BaseLoader](./ili/dataloaders/loaders.py#L20) template for more details.
 
 ## Training
-There are three available ILI backend for ltu-ili, including `sbi` (PyTorch), `pydelfi` (Tensorflow), and `lampe` (PyTorch). Each of these engines can be configured from a `yaml`-like configuration file or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb) or [lampe.ipynb](notebooks/lampe.ipynb).
+There are three available ILI backends for ltu-ili, including `sbi` (PyTorch), `pydelfi` (Tensorflow), and `lampe` (PyTorch). Each of these engines can be configured from a `yaml`-like configuration file or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb) or [lampe.ipynb](notebooks/lampe.ipynb).
 
 Here's a detailed example of using the universal [`InferenceRunner`](ili/inference/runner.py#L18) class to train Neural Posterior Estimation (NPE) using the `sbi` backend and an ensemble of architectures: a mixture density network (`mdn`), a masked autoregressive flows (`maf`), and a neural spline flow (`nsf`).
 

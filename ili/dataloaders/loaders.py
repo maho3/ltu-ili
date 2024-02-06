@@ -507,23 +507,25 @@ class TorchLoader(_BaseLoader):
         Returns:
             int: length of dataset
         """
-        return len(self.train_loader)
+        return len(self.train_loader.dataset)
 
     def get_all_data(self) -> Tensor:
         """Returns all the loaded data for training.
+        May need to be redefined for complex dataloaders.
 
         Returns:
             Tensor: data
         """
-        return self.train_loader.dataset
+        return self.train_loader.dataset.tensors[0]
 
     def get_all_parameters(self):
-        """Returns all the loaded parameters for training
+        """Returns all the loaded parameters for training.
+        May need to be redefined for complex dataloaders.
 
         Returns:
             Tensor: parameters
         """
-        return self.train_loader.dataset.y
+        return self.train_loader.dataset.tensors[1]
 
     def get_obs_data(self) -> Tensor:
         """Returns the observed data

@@ -17,7 +17,8 @@ import unittest
 
 import ili
 from ili.dataloaders import (
-    NumpyLoader, SBISimulator, StaticNumpyLoader, SummarizerDatasetLoader)
+    NumpyLoader, SBISimulator, StaticNumpyLoader, SummarizerDatasetLoader,
+    TorchLoader)
 from ili.inference import (
     SBIRunner, SBIRunnerSequential, ABCRunner, InferenceRunner)
 from ili.validation.metrics import (
@@ -1064,7 +1065,23 @@ def test_loaders():
     loader = NumpyLoader(x, theta)
     unittest.TestCase().assertEqual(len(x), len(loader))
 
+    # Check TorchLoader
+    dataset = torch.utils.data.TensorDataset(
+        torch.Tensor(x), torch.Tensor(theta))
+    dataloader = torch.utils.data.DataLoader(
+        dataset, batch_size=32, shuffle=True)
+    loader = TorchLoader(train_loader=dataloader, val_loader=dataloader,
+                         xobs=torch.Tensor(x[0]), thetafid=torch.Tensor(theta[0]))
+    unittest.TestCase().assertEqual(len(loader), len(dataset))
+    x_, y_ = loader.get_all_data(), loader.get_all_parameters()
+    unittest.TestCase().assertIsInstance(x_, torch.Tensor)
+    unittest.TestCase().assertIsInstance(y_, torch.Tensor)
+    x_, y_ = loader.get_obs_data(), loader.get_fid_parameters()
+    unittest.TestCase().assertIsInstance(x_, torch.Tensor)
+    unittest.TestCase().assertIsInstance(y_, torch.Tensor)
+
     # check a dataloader with no data has zero length
+
     def simulator(params):
         # create toy 'simulations'
         x = np.arange(10)
