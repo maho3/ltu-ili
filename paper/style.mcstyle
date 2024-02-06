@@ -1,0 +1,36 @@
+figure.figsize: 10,6
+figure.facecolor: white
+figure.dpi: 200
+
+savefig.dpi: 200
+savefig.bbox: tight
+
+font.size: 14
+font.weight: 300
+
+
+xtick.major.width: 1
+ytick.major.width: 1
+xtick.labelsize: small
+ytick.labelsize: small
+xtick.top: True
+ytick.right: True
+xtick.direction: in
+ytick.direction: in
+xtick.minor.visible: True
+ytick.minor.visible: True
+xtick.major.size: 5
+ytick.major.size: 5
+xtick.minor.size: 3
+ytick.minor.size: 3
+
+legend.fontsize: small
+
+lines.linewidth: 2
+
+image.origin: lower
+
+mathtext.fontset: cm
+
+savefig.edgecolor: white
+savefig.facecolor: white
