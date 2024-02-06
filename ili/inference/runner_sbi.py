@@ -22,7 +22,11 @@ logging.basicConfig(level=logging.INFO)
 
 
 class SBIRunner(_BaseRunner):
-    """Class to train posterior inference models using the sbi package
+    """Class to train posterior inference models using the sbi package.
+    Follows methodology of:
+        * engine='NPE': https://arxiv.org/abs/1905.07488
+        * engine='NLE': https://arxiv.org/abs/1805.07226
+        * engine='NRE': https://arxiv.org/pdf/2002.03712
 
     Args:
         prior (Distribution): prior on the parameters
@@ -37,9 +41,6 @@ class SBIRunner(_BaseRunner):
         proposal (Distribution): proposal distribution from which existing
             simulations were run, for single round inference only. By default,
             sbi will set proposal = prior unless a proposal is specified.
-            While it is possible to choose a prior on parameters different
-            than the proposal for SNPE, we advise to leave proposal to None
-            unless for test purposes.
         name (str): name of the model (for saving purposes)
         signatures (List[str]): list of signatures for each neural net
     """
@@ -275,7 +276,12 @@ class SBIRunner(_BaseRunner):
 class SBIRunnerSequential(SBIRunner):
     """
     Class to train posterior inference models using the sbi package with
-    multiple rounds
+    multiple rounds.
+
+    Follows methodology of:
+        * engine='SNPE': https://arxiv.org/abs/1905.07488
+        * engine='SNLE': https://arxiv.org/abs/1805.07226
+        * engine='SNRE': https://arxiv.org/pdf/2002.03712
     """
 
     def __call__(self, loader: _BaseLoader, seed: int = None):

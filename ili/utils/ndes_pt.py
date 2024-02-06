@@ -25,8 +25,8 @@ import lampe
 import zuko
 from tqdm import tqdm
 from typing import List, Any, Optional
-from collections.abc import Iterable
-from torch.distributions import biject_to, Distribution
+from copy import deepcopy
+from torch.distributions import Distribution
 from torch.distributions.transforms import (
     identity_transform, AffineTransform, Transform)
 
@@ -93,7 +93,6 @@ class LampeNPE(nn.Module):
         embedding_net: nn.Module = nn.Identity(),
         x_transform: Transform = identity_transform,
         theta_transform: Transform = identity_transform
-
     ):
         super().__init__()
         self.nde = nde
@@ -112,15 +111,26 @@ class LampeNPE(nn.Module):
         # check inputs
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
+        if isinstance(theta, (list, np.ndarray)):
+            theta = torch.Tensor(theta)
         x = x.to(self._device)
-        # sample
-        return self.nde(
+        theta = theta.to(self._device)
+
+        logprob = self.nde(
             self.theta_transform.inv(theta),
             self.embedding_net(self.x_transform.inv(x)))
+        log_abs_det_jacobian = self.theta_transform.log_abs_det_jacobian(
+            theta, theta  # just for shape
+        )  # for Affine/IdentityTransform, this outputs a constant
+        return logprob - log_abs_det_jacobian
+
+    potential = forward
 
     def flow(self, x: torch.Tensor):  # -> Distribution
+        if hasattr(x, 'float'):
+            x = x.float()
         return self.nde.flow(
-            self.embedding_net(self.x_transform.inv(x)))
+            self.embedding_net(self.x_transform.inv(x)).float())
 
     def sample(
         self,
@@ -137,6 +147,8 @@ class LampeNPE(nn.Module):
 
         # sample
         num_samples = np.prod(shape)
+        if num_samples == 0:
+            return torch.empty(shape)
         pbar = tqdm(
             disable=not show_progress_bars,
             total=num_samples,
@@ -148,7 +160,7 @@ class LampeNPE(nn.Module):
         accepted = []
         while num_remaining > 0:
             candidates = self.theta_transform(
-                self.flow(x).sample((batch_size,)))  # .cpu()
+                self.flow(x).sample((batch_size,)))
             are_accepted = self.prior.support.check(candidates)
             samples = candidates[are_accepted]
             accepted.append(samples)
@@ -187,6 +199,8 @@ class LampeEnsemble(nn.Module):
             for weight, npe in zip(self.weights, self.posteriors)
         ], dim=-1)
 
+    potential = forward
+
     def sample(
         self,
         shape: tuple,
@@ -205,6 +219,7 @@ class LampeEnsemble(nn.Module):
             nde.sample((int(N),), x, show_progress_bars=show_progress_bars)
             for nde, N in zip(self.posteriors, per_model)
         ], dim=0)
+        samples = samples[:num_samples]
         return samples.reshape(*shape, -1)
 
     def log_prob(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -218,17 +233,34 @@ class LampeEnsemble(nn.Module):
 def load_nde_lampe(
         model: str,
         embedding_net: nn.Module = nn.Identity(),
-        device: Optional[str] = None,
+        device: Optional[str] = 'cpu',
         x_normalize: bool = True,
         theta_normalize: bool = True,
-        ** model_args):
+        **model_args):
     """Load an nde from lampe.
+    Models include:
+        - mdn: Mixture Density Network (https://publications.aston.ac.uk/id/eprint/373/1/NCRG_94_004.pdf)
+        - maf: Masked Autoregressive Flow (https://arxiv.org/abs/1705.07057)
+        - nsf: Neural Spline Flow (https://arxiv.org/abs/1906.04032)
+        - cnf: Continuous Normalizing Flow (https://arxiv.org/abs/1810.01367)
+        - nice: Non-linear Independent Components Estimation (https://arxiv.org/abs/1410.8516)
+        - gf: Gaussianization Flow (https://arxiv.org/abs/2003.01941)
+        - sospf: Sum-of-Squares Polynomial Flow (https://arxiv.org/abs/1905.02325)
+        - naf: Neural Autoregressive Flow (https://arxiv.org/abs/1804.00779)
+        - unaf: Unconstrained Neural Autoregressive Flow (https://arxiv.org/abs/1908.05164)
+
+    For more info, see zuko at https://zuko.readthedocs.io/en/stable/index.html
 
     Args:
         model (str): model to use.
-            One of: mdn, maf, nsf
+            One of: mdn, maf, nsf, ncsf, cnf, nice, sospf, gf, naf.
         embedding_net (nn.Module, optional): embedding network to use.
             Defaults to nn.Identity().
+        device (str, optional): device to use. Defaults to 'cpu'.
+        x_normalize (bool, optional): whether to z-normalize x.
+            Defaults to True.
+        theta_normalize (bool, optional): whether to z-normalize theta.
+            Defaults to True.
         **model_args: additional arguments to pass to the model.
     """
     if model == 'mdn':
@@ -237,19 +269,36 @@ def load_nde_lampe(
         model_args['hidden_features'] = [model_args['hidden_features']] * 3
         model_args['components'] = model_args.pop('num_components', 2)
         flow_class = zuko.flows.mixture.GMM
-    else:
+    else:  # for all flow models
         if not (set(model_args.keys()) <= {'hidden_features', 'num_transforms'}):
             raise ValueError(f"Model {model} arguments mispecified.")
         model_args['hidden_features'] = [
             model_args['hidden_features']] * 2
         model_args['transforms'] = model_args.pop('num_transforms', 2)
 
-    if model == 'maf':
-        flow_class = zuko.flows.autoregressive.MAF
-    elif model == 'nsf':
-        flow_class = zuko.flows.spline.NSF
+        if model == 'maf':
+            flow_class = zuko.flows.autoregressive.MAF
+        elif model == 'nsf':
+            flow_class = zuko.flows.spline.NSF
+        elif model == 'cnf':
+            flow_class = zuko.flows.continuous.CNF
+        elif model == 'nice':
+            flow_class = zuko.flows.coupling.NICE
+        elif model == 'gf':
+            flow_class = zuko.flows.gaussianization.GF
+        elif model == 'sospf':
+            flow_class = zuko.flows.polynomial.SOSPF
+        elif model == 'naf':
+            flow_class = zuko.flows.neural.NAF
+        elif model == 'unaf':
+            flow_class = zuko.flows.neural.UNAF
+
+    embedding_net = deepcopy(embedding_net)
 
     def net_constructor(x_batch, theta_batch, prior):
+        if hasattr(embedding_net, 'initalize_model'):
+            embedding_net.initalize_model(x_batch.shape[-1])
+
         # pass data through embedding network
         z_batch = embedding_net(x_batch)
         z_shape = z_batch.shape[1:]
@@ -266,30 +315,31 @@ def load_nde_lampe(
             x_dim=z_shape[0],
             build=flow_class,
             **model_args
-        )
-        if device is not None:
-            nde = nde.to(device)
+        ).to(device)
 
         # determine transformations
         x_transform = identity_transform
         theta_transform = identity_transform
 
         if x_normalize:
-            x_mean = x_batch.mean(dim=0)
-            x_std = x_batch.std(dim=0)
-            x_transform = AffineTransform(loc=x_mean, scale=x_std)
+            x_mean = x_batch.mean(dim=0).to(device)
+            x_std = x_batch.std(dim=0).to(device)
+            x_transform = AffineTransform(
+                loc=x_mean, scale=x_std, event_dim=1)
 
         if theta_normalize:
-            theta_mean = theta_batch.mean(dim=0)
-            theta_std = theta_batch.std(dim=0)
-            theta_transform = AffineTransform(loc=theta_mean, scale=theta_std)
+            theta_mean = theta_batch.mean(dim=0).to(device)
+            theta_std = theta_batch.std(dim=0).to(device)
+            theta_transform = AffineTransform(
+                loc=theta_mean, scale=theta_std, event_dim=1)
 
-        return LampeNPE(
+        npe = LampeNPE(
             nde=nde,
             embedding_net=embedding_net,
             prior=prior,
             x_transform=x_transform,
             theta_transform=theta_transform
-        )
+        ).to(device)
+        return npe
 
     return net_constructor

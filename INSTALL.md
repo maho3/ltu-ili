@@ -12,14 +12,16 @@ First, create a virtual environment with an appropriate Python version for your 
 # to install with torch (sbi/lampe)
 conda create -n ili-torch python=3.10 
 conda activate ili-torch
-pip install -e git+https://github.com/maho3/ltu-ili
+pip install --upgrade pip
+pip install -e git+https://github.com/maho3/ltu-ili#egg=ltu-ili
 ```
 OR
 ```bash
 # to install with tensorflow (pydelfi)
 conda create -n ili-tf python=3.6
 conda activate ili-tf
-pip install -e git+https://github.com/maho3/ltu-ili
+pip install --upgrade pip
+pip install -e git+https://github.com/maho3/ltu-ili#egg=ltu-ili
 ```
 Note, the `ltu-ili` installation will automatically recognize your python version and install the appropriate backend (pytorch or tensorflow).
 

@@ -141,6 +141,7 @@ dmypy.json
 *toy
 *ltu-ili-data
 *toy_pydelfi
+*toy_lampe
 
 # swp
 *.swp

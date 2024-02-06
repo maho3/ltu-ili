@@ -410,6 +410,16 @@ def test_universal():
         config_ndes=config_ndes,
     )
 
+    # you can't load a lampe backend in the tf interface
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='lampe',
+        engine='NLE',
+        prior=prior,
+        config_ndes=config_ndes,
+    )
+
     netcfg = [
         dict(model='maf', hidden_features=50, num_transforms=5),
         dict(model='mdn', hidden_features=50, num_components=2)

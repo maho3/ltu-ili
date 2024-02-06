@@ -68,8 +68,35 @@ jobs:
           name: coverage_pydelfi
           path: .coverage_pydelfi
 
+  lampe_build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 pytest
+          pip install -e .[torch]
+          pip install coverage pytest
+      - name: Test with pytest
+        run: |
+          echo "Running lampe tests"
+          COVERAGE_FILE=.coverage_lampe python3 -m coverage run --source=ili -m pytest tests/test_lampe.py
+        shell: bash
+      - name: Archive lampe code coverage results
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage_lampe
+          path: .coverage_lampe
+
   combine_tests:
-    needs: [sbi_build, pydelfi_build]
+    needs: [sbi_build, pydelfi_build, lampe_build]
     runs-on: ubuntu-latest
 
     steps:
@@ -86,7 +113,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install coverage pytest
-          coverage combine coverage_sbi/.coverage_sbi coverage_pydelfi/.coverage_pydelfi
+          coverage combine coverage_sbi/.coverage_sbi coverage_pydelfi/.coverage_pydelfi coverage_lampe/.coverage_lampe
           coverage xml -o coverage.xml
           coverage report -m
         shell: bash
