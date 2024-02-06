@@ -1,4 +1,4 @@
 from .loaders import (
     _BaseLoader, NumpyLoader, StaticNumpyLoader,
-    SummarizerDatasetLoader, SBISimulator
+    SummarizerDatasetLoader, SBISimulator, TorchLoader
 )

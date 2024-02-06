@@ -30,12 +30,13 @@ We will now describe and provide examples of each of these configuration files.
 
 ## Data Loading
 We provide four primary objects for dataloading:
-- [`NumpyLoader`](./ili/dataloaders/loaders.py#L47): Loads data and parameters from `np.array`'s stored in memory.
-- [`StaticNumpyLoader`](./ili/dataloaders/loaders.py#L81): Loads data and parameters from `.npy` files on disk.
-- [`SBISimulator`](./ili/dataloaders/loaders.py#L208): Contains a `simulate` function which, when given new parameters, generates new data. This interface is then used to train multiround inference with e.g. `SBIRunnerSequential`. It also can seperately load `.npy` files of test data and parameters from disk, for validation.
-- [`SummarizerDatasetLoader`](./ili/dataloaders/loaders.py#L101): Loads data following the [`ili_summarizer.Dataset`](https://github.com/florpi/ili-summarizer/blob/3d9d4005cfbc187afdbfbed2a5a4414bc07902ef/summarizer/dataset.py#L6) convention, as `xarray.DataArray`'s stored in `.nc` files on disk. Also, it loads parameters from `.txt` files on disk.
+- [`NumpyLoader`](./ili/dataloaders/loaders.py#L139): Loads data and parameters from `np.array`'s stored in memory.
+- [`StaticNumpyLoader`](./ili/dataloaders/loaders.py#L212): Loads data and parameters from `.npy` files on disk.
+- [`SBISimulator`](./ili/dataloaders/loaders.py#L254): Contains a `simulate` function which, when given new parameters, generates new data. This interface is then used to train multiround inference with e.g. `SBIRunnerSequential`. It also can seperately load `.npy` files of test data and parameters from disk, for validation.
+- [`SummarizerDatasetLoader`](./ili/dataloaders/loaders.py#L365): Loads data following the [`ili_summarizer.Dataset`](https://github.com/florpi/ili-summarizer/blob/3d9d4005cfbc187afdbfbed2a5a4414bc07902ef/summarizer/dataset.py#L6) convention, as `xarray.DataArray`'s stored in `.nc` files on disk. Also, it loads parameters from `.txt` files on disk.
+- [`TorchLoader`](.ili/dataloaders/loaders.py#L480): Allows users to custom define PyTorch `Dataloader` objects for more complex data loading tasks. Useful for loading data dynamically from disk or exotic data formats (e.g. graphs).
 
-`NumpyLoader`s are only built from inline initialization, but the remaining classes can take config files that look like:
+`NumpyLoader` and `TorchLoader` objects are only built from inline initialization, but the remaining classes can take config files that look like:
 
 ```bash
 # StaticNumpyLoader configuration
@@ -91,9 +92,9 @@ save_simulated: False  # whether to concatenate the simulated data into x_file a
 You are also welcome to design your own dataloading objects. They will work with NPE/NLE/NRE models so long as they contain the functions: `__len__`, `get_all_data`, and `get_all_parameters`. For SNPE/SNLE/SNRE models, they must also contain the `simulate` and `get_obs_data` functions. See the [_BaseLoader](./ili/dataloaders/loaders.py#L20) template for more details.
 
 ## Training
-There are three available training engines in ltu-ili, SBIRunner and SBIRunnerSequential for `sbi` (PyTorch) models, and PydelfiRunner for `pydelfi` (Tensorflow) models. Each of these engines can be configured from a `yaml`-like configuration file or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb).
+There are three available ILI backends for ltu-ili, including `sbi` (PyTorch), `pydelfi` (Tensorflow), and `lampe` (PyTorch). Each of these engines can be configured from a `yaml`-like configuration file or from iPython initialization as in [tutorial.ipynb](notebooks/tutorial.ipynb) or [lampe.ipynb](notebooks/lampe.ipynb).
 
-Here's a detailed example of an `InferenceRunner` configuration for training Sequential Neural Posterior Estimation (SNPE) using the `sbi` backend and an ensemble of architectures: a mixture density network (`mdn`), a masked autoregressive flows (`maf`), and a neural spline flow (`nsf`).
+Here's a detailed example of using the universal [`InferenceRunner`](ili/inference/runner.py#L18) class to train Neural Posterior Estimation (NPE) using the `sbi` backend and an ensemble of architectures: a mixture density network (`mdn`), a masked autoregressive flows (`maf`), and a neural spline flow (`nsf`).
 
 ```yaml
 # Specify prior (same as initial proposal distribution)
@@ -115,8 +116,8 @@ embedding_net:
 # Specify the inference model
 model:
   backend: 'sbi'  # sbi or pydelfi
-  engine: 'SNPE'  # Sequential Neural Posterior Estimation
-  name: "toy_SNPE"  # name of the ensemble posterior
+  engine: 'NPE'  # Sequential Neural Posterior Estimation
+  name: "toy_NPE"  # name of the ensemble posterior
   nets:
     - model: 'mdn'  # Mixture Density Network
       hidden_features: 50  # width of hidden layers
@@ -152,21 +153,21 @@ Now, let's break down each of these configuration parameters.
 
 The **prior** distribution specifies our prior belief on the true distribution of the inference parameters. We include a variety of pre-implemented distributions, listed for each backend in [this file](./ili/utils/__init__.py).
 
-The **embedding_net** configuration allows one to specify additional neural layers which will prepend the input layer of the above neural density estimators. This can be used to extract more complex features from the data. We provide an example of a fully-connected network (`ili.embedding.FCN`), but we also have an example of a CNN-like embedding network in [tutorial.ipynb](notebooks/tutorial.ipynb).
+The **embedding_net** configuration allows one to specify additional neural layers which will prepend the input layer of the above neural density estimators. This can be used to extract more complex features from the data. We provide an example of a fully-connected network (`ili.embedding.FCN`), but we also have an example of a CNN-like embedding network in [tutorial.ipynb](notebooks/tutorial.ipynb) and a graph neural embedding network in [lampe.ipynb](notebooks/lampe.ipynb).
 
-The **model** configuration specifies how we train our neural networks to produce posterior inference. There are two available backends (`sbi` or `pydelfi`) and six available training engines: Neural Posterior Estimation (`NPE`), Neural Likelihood Estimation (`NLE`), and Neural Ratio Estimation (`NRE`). We have provided links (and references therein) to the implementation of each of these methods, but for a general review of the differences between these models, see Section 3B in [Cranmer et al. 2020](https://arxiv.org/abs/1911.01429).
+The **model** configuration specifies how we train our neural networks to produce posterior inference. There are three available backends (`sbi`, `pydelfi`, `lampe`) and six available training engines: Neural Posterior Estimation (`NPE`), Neural Likelihood Estimation (`NLE`), and Neural Ratio Estimation (`NRE`). We have provided links (and references therein) to the implementation of each of these methods, but for a general review of the differences between these models, see Section 3B in [Cranmer et al. 2020](https://arxiv.org/abs/1911.01429).
 
 The **model** configuration allows you to specify an ensemble of independently-trained neural density estimators. The configuration options for each NDE is given in [this file](./ili/utils/ndes.py).
 
 Only certain NDEs and training engines are compatible with either the sbi or pydelfi backends. See the table below for a summary of the available options:
 
-| Training Engine | sbi | pydelfi |
-|----------|----------|----------|
-|   Neural Posterior Estimation (`NPE`, `SNPE`)   |   mdn, maf, nsf, made   |      |
-|   Neural Likelihood Estimation (`NLE`, `SNLE`)   |   mdn, maf, nsf, made   |   mdn, maf   |
-|   Neural Ratio Estimation (`NRE`, `SNRE`)   |   linear, mlp, resnet   |      |
+| Training Engine | sbi | pydelfi | lampe |
+|----------|----------|----------|----------|
+|  `NPE`,`SNPE`   |   mdn, maf, nsf, made   |      | maf, nsf, cnf, nice, gf, sospf, naf, unaf |
+|  `NLE`, `SNLE`   |   mdn, maf, nsf, made   |   mdn, maf   | |
+|  `NRE`, `SNRE`   |   linear, mlp, resnet   |      | | |
 
-Lastly, the **train_args** are used to configure the training optimizer, the early stopping criterion, and the number of rounds of inference (for Sequential models). All `sbi` models use the Adam optimizer. Lastly, **device** specifies whether to use Pytorch's `cpu` or `cuda` backend, and **out_dir** specifies where to save your models after they are done training.
+Lastly, the **train_args** are used to configure the training optimizer, the early stopping criterion, and the number of rounds of inference (for Sequential models). All engines use the Adam optimizer. Lastly, **device** specifies whether to use Pytorch's `cpu` or `cuda` backend, and **out_dir** specifies where to save your models after they are done training.
 
 **Notes**: 
  * Newly added `sbi` training engines, such as `MNLE`, don't yet work in our framework. Also, the `nsf` and `made` architectures unfortunately don't work if you're using `cuda` for GPU acceleration (yet!).
@@ -176,12 +177,13 @@ Lastly, the **train_args** are used to configure the training optimizer, the ear
 ## Validation
 Here's an example configuration for a `ValidationRunner` object.
 ```bash
-backend: 'sbi'
+out_dir: './toy'  # Directory to load posterior from and to save the metrics
+posterior_file: 'toy_NPE_posterior.pkl'  # Filename of posterior model
+style_path: './style.mcstyle'  # [Optional] matplotlib style file
+labels: ['t1', 't2', 't3']  # Names of the parameters
 
-posterior_path: './toy/run_SNPE_posterior.pkl'
-output_path: './toy'
-labels: ['t1', 't2', 't3']
-
+# If True, run validation for all networks as one ensemble posterior
+# If False, run validation for each network separately
 ensemble_mode: True
 
 metrics:
@@ -229,7 +231,7 @@ All current implemented validation metrics follow the general formula of:
 There are two available sampler backends in [`ili.utils.samplers`](ili/utils/samplers.py) to generate posterior samples, one that uses PyTorch's [`pyro`](https://github.com/pyro-ppl/pyro) and one that uses [`emcee`](https://github.com/dfm/emcee). The choice of training engine will constrain which sampler you can use.
 - `pydelfi` models can only use the `emcee` sampler.
 - `sbi`'s `NLE` or `NRE` models can use either the `emcee` or `pyro` samplers. The `pyro` samplers include several MCMC methods like slice sampling (`'slice_np'`, `'slice_np_vectorized'`), Hamiltonian Monte Carlo (`'hmc'`), and the NUTS sampler (`'nuts'`). From my experience, `slice_np_vectorized` works the fastest on CPU architectures for simple posteriors.
-- `sbi`'s `NPE` models can use any of the `emcee` or `pyro` samplers. However, as they are amortized posterior estimators, they can also do fast direct estimation of the `log_prob` of samples, thus allowing for super fast Rejection Sampling. It is recommended to use this with the `'direct'` sample method for `SNPE` models.
+- `sbi`'s and `lampe`'s `NPE` models can use any of the `emcee` or `pyro` samplers. However, as they are amortized posterior estimators, they can also do fast direct estimation of the `log_prob` of samples, thus allowing for super fast Rejection Sampling. It is recommended to use this with the `'direct'` sample method for `NPE` models.
 
 The `ensemble_mode` parameter allows you to specify whether you want to sample jointly from the ensemble of neural networks trained in your inference stage (`True`) or from each one individually (`False`). This can be useful for analyzing multiple trained architectures individually or for debugging for issues in training.
 

@@ -13,8 +13,10 @@ from ili.utils import Dataset, update
 
 try:
     from sbi.simulators.simutils import simulate_in_batches
+    from torch import Tensor
+    from torch.utils.data import DataLoader
 except ModuleNotFoundError:
-    pass
+    DataLoader, Tensor = Any, Any
 
 
 class _BaseLoader(ABC):
@@ -346,7 +348,6 @@ class SBISimulator(NumpyLoader):
         if x.get_device() != -1:
             x = x.cpu()
         theta, x = theta.numpy(), x.numpy()
-        print(self.x.shape, x.shape)
 
         # Save simulated data (concatenates to previous data)
         if len(self) == 0:
@@ -474,6 +475,74 @@ class SummarizerDatasetLoader(NumpyLoader):
             self.in_dir / param_file, sep=" ", skipinitialspace=True
         ).iloc[nodes]
         return theta[param_names].values
+
+
+class TorchLoader(_BaseLoader):
+    """A class for using TorchDataloaders.
+
+    Args:
+        train_loader (DataLoader): dataloader for training
+            outputting (data, parameters)
+        val_loader (DataLoader): dataloader for validation
+            outputting (data, parameters). Defaults to None.
+        xobs (Optional[Tensor]): observed data. Defaults to None.
+        thetafid (Optional[Tensor]): fiducial parameters. Defaults to None.
+    """
+
+    def __init__(
+        self,
+        train_loader: DataLoader,
+        val_loader: DataLoader = None,
+        xobs: Optional[Tensor] = None,
+        thetafid: Optional[Tensor] = None
+    ) -> None:
+        self.train_loader = train_loader
+        self.val_loader = val_loader
+        self.xobs = xobs
+        self.thetafid = thetafid
+
+    def __len__(self) -> int:
+        """Returns the total number of data points in the dataset
+
+        Returns:
+            int: length of dataset
+        """
+        return len(self.train_loader.dataset)
+
+    def get_all_data(self) -> Tensor:
+        """Returns all the loaded data for training.
+        May need to be redefined for complex dataloaders.
+
+        Returns:
+            Tensor: data
+        """
+        return self.train_loader.dataset.tensors[0]
+
+    def get_all_parameters(self):
+        """Returns all the loaded parameters for training.
+        May need to be redefined for complex dataloaders.
+
+        Returns:
+            Tensor: parameters
+        """
+        return self.train_loader.dataset.tensors[1]
+
+    def get_obs_data(self) -> Tensor:
+        """Returns the observed data
+
+        Returns:
+            Tensor: data
+        """
+        return self.xobs
+
+    def get_fid_parameters(self):
+        """Returns the fiducial parameters which we expect the
+        observed data to resemble
+
+        Returns:
+            Tensor: parameters
+        """
+        return self.thetafid
 
 # TODO: Add loaders which load dynamically from many files, so
 # that everything doesn't need to be stored in memory

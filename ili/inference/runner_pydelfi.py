@@ -16,7 +16,8 @@ from .base import _BaseRunner
 
 
 class DelfiRunner(_BaseRunner):
-    """Class to train posterior inference models using the pydelfi package
+    """Class to train posterior inference models using the pydelfi package.
+    Follows methodology of: https://arxiv.org/abs/1903.00007
 
     Args:
         prior (Any): prior on the parameters
@@ -47,7 +48,10 @@ class DelfiRunner(_BaseRunner):
         self.config_ndes = config_ndes
         self.engine_kwargs = engine_kwargs
         self.inference_class = DelfiWrapper
-        self.engine = 'NLE'
+        if engine != 'NLE':
+            logging.warning(
+                'pydelfi only supports NLE engine. Engine set to NLE.')
+            self.engine = 'NLE'
         if device != 'cpu':
             logging.warning(
                 'pydelfi only supports cpu training. Device set to cpu.')

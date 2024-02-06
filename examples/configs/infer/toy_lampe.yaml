@@ -1,0 +1,28 @@
+# Specify prior
+prior:
+  module: 'ili.utils'
+  class: 'Uniform'
+  args:
+    low: [0,0,0]
+    high: [1,1,1]
+
+# Specify the inference model
+model:
+  backend: 'lampe'
+  engine: 'NPE'
+  name: 'toy_lampe'
+  nets:
+    - model: 'nsf'  # Masked Autoregressive Flow
+      hidden_features: 5
+      num_transforms: 2
+    - model: 'mdn'  # Mixture Density Network
+      hidden_features: 10
+      num_components: 4
+
+# Specify the neural training hyperparameters
+train_args:
+  training_batch_size: 32
+  learning_rate: 0.0001
+
+device: 'cpu'  # Run on CPU
+out_dir: './toy'  # Where to save the posterior
