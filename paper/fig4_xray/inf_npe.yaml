@@ -1,0 +1,45 @@
+
+prior:
+  module: 'ili.utils'
+  class: 'Uniform'
+  args:
+    low: [13.3]
+    high: [15.]
+
+embedding_net:
+  module: 'ili.embedding'
+  class: 'CNN'
+  args:
+    in_shape: [1, 128, 128]
+    n_channels: [24, 10, 24, 10]
+    kernel_sizes: [5, 3, 5, 3]
+    strides: [1, 1, 1, 1]
+    pool_sizes: [4, 2]
+    n_hiddens: [128]
+
+
+model:
+  module: 'sbi.inference'
+  class: 'SNPE'
+  name: 'xray_SNPE'
+  nets:
+    - model: 'maf'
+      hidden_features: 8
+      num_transforms: 6
+    - model: 'maf'
+      hidden_features: 8 
+      num_transforms: 6
+    - model: 'mdn'
+      hidden_features: 8 
+      num_components: 4
+    - model: 'mdn'
+      hidden_features: 8 
+      num_components: 4
+    
+train_args:
+  training_batch_size: 32
+  learning_rate: 0.00001
+  stop_after_epochs: 30
+
+device: 'cuda'
+output_path: './xray'
