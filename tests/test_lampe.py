@@ -8,6 +8,7 @@ import torch
 import os
 from pathlib import Path
 import unittest
+import yaml
 
 import ili
 from ili.dataloaders import (NumpyLoader, StaticNumpyLoader)
@@ -17,17 +18,20 @@ from ili.validation.metrics import (
 from ili.validation.runner import ValidationRunner
 from ili.embedding import FCN
 
+from torch.utils.data import TensorDataset
+from torch.utils.data import DataLoader
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Device:', device)
 
 
 def test_npe(monkeypatch):
-    """Test the SNPE inference class with a simple toy model."""
+    """Test the NPE inference class with a simple toy model."""
 
     monkeypatch.setattr(plt, 'show', lambda: None)
 
     # construct a working directory
-    os.mkdirs("./toy_lampe", exist_ok=True)
+    os.makedirs("./toy_lampe", exist_ok=True)
 
     # create synthetic catalog
     def simulator(params):
@@ -49,18 +53,6 @@ def test_npe(monkeypatch):
     # define an inference class (we are doing amortized posterior inference)
     engine = 'NPE'
 
-    # test all of the ndes
-    # instantiate one of each neural networks to be used as an ensemble
-    nets = [
-        ili.utils.load_nde_lampe(
-            model='mdn', hidden_features=50, num_components=2)
-    ]
-    nets += [
-        ili.utils.load_nde_lampe(
-            model=name, hidden_features=50, num_transforms=5)
-        for name in ['maf', 'nsf', 'nice', 'gf', 'sospf', 'naf', 'unaf']
-    ]
-
     # define training arguments
     train_args = {
         'training_batch_size': 32,
@@ -74,6 +66,20 @@ def test_npe(monkeypatch):
         'act_fn': "SiLU"
     }
     embedding_net = FCN(**embedding_args)
+
+    # ~~~ Test all of the NDEs ~~~
+
+    # instantiate one of each neural networks to be used as an ensemble
+    nets = [
+        ili.utils.load_nde_lampe(
+            model='mdn', hidden_features=50, num_components=2,
+            embedding_net=embedding_net),
+    ]
+    nets += [
+        ili.utils.load_nde_lampe(
+            model=name, hidden_features=50, num_transforms=5)
+        for name in ['maf', 'nsf', 'nice', 'gf', 'sospf', 'naf', 'unaf']
+    ]
 
     # initialize the trainer
     runner = LampeRunner(
@@ -89,6 +95,8 @@ def test_npe(monkeypatch):
     # train the model
     posterior, summaries = runner(loader=loader)
 
+    # ~~~ Test a full runthrough ~~~
+
     # retrain with two ndes (to make remaining tests faster)
     runner = LampeRunner(
         prior=prior,
@@ -97,7 +105,7 @@ def test_npe(monkeypatch):
         device=device,
         train_args=train_args,
         proposal=None,
-        out_dir=None  # no output path, so nothing will be saved to file
+        out_dir="./toy_lampe"
     )
     posterior, summaries = runner(loader=loader)
 
@@ -172,4 +180,193 @@ def test_npe(monkeypatch):
     unittest.TestCase().assertIsInstance(samples, np.ndarray)
     unittest.TestCase().assertListEqual(list(samples.shape), [nsamp, ntest, 3])
 
+    # ~~~ Test other configurations ~~~
+    # separate proposal and prior
+    proposal = prior
+    prior = ili.utils.IndependentNormal(
+        loc=torch.zeros(3), scale=0.1*torch.ones(3))
+    runner = LampeRunner(
+        prior=prior,
+        nets=nets[:2],
+        engine=engine,
+        device=device,
+        train_args=train_args,
+        proposal=None,
+        out_dir="./toy_lampe"
+    )
+    posterior, summaries = runner(loader=loader, seed=12345)  # test seed
+    prior = proposal  # reset prior
+
+    # test TorchLoader
+    train_dataset = TensorDataset(
+        torch.Tensor(x[:-20]), torch.Tensor(theta[:-20]))
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+
+    val_dataset = TensorDataset(torch.Tensor(
+        x[-20:]), torch.Tensor(theta[-20:]))
+    val_loader = DataLoader(val_dataset, batch_size=32, shuffle=True)
+
+    loader = ili.dataloaders.TorchLoader(
+        train_loader, val_loader)
+
+    runner = LampeRunner(
+        prior=prior,
+        nets=nets[:2],
+        engine=engine,
+        device=device,
+        train_args=train_args,
+        proposal=None,
+        out_dir=None
+    )
+    posterior, summaries = runner(loader=loader)
+
+
+def test_yaml():
+    """Test the LampeRunner integration with yaml config files."""
+
+    if not os.path.isdir("toy_lampe"):
+        os.mkdir("toy_lampe")
+
+    config_ndes = [
+        {'model': 'mdn', 'hidden_features': 50, 'num_components': 6},
+        {'model': 'maf', 'hidden_features': 50, 'num_transforms': 5}
+    ]
+
+    def simulator(params):
+        # create toy simulations
+        x = np.arange(10)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += np.random.randn(len(x))
+        return y
+
+    # simulate data and save as numpy files
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+    np.save("toy_lampe/theta.npy", theta)
+    np.save("toy_lampe/x.npy", x)
+
+    # Yaml file for data
+    data = dict(
+        in_dir='./toy_lampe',
+        x_file='x.npy',
+        theta_file='theta.npy'
+    )
+    with open('./toy_lampe/data.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+
+    # Yaml file for infer
+    data = dict(
+        proposal={
+            'module': 'ili.utils',
+            'class': 'Uniform',
+            'args': {'low': [0, 0, 0], 'high': [1, 1, 1]},
+        },
+        prior={
+            'module': 'ili.utils',
+            'class': 'IndependentNormal',
+            'args': {'loc': [0, 0, 0], 'scale': [0.1, 0.1, 0.1]},
+        },
+        model={
+            'engine': 'NPE',
+            'nets': config_ndes,
+        },
+        train_args={'batch_size': 32, 'epochs': 5},
+        out_dir='toy_lampe',
+        device='cpu',
+    )
+    with open('./toy_lampe/infer_noname.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    data['model']['name'] = 'test_lampe'
+    with open('./toy_lampe/infer.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    data['embedding_net'] = {
+        'module': 'ili.embedding',
+        'class': 'FCN',
+        'args': {'n_hidden': [10, 10], 'act_fn': 'SiLU'}
+    }
+    with open('./toy_lampe/infer_embed.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+
+    # Yaml file for validation
+    data = dict(
+        posterior_file='posterior.pkl',
+        out_dir='./toy_lampe/',
+        labels=['t1', 't2', 't3'],
+        metrics={
+            'single_example': {
+                'module': 'ili.validation.metrics',
+                'class': 'PlotSinglePosterior',
+                'args': dict(
+                    num_samples=20,
+                    sample_method='direct'
+                )
+            }
+        }
+    )
+    with open('./toy_lampe/val.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+
+    all_loader = StaticNumpyLoader.from_config("./toy_lampe/data.yml")
+    runner = LampeRunner.from_config("./toy_lampe/infer.yml")
+    runner(loader=all_loader)
+    runner = LampeRunner.from_config("./toy_lampe/infer_noname.yml")
+    runner(loader=all_loader)
+    runner = LampeRunner.from_config("./toy_lampe/infer_embed.yml")
+    runner(loader=all_loader)
+    ValidationRunner.from_config("./toy_lampe/val.yml")
+
     return
+
+
+def test_universal(monkeypatch):
+    # construct a working directory
+    os.makedirs("./toy_lampe", exist_ok=True)
+
+    # create synthetic catalog
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
+
+    theta = np.random.rand(100, 3)  # 100 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+
+    # define a prior
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
+
+    # define training arguments
+    nets = [
+        ili.utils.load_nde_lampe(
+            model='mdn', hidden_features=50, num_components=2),
+    ]
+
+    # check that the correct trainers are loaded
+    runner = InferenceRunner.load(
+        backend='lampe',
+        engine='NPE',
+        prior=prior,
+        nets=nets
+    )
+    assert isinstance(runner, LampeRunner)
+
+    # test wrong engine
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='lampe',
+        engine='ANDRE',
+        prior=prior,
+        nets=nets
+    )
+
+    # test wrong backend
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='pydelfi',
+        engine='NPE',
+        prior=prior,
+        nets=nets
+    )

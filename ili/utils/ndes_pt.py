@@ -127,6 +127,8 @@ class LampeNPE(nn.Module):
     potential = forward
 
     def flow(self, x: torch.Tensor):  # -> Distribution
+        if hasattr(x, 'float'):
+            x = x.float()
         return self.nde.flow(
             self.embedding_net(self.x_transform.inv(x)).float())
 
