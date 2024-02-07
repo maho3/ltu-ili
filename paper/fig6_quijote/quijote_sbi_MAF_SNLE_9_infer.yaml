@@ -1,0 +1,49 @@
+
+prior:
+  module: 'sbi.utils'
+  class: 'BoxUniform'
+  args:
+    low: [0.1, 0.5, 0.6]
+    high: [0.5, 0.9, 1.0]
+    device: 'cuda'
+
+
+
+# embedding_net:
+#   module: 'ili.embedding'
+#   class: 'FCN'
+#   args:
+#     n_data: 100
+#     n_hidden: [200,100]
+#     act_fn: "SiLU"
+
+model:
+  module: 'sbi.inference'
+  class: 'SNLE'
+  name: 'quijote_SNLE_9'
+  nets:
+    - model: 'maf'
+      hidden_features: 10 
+      num_transforms: 3
+    - model: 'maf'
+      hidden_features: 10 
+      num_transforms: 3     
+    - model: 'maf'
+      hidden_features: 10 
+      num_transforms: 3
+    - model: 'maf'
+      hidden_features: 10 
+      num_transforms: 3
+    - model: 'maf'
+      hidden_features: 10 
+      num_transforms: 3
+    - model: 'maf'
+      hidden_features: 10 
+      num_transforms: 3                        
+
+train_args:
+  training_batch_size: 4000
+  learning_rate: 0.001
+
+device: 'cuda'
+output_path: 'toy'

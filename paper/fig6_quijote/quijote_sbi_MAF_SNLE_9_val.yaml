@@ -1,0 +1,56 @@
+backend: 'sbi'  # sbi or pydelfi backend
+
+posterior_path: './toy/quijote_SNLE_9_posterior.pkl'  # Path to posterior model
+output_path: './toy/snle'  # Where to save the metrics
+style_path: './style.mcstyle'  # Optional matplotlib style file
+labels: [r'$\Omega_m$', r'$h$', r'$\sigma_8$']  # Names of the parameters
+
+# If True, run validation for all networks as one ensemble posterior
+# If False, run validation for each network separately
+ensemble_mode: True
+
+n_data: 200
+device : 'cuda'
+
+metrics:
+  # Plot an example posterior for a single input
+  single_example:
+    module: 'ili.validation.metrics'
+    class: 'PlotSinglePosterior'  
+    args:
+      num_samples: 4000
+      sample_method: 'vi'
+      sample_params:
+        dist: 'maf'
+        n_particles: 512
+        learning_rate: 0.01
+        device : 'cuda'
+
+
+  
+  # # Compute and plot coverage metrics across the test set
+  # coverages:
+  #   module: 'ili.validation.metrics'
+  #   class: 'PosteriorCoverage'
+  #   args:
+  #     num_samples: 2000
+  #     sample_method: 'slice_np_vectorized'
+  #     sample_params:
+  #       num_chains: -1  # use all available cores
+  #       burn_in: 2000
+  #       thin: 1
+  #     plot_list: ["coverage", "histogram", "predictions"]
+
+  coverages:
+    module: 'ili.validation.metrics'
+    class: 'PosteriorCoverage'
+    args:
+      save_samples: True
+      num_samples: 6000
+      sample_method: 'vi'
+      sample_params:
+        dist: 'maf'
+        n_particles: 512
+        learning_rate: 0.01
+        device : 'cuda'
+      plot_list: ["coverage", "histogram", "predictions", "tarp"]   
