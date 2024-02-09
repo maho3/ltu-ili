@@ -231,12 +231,13 @@ class LampeEnsemble(nn.Module):
 
 
 def load_nde_lampe(
-        model: str,
-        embedding_net: nn.Module = nn.Identity(),
-        device: Optional[str] = 'cpu',
-        x_normalize: bool = True,
-        theta_normalize: bool = True,
-        **model_args):
+    model: str,
+    embedding_net: nn.Module = nn.Identity(),
+    device: Optional[str] = 'cpu',
+    x_normalize: bool = True,
+    theta_normalize: bool = True,
+    **model_args
+):
     """Load an nde from lampe.
     Models include:
         - mdn: Mixture Density Network (https://publications.aston.ac.uk/id/eprint/373/1/NCRG_94_004.pdf)

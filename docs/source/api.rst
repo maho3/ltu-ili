@@ -16,18 +16,26 @@ Dataloaders
 Inference
 ---------
 
-runner_sbi
-~~~~~~~~~~
+sbi Runners
+~~~~~~~~~~~
 
 .. automodule:: inference.runner_sbi
    :members:
    :undoc-members:
    :special-members: __call__
 
-runner_pydelfi
-~~~~~~~~~~~~~~
+pydelfi Runners
+~~~~~~~~~~~~~~~
 
 .. automodule:: inference.runner_pydelfi
+   :members:
+   :undoc-members:
+   :special-members: __call__
+
+Lampe Runners
+~~~~~~~~~~~~~~
+
+.. automodule:: inference.runner_lampe
    :members:
    :undoc-members:
    :special-members: __call__
@@ -71,6 +79,35 @@ Embedding
 
 Utils
 -----
+
+NDEs (Pytorch)
+~~~~~~~~~~~~~~~~
+.. automodule:: utils.ndes_pt
+   :members:
+   :undoc-members:
+   :special-members: __call__
+
+NDEs (Tensorflow)
+~~~~~~~~~~~~~~~~~
+.. automodule:: utils.ndes_tf
+   :members:
+   :undoc-members:
+   :special-members: __call__
+
+
+Prior Distributions (Pytorch)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. automodule:: utils.distributions_pt
+   :members:
+   :undoc-members:
+   :special-members: __call__
+
+Prior Distributions (Tensorflow)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. automodule:: utils.distributions_tf
+   :members:
+   :undoc-members:
+   :special-members: __call__
 
 Samplers
 ~~~~~~~~

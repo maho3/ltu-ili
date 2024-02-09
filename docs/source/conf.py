@@ -12,7 +12,9 @@
 import os
 import sys
 
-autodoc_mock_imports = ["torch", "pydelfi", "tensorflow", "sbi"]
+autodoc_mock_imports = ["torch", "pydelfi",
+                        "tensorflow", "sbi",
+                        "lampe", "zuko"]
 
 sys.path.insert(0, os.path.dirname(os.getcwd()))
 sys.path.insert(0, os.path.abspath('../'))
