@@ -1,0 +1,21 @@
+
+prior:
+  module: 'ili.utils'
+  class: 'IndependentNormal'
+  args:
+    loc: [0,0,0]
+    scale: [1,1,1]
+
+# Specify the inference model
+model:
+  engine: 'MCABC'  # ABC inference
+  name: "toy_abc"
+  num_workers: 4  # Number of parallel workers
+    
+# Specify the neural training hyperparameters
+train_args:
+  num_simulations: 20000  # Number of simulations to run
+  quantile: 0.005 # Quantile for the distance threshold
+
+device: 'cpu'
+out_dir: './toy'

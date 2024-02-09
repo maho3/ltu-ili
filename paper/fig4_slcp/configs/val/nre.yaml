@@ -1,0 +1,20 @@
+
+out_dir: ./slcp/nre_obs1_N1000
+posterior_file: posterior.pkl
+
+ensemble_mode: true
+labels: [t1, t2, t3, t4, t5]
+
+metrics:
+  single_example:
+    module: ili.validation.metrics
+    class: PlotSinglePosterior
+    args:
+      num_samples: 10000
+      sample_method: slice_np_vectorized
+      sample_params:
+        burn_in: 100
+        num_chains: 100
+        thin: 10
+      save_samples: true
+      seed: 123
