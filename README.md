@@ -40,7 +40,7 @@ Beyond this simple example, LtU-ILI comes with a wide range of customizable comp
   * A parallelizable configuration framework for efficient hyperparameter tuning and production runs
 
 
-For more details on the motivation, design, and theoretical background of this project, see the software release paper ([arxiv:XXXXX](https://arxiv.org/)).
+For more details on the motivation, design, and theoretical background of this project, see the software release paper ([arxiv:2402.05137](https://arxiv.org/abs/2402.05137)).
 
 
 

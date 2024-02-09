@@ -1,6 +1,6 @@
 # LtU ILI Software Paper Figures
 
-This directory contains scripts and notebooks necessary for running the examples described in the software release paper (arxiv:XXXXX).
+This directory contains scripts and notebooks necessary for running the examples described in the software release paper ([arxiv:2402.05137](https://arxiv.org/abs/2402.05137)).
 
 The examples include:
 - [Figure 1](./fig1_ex/): An example of likelihood, prior, and posterior distributions for a simple model.
