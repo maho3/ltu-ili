@@ -6,6 +6,8 @@ pathlib
 pyaml
 seaborn
 emcee
+tqdm
+xarray
 sphinx>=5.0
 myst-parser
 sphinx-rtd-theme
