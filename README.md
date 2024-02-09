@@ -21,7 +21,8 @@ loader = ili.data.NumpyLoader(X, Y)             # Create a data loader
 trainer = ili.inference.InferenceRunner.load(
   backend = 'sbi', engine='NPE',                # Choose a backend and inference engine (here, Neural Posterior Estimation)
   prior = ili.utils.Uniform(low=-1, high=1),    # Define a prior 
-  nets = [sbi.utils.posterior_nn(model='maf')]  # Define a neural network architecture (here, MAF)
+  # Define a neural network architecture (here, MAF)
+  nets = [ili.utils.load_nde_sbi(engine='NPE', model='maf')]  
 )
 
 posterior, _ = trainer(loader)                  # Run training to map data -> parameters

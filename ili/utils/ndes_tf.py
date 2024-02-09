@@ -1,21 +1,15 @@
 """
-Module to provide loading functions for ndes in various backends.
+Module to provide loading functions for ndes in pydelfi.
 
 All Mixture Density Networks (mdn) have the configuration:
     hidden_features (int): width of hidden layers (each MDN has 3 hidden layers)
     num_components (int): number of Gaussian components in the mixture model
 
-All flow-based models (maf, nsf, made) have the configuration:
+All flow-based models (maf) have the configuration:
     hidden_features (int): width of hidden layers in the coupling layers
     num_transforms (int): number of coupling layers
 
-Linear classifiers (linear) have no arguments.
-
-MLP and ResNet classifiers (mlp, resnet) have the configuration:
-    hidden_features (int): width of hidden layers (each has 2 hidden layers)
 """
-
-import logging
 
 import pydelfi
 import tensorflow as tf
