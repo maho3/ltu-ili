@@ -32,7 +32,7 @@ We will now describe and provide examples of each of these configuration files.
 We provide four primary objects for dataloading:
 - [`NumpyLoader`](./ili/dataloaders/loaders.py#L139): Loads data and parameters from `np.array`'s stored in memory.
 - [`StaticNumpyLoader`](./ili/dataloaders/loaders.py#L212): Loads data and parameters from `.npy` files on disk.
-- [`SBISimulator`](./ili/dataloaders/loaders.py#L254): Contains a `simulate` function which, when given new parameters, generates new data. This interface is then used to train multiround inference with e.g. `SBIRunnerSequential`. It also can seperately load `.npy` files of test data and parameters from disk, for validation.
+- [`SBISimulator`](./ili/dataloaders/loaders.py#L254): Contains a `simulate` function which, when given new parameters, generates new data. This interface is then used to train multiround inference with e.g. `SBIRunnerSequential`. It also can separately load `.npy` files of test data and parameters from disk, for validation.
 - [`SummarizerDatasetLoader`](./ili/dataloaders/loaders.py#L365): Loads data following the [`ili_summarizer.Dataset`](https://github.com/florpi/ili-summarizer/blob/3d9d4005cfbc187afdbfbed2a5a4414bc07902ef/summarizer/dataset.py#L6) convention, as `xarray.DataArray`'s stored in `.nc` files on disk. Also, it loads parameters from `.txt` files on disk.
 - [`TorchLoader`](.ili/dataloaders/loaders.py#L480): Allows users to custom define PyTorch `Dataloader` objects for more complex data loading tasks. Useful for loading data dynamically from disk or exotic data formats (e.g. graphs).
 
