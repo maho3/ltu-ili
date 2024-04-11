@@ -150,17 +150,17 @@ class DelfiRunner(_BaseRunner):
 
         train_probs = [(-t).tolist() for t in posterior.training_loss]
         val_probs = [(-t).tolist() for t in posterior.validation_loss]
-        summary = dict(
-            training_log_probs=train_probs,
-            validation_log_probs=val_probs,
-            epochs_trained=[len(posterior.training_loss[0])]
-        )
+        summaries = [dict(
+            training_log_probs=train_probs[i],
+            validation_log_probs=val_probs[i],
+            epochs_trained=[len(posterior.training_loss[i])]
+        ) for i in range(len(nets))]
 
         if self.out_dir is not None:
-            self._save_models(posterior, summary)
+            self._save_models(posterior, summaries)
         tf.reset_default_graph()
 
         logging.info(
             f"It took {time.time() - t0} seconds to train all models.")
 
-        return posterior, summary
+        return posterior, summaries
