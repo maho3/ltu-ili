@@ -264,13 +264,19 @@ def load_nde_lampe(
             Defaults to True.
         **model_args: additional arguments to pass to the model.
     """
-    if model == 'mdn':
+    if model == 'mdn':  # for mixture density networks
         if not (set(model_args.keys()) <= {'hidden_features', 'num_components'}):
             raise ValueError(f"Model {model} arguments mispecified.")
         model_args['hidden_features'] = [model_args['hidden_features']] * 3
         model_args['components'] = model_args.pop('num_components', 2)
         flow_class = zuko.flows.mixture.GMM
-    else:  # for all flow models
+    elif model == 'cnf':  # for continuous flow models
+        # number of time embeddings
+        model_args['hidden_features'] = [
+            model_args['hidden_features']] * 2
+        model_args['freqs'] = model_args.pop('num_transforms', 2)
+        flow_class = zuko.flows.continuous.CNF
+    else:  # for all discrete flow models
         if not (set(model_args.keys()) <= {'hidden_features', 'num_transforms'}):
             raise ValueError(f"Model {model} arguments mispecified.")
         model_args['hidden_features'] = [
@@ -281,8 +287,6 @@ def load_nde_lampe(
             flow_class = zuko.flows.autoregressive.MAF
         elif model == 'nsf':
             flow_class = zuko.flows.spline.NSF
-        elif model == 'cnf':
-            flow_class = zuko.flows.continuous.CNF
         elif model == 'nice':
             flow_class = zuko.flows.coupling.NICE
         elif model == 'gf':
