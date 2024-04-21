@@ -38,6 +38,22 @@ class DelfiWrapper(Delfi):
         self.name = name
         self.prior.sample = self.prior.draw  # aliasing for consistency
 
+    def log_posterior_stacked(self, theta: np.array, x: np.array):
+        """Redefinition of Delfi.log_posterior_stacked to do consistent shape
+        handling of theta and x.
+
+        Args:
+            theta (np.array): parameter vector
+            x (np.array): data vector to condition the inference on
+        """
+        theta = np.atleast_2d(theta)
+        x = np.atleast_2d(x)
+        lik = self.log_likelihood_stacked(theta, x)
+        lik = lik.reshape(theta.shape[0], x.shape[0])
+        pri = self.prior.logpdf(theta)
+        pri = pri.reshape(theta.shape[0], 1)
+        return lik + pri
+
     def potential(self, theta: np.array, x: np.array):
         """Returns the log posterior probability of a data vector given
         parameters. Modification of Delfi.log_prob designed to conform
