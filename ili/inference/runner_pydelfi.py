@@ -2,6 +2,7 @@
 Module to train posterior inference models using the pyDELFI package
 """
 
+import os
 import yaml
 import json
 import time
@@ -43,7 +44,7 @@ class DelfiRunner(_BaseRunner):
             train_args=train_args,
             out_dir=out_dir,
             device=device,
-            name=name,
+            name=name
         )
         self.config_ndes = config_ndes
         self.engine_kwargs = engine_kwargs
@@ -86,7 +87,8 @@ class DelfiRunner(_BaseRunner):
 
         # load logistics
         train_args = config["train_args"]
-        out_dir = Path(config["out_dir"])
+        if config["out_dir"] is not None:
+            out_dir = Path(config["out_dir"])
         if "name" in config["model"]:
             name = config["model"]["name"] + "_"
         else:
@@ -132,17 +134,21 @@ class DelfiRunner(_BaseRunner):
             config_ndes=self.config_ndes,
         )
 
+        results_dir = ('tmp' if self.out_dir is None
+                       else str(self.out_dir)) + '/'
+
         posterior = self.inference_class(
             config_ndes=self.config_ndes,
             data=x[0],
             prior=self.prior,
             nde=nets,
             name=self.name,
-            results_dir=str(self.out_dir)+'/',
+            results_dir=results_dir,
+            save=self.out_dir is not None,
             param_names=np.arange(n_params).astype(str),
             graph_restore_filename="graph_checkpoint",
             restore_filename="temp.pkl",
-            restore=False, save=True,
+            restore=False,
             **self.engine_kwargs,
         )
         posterior.load_simulations(x, theta)
@@ -150,17 +156,17 @@ class DelfiRunner(_BaseRunner):
 
         train_probs = [(-t).tolist() for t in posterior.training_loss]
         val_probs = [(-t).tolist() for t in posterior.validation_loss]
-        summary = dict(
-            training_log_probs=train_probs,
-            validation_log_probs=val_probs,
-            epochs_trained=[len(posterior.training_loss[0])]
-        )
+        summaries = [dict(
+            training_log_probs=train_probs[i],
+            validation_log_probs=val_probs[i],
+            epochs_trained=[len(posterior.training_loss[i])]
+        ) for i in range(len(nets))]
 
         if self.out_dir is not None:
-            self._save_models(posterior, summary)
+            self._save_models(posterior, summaries)
         tf.reset_default_graph()
 
         logging.info(
             f"It took {time.time() - t0} seconds to train all models.")
 
-        return posterior, summary
+        return posterior, summaries
