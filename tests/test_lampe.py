@@ -78,7 +78,7 @@ def test_npe(monkeypatch):
     nets += [
         ili.utils.load_nde_lampe(
             model=name, hidden_features=50, num_transforms=5)
-        for name in ['maf', 'nsf', 'nice', 'gf', 'sospf', 'naf', 'unaf']
+        for name in ['maf', 'nsf', 'nice', 'gf', 'sospf', 'naf', 'unaf', 'cnf']
     ]
 
     # initialize the trainer
