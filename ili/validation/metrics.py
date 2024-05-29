@@ -142,7 +142,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
         theta: Optional[np.array] = None,
         x_obs: Optional[np.array] = None,
         theta_fid: Optional[np.array] = None,
-        signature: Optional[str] = ""
+        signature: Optional[str] = "",
+        show_progress_bars: bool = True
     ):
         """Given a posterior and test data, plot the inferred posterior of a
         single test point and save to file.
@@ -168,7 +169,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
         # sample from the posterior
         sampler = self._build_sampler(posterior)
-        samples = sampler.sample(self.num_samples, x=x_obs, progress=True)
+        samples = sampler.sample(
+            self.num_samples, x=x_obs, progress=show_progress_bars)
         ndim = samples.shape[-1]
 
         # plot

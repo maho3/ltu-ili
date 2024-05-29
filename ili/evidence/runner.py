@@ -61,17 +61,19 @@ class HarmonicEvidence():
             samples (array-like): An (N, D) array of samples, where C is the
                 number of chains, N is the number of samples, and D is the
                 dimensionality of the samples.
-            lnprob (array-like): An (N,) array of proxy log-probabilities for each
-                sample.
+            lnprob (array-like): An (N,) array of proxy log-probabilities for
+                each sample.
         """
+        samples = np.asarray(samples)
+        lnprob = np.asarray(lnprob)
         ndim = samples.shape[-1]
 
         # Split samples into train/test
-        mask = np.random.rand(len(samples)) < 0.5
-        chains_train = hm.Chains(ndim)
-        chains_train.add_chain(samples[mask], lnprob[mask])
-        chains_infer = hm.Chains(ndim)
-        chains_infer.add_chain(samples[~mask], lnprob[~mask])
+        chains = hm.Chains(ndim)
+        chains.add_chain(samples, lnprob)
+        chains.split_into_blocks(100)
+        chains_train, chains_infer = hm.utils.split_data(
+            chains, training_proportion=0.5)
 
         # Select RealNVP Model
         n_scaled_layers = 2
@@ -100,7 +102,7 @@ class HarmonicEvidence():
         return ln_inv_evidence, err_ln_inv_evidence
 
 
-def K_EvidenceNetwork():
+class K_EvidenceNetwork():
     """Trains an evidence network to estimate the Bayes Factor K for two models."""
 
     def __init__(
@@ -122,11 +124,17 @@ def K_EvidenceNetwork():
             max_epochs=int(1e10),
             validation_fraction=0.1)
         self.train_args.update(train_args)
+        self.device = device
 
         self.loss_fn = POPExpLoss()
 
         self.best_val = float('inf')
-        self.best_model = None
+        self.model = None
+
+    def _loss(self, model, theta, x):
+        """Compute the loss function for a given model."""
+        logK = model(x)
+        return self.loss_fn(logK, theta)
 
     def _train_epoch(self, model, train_loader, val_loader, optimizer):
         """Train a single epoch of a neural network model."""
@@ -141,10 +149,10 @@ def K_EvidenceNetwork():
 
             # Clip gradients
             norm = nn.utils.clip_grad_norm_(
-                self.parameters, self.train_args['clip_max_norm'])
+                model.parameters(), self.train_args['clip_max_norm'])
             # Step
             if norm.isfinite():
-                self.optimizer.step()
+                optimizer.step()
             # Record
             loss_train.append(loss * len(theta))
             count += len(theta)
@@ -162,8 +170,8 @@ def K_EvidenceNetwork():
 
     def train(self, loader1, loader2, show_progress_bars=True):
         # Aggregate data from different models, and label them
-        x1 = loader1.get_all_data()
-        x2 = loader2.get_all_data()
+        x1 = loader1.get_all_data().astype(np.float32)
+        x2 = loader2.get_all_data().astype(np.float32)
         x = np.concatenate([x1, x2], axis=0)
         labels = np.concatenate([np.zeros(len(x1)), np.ones(len(x2))], axis=0)
 
@@ -208,7 +216,8 @@ def K_EvidenceNetwork():
 
         # Train model
         wait = 0
-        summary = {'training_log_probs': [], 'validation_log_probs': []}
+        summary = {'training_loss': [], 'validation_loss': []}
+        best_model = model.state_dict()
         with tqdm(iter(range(self.train_args["max_epochs"])),
                   unit=' epochs') as tq:
             for epoch in tq:
@@ -219,16 +228,16 @@ def K_EvidenceNetwork():
                     optimizer=optimizer
                 )
                 tq.set_postfix(
-                    loss=loss_train,
-                    loss_val=loss_val,
+                    loss1=loss_train-1,
+                    loss_val1=loss_val-1,
                 )
                 summary['training_loss'].append(loss_train)
                 summary['validation_loss'].append(loss_val)
 
                 # check for convergence
                 if loss_val < self.best_val:
-                    best_val = loss_val
-                    self.best_model = deepcopy(model.state_dict())
+                    self.best_val = loss_val
+                    best_model = deepcopy(model.state_dict())
                     wait = 0
                 elif wait > self.train_args["stop_after_epochs"]:
                     break
@@ -238,13 +247,16 @@ def K_EvidenceNetwork():
                 logging.warning(
                     "Training did not converge in "
                     f"{self.train_args['max_epochs']} epochs.")
-            summary['best_validation_loss'] = best_val
+            summary['best_validation_loss'] = self.best_val
             summary['epochs_trained'] = epoch
+        self.model = model
+        self.model.load_state_dict(best_model)
         return summary
 
     def predict(self, x):
         """Predict the log-Bayes Ratio for a given input."""
-        if self.best_model is None:
+        if self.model is None:
             raise ValueError("Model has not been trained.")
-
-        return self.best_model(x)
+        x = np.atleast_2d(x)
+        x = torch.tensor(x.astype(np.float32)).to(self.device)
+        return self.model(x)
