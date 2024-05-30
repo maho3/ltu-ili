@@ -20,21 +20,26 @@ logging.basicConfig(level=logging.INFO)
 
 
 class HarmonicEvidence():
-    def from_posterior(self, posterior, x, shape=(10000,), **sample_kwargs):
+    def __init__(self):
+        self.evidence = None
+
+    def from_nde(self, npe, nle, x, shape=(10000,), **sample_kwargs):
         """Estimate evidence from a posterior object.
 
         Args:
-            posterior (_type_): A posterior object with a .sample() and
-                a .log_prob() method.
+            npe (_type_): A Neural Posterior Estimator object with a
+                .sample() method.
+            nle (_type_): A Neural Likelihood Estimator object with a
+                .potential() method.
             x (_type_): The input data to the posterior.
             shape (tuple, optional): The shape of the samples to draw from the
                 posterior. Defaults to (10000,).
             **sample_kwargs: Additional keyword arguments to pass to the
                 posterior's .sample() method.
         """
-        samples = posterior.sample(shape, x, **sample_kwargs)
-        lnprob = posterior.log_prob(samples, x)
-        return self.from_samples(samples, lnprob)
+        samples = npe.sample(shape, x, **sample_kwargs)
+        lnprob = nle.potential(samples, x)
+        self.from_samples(samples, lnprob)
 
     def from_samples(self, samples, lnprob):
         """Estimate evidence from samples and log-probabilities.
@@ -44,14 +49,14 @@ class HarmonicEvidence():
             samples (array-like): An (N, D) array of samples,
                 where N is the number of samples, D is the dimensionality of
                 the samples.
-            lnprob (array-like): An (N,) array of log-probabilities,
-                or a proportional proxy, for each sample.
+            lnprob (array-like): An (N,) array of log-likelihoods for each
+                sample
         """
         if len(samples.shape) != 2:
             raise ValueError('Samples shape must be (N, D).')
         if len(samples) != len(lnprob):
             raise ValueError('Input samples and lnprob must be same length.')
-        return self._calculate_evidence(samples, lnprob)
+        self._calculate_evidence(samples, lnprob)
 
     def _calculate_evidence(self, samples, lnprob):
         """Internal function to calculate evidence with the targeted harmonic
@@ -91,15 +96,26 @@ class HarmonicEvidence():
         # Train model
         model.fit(chains_train.samples, epochs=epochs_num, verbose=True)
 
-        # Instantiate harmonic's evidence class
-        ev = hm.Evidence(chains_infer.nchains, model)
+        # Save harmonic's evidence class
+        self.evidence = hm.Evidence(chains_infer.nchains, model)
+        self.evidence.add_chains(chains_infer)
 
-        # Pass the evidence class the inference chains and compute evidence!
-        ev.add_chains(chains_infer)
-        ln_inv_evidence = ev.ln_evidence_inv
-        err_ln_inv_evidence = ev.compute_ln_inv_evidence_errors()
+    def get_evidence(self):
+        if self.evidence is None:
+            raise ValueError('Evidence has not been computed.')
+        return self.evidence.compute_evidence()
 
-        return ln_inv_evidence, err_ln_inv_evidence
+    def get_ln_evidence(self):
+        if self.evidence is None:
+            raise ValueError('Evidence has not been computed.')
+        return self.evidence.compute_ln_evidence()
+
+    def get_bayes_factor(self, ev2):
+        if self.evidence is None:
+            raise ValueError('Evidence has not been computed.')
+        if ev2.evidence is None:
+            raise ValueError('Evidence for model 2 has not been computed.')
+        return hm.evidence.compute_bayes_factor(self.evidence, ev2.evidence)
 
 
 class K_EvidenceNetwork():
@@ -119,14 +135,14 @@ class K_EvidenceNetwork():
         self.batch_norm_flag = batch_norm_flag
         self.alpha = alpha
         self.train_args = dict(
-            training_batch_size=50, learning_rate=5e-4,
+            training_batch_size=32, learning_rate=5e-4,
             stop_after_epochs=30, clip_max_norm=5,
             max_epochs=int(1e10),
             validation_fraction=0.1)
         self.train_args.update(train_args)
         self.device = device
 
-        self.loss_fn = POPExpLoss()
+        self.loss_fn = ExpLoss()
 
         self.best_val = float('inf')
         self.model = None
@@ -140,7 +156,7 @@ class K_EvidenceNetwork():
         """Train a single epoch of a neural network model."""
         model.train()
 
-        loss_train, count = [], 0
+        loss_train, count = 0, 0
         for x, theta in train_loader:
             x, theta = x.to(self.device), theta.to(self.device)
             optimizer.zero_grad()
@@ -154,18 +170,18 @@ class K_EvidenceNetwork():
             if norm.isfinite():
                 optimizer.step()
             # Record
-            loss_train.append(loss * len(theta))
+            loss_train += loss.item() * len(theta)
             count += len(theta)
-        loss_train = torch.stack(loss_train).sum().item()/count
+        loss_train = loss_train/count
 
         model.eval()
         with torch.no_grad():
-            loss_val, count = [], 0
+            loss_val, count = 0, 0
             for x, theta in val_loader:
                 x, theta = x.to(self.device), theta.to(self.device)
-                loss_val.append(self._loss(model, theta, x) * len(theta))
+                loss_val += self._loss(model, theta, x).item() * len(theta)
                 count += len(theta)
-            loss_val = torch.stack(loss_val).sum().item()/count
+            loss_val = loss_val/count
         return loss_train, loss_val
 
     def train(self, loader1, loader2, show_progress_bars=True):
@@ -176,11 +192,8 @@ class K_EvidenceNetwork():
         labels = np.concatenate([np.zeros(len(x1)), np.ones(len(x2))], axis=0)
 
         # Train/Validation split
-        train_mask = np.random.choice(
-            len(x),
-            int(self.train_args['validation_fraction'] * len(x)),
-            replace=False
-        )
+        train_mask = (
+            np.random.rand(len(x)) > self.train_args['validation_fraction'])
         x_train = x[train_mask]
         labels_train = labels[train_mask]
         x_val = x[~train_mask]
@@ -193,12 +206,12 @@ class K_EvidenceNetwork():
         train_loader = DataLoader(
             train_data,
             batch_size=self.train_args['training_batch_size'],
-            shuffle=True
+            shuffle=True, drop_last=True
         )
         val_loader = DataLoader(
             val_data,
             batch_size=self.train_args['training_batch_size'],
-            shuffle=False
+            shuffle=False, drop_last=True
         )
 
         # Create model
@@ -250,7 +263,7 @@ class K_EvidenceNetwork():
             summary['best_validation_loss'] = self.best_val
             summary['epochs_trained'] = epoch
         self.model = model
-        self.model.load_state_dict(best_model)
+        # self.model.load_state_dict(best_model)
         return summary
 
     def predict(self, x):

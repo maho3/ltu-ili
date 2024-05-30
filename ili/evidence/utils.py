@@ -53,35 +53,37 @@ class EvidenceNetworkSimple(nn.Module):
         self.input_size = input_size
         self.layer_width = layer_width
         self.added_layers = added_layers
-        self.batch_norm_flag = batch_norm_flag
+        self.bn = batch_norm_flag
         self.alpha = alpha
 
         self.initial_layer = self.simple_layer(
-            self.input_size, self.layer_width)
+            self.input_size, self.layer_width, 1)
 
         self.hidden_layers = nn.ModuleList(
-            [self.simple_layer(self.layer_width, self.layer_width)
-             for _ in range(2)])
+            [self.simple_layer(self.layer_width, self.layer_width, 1)
+             for _ in range(1)])
 
         self.residual_layers = nn.ModuleList(
-            [self.residual_layer(self.layer_width, self.layer_width)
+            [self.residual_layer(self.layer_width, self.layer_width, self.bn)
              for _ in range(self.added_layers)])
 
+        self.post_residual = self.simple_layer(
+            self.layer_width, self.layer_width, batch_norm_flag=0)
         self.output_layer = nn.Linear(self.layer_width, 1)
 
-    def simple_layer(self, in_features, out_features):
+    def simple_layer(self, in_features, out_features, batch_norm_flag=1):
         layers = [
             nn.Linear(in_features, out_features),
             nn.LeakyReLU(0.1)
         ]
-        if self.batch_norm_flag == 1:
+        if batch_norm_flag == 1:
             layers.append(nn.BatchNorm1d(self.layer_width))
         return nn.Sequential(*layers)
 
-    def residual_layer(self, in_features, out_features):
+    def residual_layer(self, in_features, out_features, batch_norm_flag=1):
         layers = [
-            self.simple_layer(in_features, out_features),
-            self.simple_layer(out_features, out_features)
+            self.simple_layer(in_features, out_features, batch_norm_flag),
+            self.simple_layer(out_features, out_features, batch_norm_flag)
         ]
         return nn.Sequential(*layers)
 
@@ -97,6 +99,7 @@ class EvidenceNetworkSimple(nn.Module):
             x = x + layer(x)
 
         # Output layer
+        x = self.post_residual(x)
         x = self.output_layer(x)
         x = 0.1 * x + 0.001
         x = leaky_parity_odd_power(x, alpha=self.alpha)
