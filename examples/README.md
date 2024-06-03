@@ -1,4 +1,4 @@
-This directory contains several example scripts for running the ltu-ili inference pipeline, including support for both the sbi and pydelfi backends.
+This directory contains several example scripts for running the ltu-ili inference pipeline, including support for the sbi, pydelfi, and lampe backends.
 
 In these examples, we demonstrate parameter inference for two experiments:
 * `toy`: A toy experiment with 3 parameters and a 10-dimensional data vector. The data is generated from a non-linear function of the parameters, with Gaussian noise added. The data generation occurs natively in the example scripts.
