@@ -117,6 +117,13 @@ class HarmonicEvidence():
             raise ValueError('Evidence for model 2 has not been computed.')
         return hm.evidence.compute_bayes_factor(self.evidence, ev2.evidence)
 
+    def get_ln_bayes_factor(self, ev2):
+        if self.evidence is None:
+            raise ValueError('Evidence has not been computed.')
+        if ev2.evidence is None:
+            raise ValueError('Evidence for model 2 has not been computed.')
+        return hm.evidence.compute_ln_bayes_factor(self.evidence, ev2.evidence)
+
 
 class K_EvidenceNetwork():
     """Trains an evidence network to estimate the Bayes Factor K for two models."""
