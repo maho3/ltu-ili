@@ -150,7 +150,7 @@ class K_EvidenceNetwork():
     def _loss(self, model, theta, x):
         """Compute the loss function for a given model."""
         logK = model(x)
-        return self.loss_fn(logK, theta)
+        return self.loss_fn(logK, theta.view(-1, 1))
 
     def _train_epoch(self, model, train_loader, val_loader, optimizer):
         """Train a single epoch of a neural network model."""
@@ -263,7 +263,7 @@ class K_EvidenceNetwork():
             summary['best_validation_loss'] = self.best_val
             summary['epochs_trained'] = epoch
         self.model = model
-        # self.model.load_state_dict(best_model)
+        self.model.load_state_dict(best_model)
         return summary
 
     def predict(self, x):

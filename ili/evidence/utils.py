@@ -11,6 +11,7 @@ TODO:
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 # def smooth_sign(x, k=100.):
@@ -103,4 +104,32 @@ class EvidenceNetworkSimple(nn.Module):
         x = self.output_layer(x)
         x = 0.1 * x + 0.001
         x = leaky_parity_odd_power(x, alpha=self.alpha)
+        return x
+
+
+class EvidenceNetworkSimpler(nn.Module):
+    def __init__(
+        self,
+        input_size,
+        layer_width=16,
+        added_layers=3,
+        batch_norm_flag=1,
+        alpha=2
+    ):
+        super().__init__()
+        self.input_size = input_size
+        self.layer_width = layer_width
+        self.added_layers = added_layers
+        self.bn = batch_norm_flag
+        self.alpha = alpha
+
+        self.fc1 = nn.Linear(input_size, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 1)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        x = leaky_parity_odd_power(x, alpha=2)
         return x
