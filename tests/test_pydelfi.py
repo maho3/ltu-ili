@@ -113,21 +113,6 @@ def test_toy():
     )
     assert samples.shape[1] == len(theta0)
 
-    # TARP not yet available with pydelfi
-    metric = PosteriorCoverage(
-        out_dir=Path('./toy_pydelfi'), num_samples=2,
-        sample_method='emcee', labels=[f'$\\theta_{i}$' for i in range(3)],
-        plot_list=["tarp"],
-        sample_params={'num_chains': 6},
-    )
-    unittest.TestCase().assertRaises(
-        NotImplementedError,
-        metric,
-        posterior=posterior,
-        x=x0,
-        theta=theta0
-    )
-
     #  Cannot sample directly with pydelfi
     metric = PosteriorCoverage(
         out_dir=Path('./toy_pydelfi'), num_samples=2,
