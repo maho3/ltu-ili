@@ -113,6 +113,15 @@ def test_toy():
     )
     assert samples.shape[1] == len(theta0)
 
+    # Check PosteriorCoverage metrics
+    metric = PosteriorCoverage(
+        out_dir=Path('./toy_pydelfi'), num_samples=10,
+        sample_method='emcee', labels=[f'$\\theta_{i}$' for i in range(3)],
+        plot_list=["coverage", "histogram", "predictions", "logprob", "tarp"],
+        sample_params={'num_chains': 8, 'burn_in': 1, 'thin': 1}
+    )
+    metric(posterior=posterior, x=x[:5], theta=theta[:5], num_alpha_bins=2)
+
     #  Cannot sample directly with pydelfi
     metric = PosteriorCoverage(
         out_dir=Path('./toy_pydelfi'), num_samples=2,
