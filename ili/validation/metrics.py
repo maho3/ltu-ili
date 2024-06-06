@@ -642,7 +642,8 @@ class PosteriorCoverage(PosteriorSamples):
             figs.append(self._plot_predictions(
                 posterior_samples, theta, signature))
         if "logprob" in self.plot_list:
-            self._calc_true_logprob(posterior_samples, theta, signature)
+            figs.append(self._calc_true_logprob(
+                posterior_samples, theta, signature))
 
         # Specifically for TARP
         if "tarp" in self.plot_list:
