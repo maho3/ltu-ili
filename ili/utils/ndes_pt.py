@@ -331,7 +331,6 @@ def load_nde_lampe(
             x_std = x_batch.std(dim=0).to(device)
 
             # avoid division by zero
-            x_std[x_std == 0] = 1
             x_std = torch.clamp(x_std, min=1e-16)
 
             # z-normalize x
@@ -343,7 +342,6 @@ def load_nde_lampe(
             theta_std = theta_batch.std(dim=0).to(device)
 
             # avoid division by zero
-            theta_std[theta_std == 0] = 1
             theta_std = torch.clamp(theta_std, min=1e-16)
 
             # z-normalize theta
