@@ -249,7 +249,7 @@ class PosteriorSamples(_SampleBasedMetric):
         self,
         posterior: ModelClass,
         x: np.array,
-        theta: np.array,
+        theta: np.array = None,
         signature: Optional[str] = "",
         # here for debugging purpose, otherwise error in runner.py line 123
         x_obs: Optional[np.array] = None,
@@ -262,7 +262,7 @@ class PosteriorSamples(_SampleBasedMetric):
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
             x (np.array): tensor of test data
-            theta (np.array): tensor of test parameters
+            theta (np.array): tensor of test parameters (not used)
             x_obs (np.array, optional): tensor of observed data
             theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
         """
@@ -642,7 +642,10 @@ class PosteriorCoverage(PosteriorSamples):
             figs.append(self._plot_predictions(
                 posterior_samples, theta, signature))
         if "logprob" in self.plot_list:
-            self._calc_true_logprob(posterior_samples, theta, signature)
+            figs.append(self._calc_true_logprob(
+                posterior_samples, theta, signature))
+
+        # Specifically for TARP
         if "tarp" in self.plot_list:
             figs.append(self._plot_TARP(posterior_samples, theta, signature,
                                         references=references, metric=metric,
