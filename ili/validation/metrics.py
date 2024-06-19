@@ -12,6 +12,7 @@ from abc import ABC
 from pathlib import Path
 from scipy.stats import gaussian_kde
 import logging
+import tarp
 from ili.utils.samplers import (EmceeSampler, PyroSampler,
                                 DirectSampler, VISampler)
 
@@ -21,7 +22,6 @@ try:
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
     from ili.utils.ndes_pt import LampeNPE, LampeEnsemble
     ModelClass = NeuralPosterior
-    import tarp  # doesn't yet work with pydelfi/python 3.6
     backend = 'torch'
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
@@ -647,11 +647,6 @@ class PosteriorCoverage(PosteriorSamples):
 
         # Specifically for TARP
         if "tarp" in self.plot_list:
-            # check if if backend is sbi
-            global backend
-            if backend != 'torch':
-                raise NotImplementedError(
-                    'TARP is not yet supported by pydelfi backend')
             figs.append(self._plot_TARP(posterior_samples, theta, signature,
                                         references=references, metric=metric,
                                         num_alpha_bins=num_alpha_bins,
