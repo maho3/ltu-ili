@@ -142,7 +142,9 @@ class PlotSinglePosterior(_SampleBasedMetric):
         theta: Optional[np.array] = None,
         x_obs: Optional[np.array] = None,
         theta_fid: Optional[np.array] = None,
-        signature: Optional[str] = ""
+        signature: Optional[str] = "",
+        plot_kws: Optional[dict] = {},
+        diag_kws: Optional[dict] = {}
     ):
         """Given a posterior and test data, plot the inferred posterior of a
         single test point and save to file.
@@ -154,12 +156,15 @@ class PlotSinglePosterior(_SampleBasedMetric):
             x_obs (np.array, optional): tensor of observed data
             theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
             signature (str, optional): signature for the output file name
+            plot_kws (dict, optional): keyword arguments for the off-diagonal plots
+            diag_kws (dict, optional): keyword arguments for the diagonal plots
         """
 
         # choose a random test datapoint if not supplied
         if x is None and x_obs is None:
             raise ValueError("Either x or x_obs must be supplied.")
         if x_obs is None:
+            x, theta = map(np.atleast_2d, (x, theta))
             if self.seed:
                 np.random.seed(self.seed)
             ind = np.random.choice(len(x))
@@ -171,15 +176,22 @@ class PlotSinglePosterior(_SampleBasedMetric):
         samples = sampler.sample(self.num_samples, x=x_obs, progress=True)
         ndim = samples.shape[-1]
 
+        # set default plot parameters
+        _kw = dict(levels=[0.05, 0.32, 1], color='k')
+        _kw.update(plot_kws)
+        plot_kws = _kw
+
         # plot
         fig = sns.pairplot(
             pd.DataFrame(samples, columns=self.labels),
             kind=None,
             diag_kind="kde",
             corner=True,
+            diag_kws=diag_kws
         )
-        fig.map_lower(sns.kdeplot, levels=4, color=".2")
+        fig.map_lower(sns.kdeplot, **plot_kws)
 
+        # plot fiducial parameters
         if theta_fid is not None:  # do not plot fiducial parameters if None
             for i in range(ndim):
                 for j in range(i + 1):
