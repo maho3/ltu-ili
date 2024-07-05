@@ -143,6 +143,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
         x_obs: Optional[np.array] = None,
         theta_fid: Optional[np.array] = None,
         signature: Optional[str] = "",
+        lower: Optional[List[float]] = None,
+        upper: Optional[List[float]] = None,
         plot_kws: Optional[dict] = {},
         grid: Optional[sns.PairGrid] = None,
         name: Optional[str] = None,
@@ -159,9 +161,10 @@ class PlotSinglePosterior(_SampleBasedMetric):
             theta_fid (np.array, optional): tensor of fiducial parameters for
                 x_obs
             signature (str, optional): signature for the output file name
+            lower (List[float], optional): lower bounds for the plot axes
+            upper (List[float], optional): upper bounds for the plot axes
             plot_kws (dict, optional): keyword arguments for the off-diagonal
-                plots
-            diag_kws (dict, optional): keyword arguments for the diagonal plots
+                plots, to be passed to sns.kdeplot
             grid (sns.PairGrid, optional): PairGrid object to plot on, for
                 overplotting multiple models
             name (str, optional): name of the model to plot on the grid (for
@@ -223,16 +226,21 @@ class PlotSinglePosterior(_SampleBasedMetric):
             sns.move_legend(fig, "center right",
                             bbox_to_anchor=(0.9, .5))
 
-        # plot fiducial parameters
+        # plot fiducial parameters and set axis limits
+        lower = [None] * ndim if lower is None else lower
+        upper = [None] * ndim if upper is None else upper
         if theta_fid is not None:  # do not plot fiducial parameters if None
             for i in range(ndim):
                 for j in range(i + 1):
                     if i == j:
                         fig.axes[i, i].axvline(theta_fid[i], color="r")
+                        fig.axes[i, i].set_xlim(lower[i], upper[i])
                     else:
                         fig.axes[i, j].axhline(theta_fid[i], color="r")
                         fig.axes[i, j].axvline(theta_fid[j], color="r")
                         fig.axes[i, j].plot(theta_fid[j], theta_fid[i], "ro")
+                        fig.axes[i, j].set_xlim(lower[j], upper[j])
+                        fig.axes[i, j].set_ylim(lower[i], upper[i])
 
         # save
         if self.out_dir is None:
