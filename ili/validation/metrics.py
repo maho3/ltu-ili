@@ -144,7 +144,9 @@ class PlotSinglePosterior(_SampleBasedMetric):
         theta_fid: Optional[np.array] = None,
         signature: Optional[str] = "",
         plot_kws: Optional[dict] = {},
-        diag_kws: Optional[dict] = {}
+        grid: Optional[sns.PairGrid] = None,
+        name: Optional[str] = None,
+        **grid_kws
     ):
         """Given a posterior and test data, plot the inferred posterior of a
         single test point and save to file.
@@ -154,10 +156,18 @@ class PlotSinglePosterior(_SampleBasedMetric):
             x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): tensor of observed data
-            theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
+            theta_fid (np.array, optional): tensor of fiducial parameters for
+                x_obs
             signature (str, optional): signature for the output file name
-            plot_kws (dict, optional): keyword arguments for the off-diagonal plots
+            plot_kws (dict, optional): keyword arguments for the off-diagonal
+                plots
             diag_kws (dict, optional): keyword arguments for the diagonal plots
+            grid (sns.PairGrid, optional): PairGrid object to plot on, for
+                overplotting multiple models
+            name (str, optional): name of the model to plot on the grid (for
+                overplotting)
+            grid_kws (dict, optional): additional keyword arguments for the
+                sns.pairplot function
         """
 
         # choose a random test datapoint if not supplied
@@ -177,19 +187,41 @@ class PlotSinglePosterior(_SampleBasedMetric):
         ndim = samples.shape[-1]
 
         # set default plot parameters
-        _kw = dict(levels=[0.05, 0.32, 1], color='k')
+        _kw = dict(levels=[0.05, 0.32], color='k')
         _kw.update(plot_kws)
         plot_kws = _kw
 
+        # Build DataFrame
+        data = pd.DataFrame(samples, columns=self.labels)
+        if name is None:
+            if grid is None:  # account for overlapping plots
+                data['Model'] = 0
+            else:
+                data['Model'] = np.max(grid.data['Model']) + 1
+        else:
+            data['Model'] = name
+
         # plot
+        if grid is not None:
+            data = pd.concat([grid.data, data], ignore_index=True)
+            plt.close()
+
         fig = sns.pairplot(
-            pd.DataFrame(samples, columns=self.labels),
+            data,
             kind=None,
-            diag_kind="kde",
+            diag_kind=None,
             corner=True,
-            diag_kws=diag_kws
+            vars=self.labels,
+            hue='Model' if grid is not None else None,
+            **grid_kws
         )
         fig.map_lower(sns.kdeplot, **plot_kws)
+        fig.map_diag(sns.kdeplot, **plot_kws)
+        if grid is not None:
+            fig._legend.remove()
+            fig.add_legend()
+            sns.move_legend(fig, "center right",
+                            bbox_to_anchor=(0.9, .5))
 
         # plot fiducial parameters
         if theta_fid is not None:  # do not plot fiducial parameters if None
