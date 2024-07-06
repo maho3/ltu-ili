@@ -125,13 +125,16 @@ def test_snpe(monkeypatch):
     fig = metric(
         posterior=posterior,
         x_obs=x[ind], theta_fid=theta[ind],
-        x=x, theta=theta
+        x=x, theta=theta,
+        name='M1'
     )
     fig = metric(
         posterior=posterior,
         x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta,
+        lower=[0, 0, 0], upper=[1, 1, 1],
         plot_kws=dict(fill=True),
+        name='M2',
         grid=fig
     )
     # check that samples were saved
