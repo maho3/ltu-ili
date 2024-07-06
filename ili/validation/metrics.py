@@ -165,7 +165,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
             upper (List[float], optional): upper bounds for the plot axes
             plot_kws (dict, optional): keyword arguments for the off-diagonal
                 plots, to be passed to sns.kdeplot
-            grid (sns.PairGrid, optional): PairGrid object to plot on, for
+            grid (sns.PairGrid, optional): sns.PairGrid object to plot on, for
                 overplotting multiple models
             name (str, optional): name of the model to plot on the grid (for
                 overplotting)
@@ -190,11 +190,11 @@ class PlotSinglePosterior(_SampleBasedMetric):
         ndim = samples.shape[-1]
 
         # set default plot parameters
-        _kw = dict(levels=[0.05, 0.32], color='k')
+        _kw = dict(levels=[0.05, 0.32, 1], color='k')
         _kw.update(plot_kws)
         plot_kws = _kw
 
-        # Build DataFrame
+        # build DataFrame
         data = pd.DataFrame(samples, columns=self.labels)
         if name is None:
             if grid is None:  # account for overlapping plots
