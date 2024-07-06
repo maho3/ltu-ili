@@ -127,6 +127,13 @@ def test_snpe(monkeypatch):
         x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta
     )
+    fig = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_fid=theta[ind],
+        x=x, theta=theta,
+        plot_kws=dict(fill=True),
+        grid=fig
+    )
     # check that samples were saved
     unittest.TestCase().assertTrue(os.path.isfile('./toy/single_samples.npy'))
 
