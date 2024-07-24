@@ -329,12 +329,22 @@ def load_nde_lampe(
         if x_normalize:
             x_mean = x_batch.mean(dim=0).to(device)
             x_std = x_batch.std(dim=0).to(device)
+
+            # avoid division by zero
+            x_std = torch.clamp(x_std, min=1e-16)
+
+            # z-normalize x
             x_transform = AffineTransform(
                 loc=x_mean, scale=x_std, event_dim=1)
 
         if theta_normalize:
             theta_mean = theta_batch.mean(dim=0).to(device)
             theta_std = theta_batch.std(dim=0).to(device)
+
+            # avoid division by zero
+            theta_std = torch.clamp(theta_std, min=1e-16)
+
+            # z-normalize theta
             theta_transform = AffineTransform(
                 loc=theta_mean, scale=theta_std, event_dim=1)
 

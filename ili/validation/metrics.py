@@ -12,6 +12,7 @@ from abc import ABC
 from pathlib import Path
 from scipy.stats import gaussian_kde
 import logging
+import tarp
 from ili.utils.samplers import (EmceeSampler, PyroSampler,
                                 DirectSampler, VISampler)
 
@@ -21,7 +22,6 @@ try:
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
     from ili.utils.ndes_pt import LampeNPE, LampeEnsemble
     ModelClass = NeuralPosterior
-    import tarp  # doesn't yet work with pydelfi/python 3.6
     backend = 'torch'
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
@@ -143,7 +143,13 @@ class PlotSinglePosterior(_SampleBasedMetric):
         x_obs: Optional[np.array] = None,
         theta_fid: Optional[np.array] = None,
         signature: Optional[str] = "",
-        show_progress_bars: bool = True
+        show_progress_bars: bool = True,
+        lower: Optional[List[float]] = None,
+        upper: Optional[List[float]] = None,
+        plot_kws: Optional[dict] = {},
+        grid: Optional[sns.PairGrid] = None,
+        name: Optional[str] = None,
+        **grid_kws
     ):
         """Given a posterior and test data, plot the inferred posterior of a
         single test point and save to file.
@@ -153,14 +159,26 @@ class PlotSinglePosterior(_SampleBasedMetric):
             x (np.array): tensor of test data
             theta (np.array): tensor of test parameters
             x_obs (np.array, optional): tensor of observed data
-            theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
+            theta_fid (np.array, optional): tensor of fiducial parameters for
+                x_obs
             signature (str, optional): signature for the output file name
+            lower (List[float], optional): lower bounds for the plot axes
+            upper (List[float], optional): upper bounds for the plot axes
+            plot_kws (dict, optional): keyword arguments for the off-diagonal
+                plots, to be passed to sns.kdeplot
+            grid (sns.PairGrid, optional): sns.PairGrid object to plot on, for
+                overplotting multiple models
+            name (str, optional): name of the model to plot on the grid (for
+                overplotting)
+            grid_kws (dict, optional): additional keyword arguments for the
+                sns.pairplot function
         """
 
         # choose a random test datapoint if not supplied
         if x is None and x_obs is None:
             raise ValueError("Either x or x_obs must be supplied.")
         if x_obs is None:
+            x, theta = map(np.atleast_2d, (x, theta))
             if self.seed:
                 np.random.seed(self.seed)
             ind = np.random.choice(len(x))
@@ -173,24 +191,58 @@ class PlotSinglePosterior(_SampleBasedMetric):
             self.num_samples, x=x_obs, progress=show_progress_bars)
         ndim = samples.shape[-1]
 
-        # plot
-        fig = sns.pairplot(
-            pd.DataFrame(samples, columns=self.labels),
-            kind=None,
-            diag_kind="kde",
-            corner=True,
-        )
-        fig.map_lower(sns.kdeplot, levels=4, color=".2")
+        # set default plot parameters
+        _kw = dict(levels=[0.05, 0.32, 1], color='k')
+        _kw.update(plot_kws)
+        plot_kws = _kw
 
+        # build DataFrame
+        data = pd.DataFrame(samples, columns=self.labels)
+        if name is None:
+            if grid is None:  # account for overlapping plots
+                data['Model'] = 0
+            else:
+                data['Model'] = np.max(grid.data['Model']) + 1
+        else:
+            data['Model'] = name
+
+        # plot
+        if grid is not None:
+            data = pd.concat([grid.data, data], ignore_index=True)
+            plt.close()
+
+        fig = sns.pairplot(
+            data,
+            kind=None,
+            diag_kind=None,
+            corner=True,
+            vars=self.labels,
+            hue='Model' if grid is not None else None,
+            **grid_kws
+        )
+        fig.map_lower(sns.kdeplot, **plot_kws)
+        fig.map_diag(sns.kdeplot, **plot_kws)
+        if grid is not None:
+            fig._legend.remove()
+            fig.add_legend()
+            sns.move_legend(fig, "center right",
+                            bbox_to_anchor=(0.9, .5))
+
+        # plot fiducial parameters and set axis limits
+        lower = [None] * ndim if lower is None else lower
+        upper = [None] * ndim if upper is None else upper
         if theta_fid is not None:  # do not plot fiducial parameters if None
             for i in range(ndim):
                 for j in range(i + 1):
                     if i == j:
                         fig.axes[i, i].axvline(theta_fid[i], color="r")
+                        fig.axes[i, i].set_xlim(lower[i], upper[i])
                     else:
                         fig.axes[i, j].axhline(theta_fid[i], color="r")
                         fig.axes[i, j].axvline(theta_fid[j], color="r")
                         fig.axes[i, j].plot(theta_fid[j], theta_fid[i], "ro")
+                        fig.axes[i, j].set_xlim(lower[j], upper[j])
+                        fig.axes[i, j].set_ylim(lower[i], upper[i])
 
         # save
         if self.out_dir is None:
@@ -251,7 +303,7 @@ class PosteriorSamples(_SampleBasedMetric):
         self,
         posterior: ModelClass,
         x: np.array,
-        theta: np.array,
+        theta: np.array = None,
         signature: Optional[str] = "",
         # here for debugging purpose, otherwise error in runner.py line 123
         x_obs: Optional[np.array] = None,
@@ -264,7 +316,7 @@ class PosteriorSamples(_SampleBasedMetric):
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
             x (np.array): tensor of test data
-            theta (np.array): tensor of test parameters
+            theta (np.array): tensor of test parameters (not used)
             x_obs (np.array, optional): tensor of observed data
             theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
         """
@@ -644,15 +696,11 @@ class PosteriorCoverage(PosteriorSamples):
             figs.append(self._plot_predictions(
                 posterior_samples, theta, signature))
         if "logprob" in self.plot_list:
-            self._calc_true_logprob(posterior_samples, theta, signature)
+            figs.append(self._calc_true_logprob(
+                posterior_samples, theta, signature))
 
         # Specifically for TARP
         if "tarp" in self.plot_list:
-            # check if if backend is sbi
-            global backend
-            if backend != 'torch':
-                raise NotImplementedError(
-                    'TARP is not yet supported by pydelfi backend')
             figs.append(self._plot_TARP(posterior_samples, theta, signature,
                                         references=references, metric=metric,
                                         num_alpha_bins=num_alpha_bins,
