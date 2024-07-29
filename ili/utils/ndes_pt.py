@@ -23,6 +23,7 @@ import torch
 from torch import nn
 import lampe
 import zuko
+import warnings
 from tqdm import tqdm
 from typing import List, Any, Optional
 from copy import deepcopy
@@ -158,6 +159,7 @@ class LampeNPE(nn.Module):
         batch_size = min(self.max_sample_size, num_samples)
         num_remaining = num_samples
         accepted = []
+        tries = 0
         while num_remaining > 0:
             candidates = self.theta_transform(
                 self.flow(x).sample((batch_size,)))
@@ -167,6 +169,14 @@ class LampeNPE(nn.Module):
 
             num_remaining -= len(samples)
             pbar.update(len(samples))
+            tries += 1
+            if tries > 100:
+                warnings.warn(
+                    "Direct sampling took too long. The posterior is poorly "
+                    "constrained within the prior support. Consider using "
+                    "emcee sampling or using a larger prior support. Returning"
+                    " prior samples.")
+                return self.prior.sample(shape)
         pbar.close()
 
         samples = torch.cat(accepted, dim=0)[:num_samples]
