@@ -113,7 +113,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install coverage pytest
-          coverage combine .coverage_sbi .coverage_pydelfi .coverage_lampe
+          coverage combine coverage_sbi/.coverage_sbi coverage_pydelfi/.coverage_pydelfi coverage_lampe/.coverage_lampe
           coverage xml -o coverage.xml
           coverage report -m
         shell: bash
