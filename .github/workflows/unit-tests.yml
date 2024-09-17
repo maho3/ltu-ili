@@ -30,10 +30,10 @@ jobs:
       - name: Test with pytest
         run: |
           echo "Running sbi tests"
-          COVERAGE_FILE=.coverage_sbi python3 -m coverage run --source=ili -m pytest tests/test_sbi.py
+	  COVERAGE_FILE=.coverage_sbi
+    	  echo "COVERAGE_FILE is set to: $COVERAGE_FILE"
+          python3 -m coverage run --source=ili -m pytest tests/test_sbi.py
         shell: bash
-      - name: Touch coverage file
-        run: touch .coverage_sbi
       - name: Archive sbi code coverage results
         uses: actions/upload-artifact@v3
         with:
@@ -64,8 +64,6 @@ jobs:
           echo "Running pydelfi tests"
           COVERAGE_FILE=.coverage_pydelfi python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
         shell: bash
-      - name: Touch coverage file
-        run: touch .coverage_pydelfi
       - name: Archive pydelfi code coverage results
         uses: actions/upload-artifact@v3
         with:
@@ -93,8 +91,6 @@ jobs:
           echo "Running lampe tests"
           COVERAGE_FILE=.coverage_lampe python3 -m coverage run --source=ili -m pytest tests/test_lampe.py
         shell: bash
-      - name: Touch coverage file
-        run: touch .coverage_lampe
       - name: Archive lampe code coverage results
         uses: actions/upload-artifact@v3
         with:
