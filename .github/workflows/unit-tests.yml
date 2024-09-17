@@ -35,7 +35,7 @@ jobs:
       - name: ls files
         run: ls -aR
       - name: Archive sbi code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage_sbi
           path: .coverage_sbi
@@ -65,7 +65,7 @@ jobs:
           COVERAGE_FILE=.coverage_pydelfi python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
         shell: bash
       - name: Archive pydelfi code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage_pydelfi
           path: .coverage_pydelfi
@@ -92,7 +92,7 @@ jobs:
           COVERAGE_FILE=.coverage_lampe python3 -m coverage run --source=ili -m pytest tests/test_lampe.py
         shell: bash
       - name: Archive lampe code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage_lampe
           path: .coverage_lampe
@@ -108,7 +108,7 @@ jobs:
         with:
           python-version: "3.10"
       - name: Download all workflow run artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: Display structure of downloaded files
         run: ls -aR
       - name: Combine results of unit tests
