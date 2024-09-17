@@ -4,7 +4,7 @@ name: unit-tests
 
 on:
   push:
-    branches: [ "main",  "167-unit-tests-fail-due-to-files-not-found"]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -32,9 +32,6 @@ jobs:
           echo "Running sbi tests"
           COVERAGE_FILE=coverage_file_sbi python3 -m coverage run --source=ili -m pytest tests/test_sbi.py
         shell: bash
-      - name: ls files
-        run: |
-          ls -aR
       - name: Archive sbi code coverage results
         uses: actions/upload-artifact@v4
         with:
