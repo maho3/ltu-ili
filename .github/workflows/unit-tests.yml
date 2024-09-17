@@ -30,10 +30,10 @@ jobs:
       - name: Test with pytest
         run: |
           echo "Running sbi tests"
-	  COVERAGE_FILE=.coverage_sbi
-    	  echo "COVERAGE_FILE is set to: $COVERAGE_FILE"
-          python3 -m coverage run --source=ili -m pytest tests/test_sbi.py
+          COVERAGE_FILE=.coverage_sbi python3 -m coverage run --source=ili -m pytest tests/test_sbi.py
         shell: bash
+      - name: ls files
+        run: ls -aR
       - name: Archive sbi code coverage results
         uses: actions/upload-artifact@v3
         with:
