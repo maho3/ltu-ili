@@ -133,7 +133,7 @@ class PyroSampler(_MCMCSampler):
         burn_in (int, optional): number of steps to discard as burn-in.
             Defaults to 100
         method (str, optional): method to use for sampling. Defaults to
-            'slice_np_vectorize'. See sbi documentation for more details.
+            'slice_np_vectorized'. See sbi documentation for more details.
     """
 
     def __init__(
@@ -142,7 +142,7 @@ class PyroSampler(_MCMCSampler):
         num_chains: int = -1,
         thin: int = 10,
         burn_in: int = 100,
-        method='slice_np_vectorize'
+        method='slice_np_vectorized'
     ) -> None:
         # convert DirectPosteriors to MCMCPosteriors
         if isinstance(posterior, DirectPosterior):
