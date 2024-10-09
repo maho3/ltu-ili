@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Dict, List, Callable, Optional, Union
 from torch.distributions import Distribution
 from sbi.inference import NeuralInference
-from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble #"NeuralPosteriorEnsemble was renamed EnsemblePosterior and moved to sbi.inference.posteriors.ensemble_posterior. sbi.utils.posterior_ensemble
 from .base import _BaseRunner
 from ili.dataloaders import _BaseLoader
 from ili.utils import load_class, load_from_config, load_nde_sbi, update
@@ -242,12 +242,11 @@ class SBIRunner(_BaseRunner):
 
         # ensemble all trained models, weighted by validation loss
         val_logprob = torch.tensor(
-            [float(x["best_validation_log_prob"][-1]) for x in summaries]
+            [float(x["best_validation_loss"][-1]) for x in summaries]
         ).to(self.device)
         # Exponentiate with numerical stability
         weights = torch.exp(val_logprob - val_logprob.max())
-        weights /= weights.sum()
-
+        weights /= weights.sum() ;  print(weights.size())
         posterior_ensemble = NeuralPosteriorEnsemble(
             posteriors=posteriors,
             weights=weights,
