@@ -9,17 +9,21 @@ import logging
 import pickle
 import torch
 import torch.nn as nn
+from torch import Tensor
 from pathlib import Path
 from typing import Dict, List, Callable, Optional, Union
 from torch.distributions import Distribution
 from sbi.inference import NeuralInference
-from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble #"NeuralPosteriorEnsemble was renamed EnsemblePosterior and moved to sbi.inference.posteriors.ensemble_posterior. sbi.utils.posterior_ensemble
+#from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble #"NeuralPosteriorEnsemble was renamed EnsemblePosterior and moved to sbi.inference.posteriors.ensemble_posterior. sbi.utils.posterior_ensemble
+from sbi.inference.posteriors import EnsemblePosterior
 from .base import _BaseRunner
 from ili.dataloaders import _BaseLoader
 from ili.utils import load_class, load_from_config, load_nde_sbi, update
 
 logging.basicConfig(level=logging.INFO)
 
+def dummy_func(strp = "hello"):
+    print(strp)
 
 class SBIRunner(_BaseRunner):
     """Class to train posterior inference models using the sbi package.
@@ -53,7 +57,7 @@ class SBIRunner(_BaseRunner):
         train_args: Dict = {},
         out_dir: Union[str, Path] = None,
         device: str = 'cpu',
-        embedding_net: nn.Module = None,
+        #embedding_net: nn.Module = None,
         proposal: Distribution = None,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = None,
@@ -71,7 +75,7 @@ class SBIRunner(_BaseRunner):
             self.proposal = proposal
         self.engine = engine
         self.nets = nets
-        self.embedding_net = embedding_net
+        #self.embedding_net = embedding_net
         self.num_rounds = self.train_args.pop("num_round", 1)
 
         train_default = dict(
@@ -140,6 +144,20 @@ class SBIRunner(_BaseRunner):
                              **model_args)
                 for model_args in config['model']['nets']]
 
+        # # initialize
+        # return cls(
+        #     prior=prior,
+        #     proposal=proposal,
+        #     engine=engine,
+        #     nets=nets,
+        #     device=config["device"],
+        #     embedding_net=embedding_net,
+        #     train_args=train_args,
+        #     out_dir=out_dir,
+        #     signatures=signatures,
+        #     name=name,
+        # )
+
         # initialize
         return cls(
             prior=prior,
@@ -147,7 +165,6 @@ class SBIRunner(_BaseRunner):
             engine=engine,
             nets=nets,
             device=config["device"],
-            embedding_net=embedding_net,
             train_args=train_args,
             out_dir=out_dir,
             signatures=signatures,
@@ -241,13 +258,18 @@ class SBIRunner(_BaseRunner):
             summaries.append(model.summary)
 
         # ensemble all trained models, weighted by validation loss
-        val_logprob = torch.tensor(
-            [float(x["best_validation_loss"][-1]) for x in summaries]
-        ).to(self.device)
+        val_logprob = torch.tensor([float(x["best_validation_loss"][-1]) for x in summaries]).to(self.device)
+        
         # Exponentiate with numerical stability
         weights = torch.exp(val_logprob - val_logprob.max())
-        weights /= weights.sum() ;  print(weights.size())
-        posterior_ensemble = NeuralPosteriorEnsemble(
+        weights /= weights.sum()
+        print(weights.size())
+        print(type(weights) == torch.Tensor)
+        print(type(weights) == Tensor)
+        testdum = torch.tensor(weights)
+        print(testdum == weights)
+        print(isinstance(weights, Tensor) or isinstance(weights, List))
+        posterior_ensemble = EnsemblePosterior(
             posteriors=posteriors,
             weights=weights,
             theta_transform=posteriors[0].theta_transform
@@ -259,7 +281,7 @@ class SBIRunner(_BaseRunner):
 
         return posterior_ensemble, summaries
 
-    def _save_models(self, posterior_ensemble: NeuralPosteriorEnsemble,
+    def _save_models(self, posterior_ensemble: EnsemblePosterior,
                      summaries: List[Dict]):
         """Save models to file."""
 

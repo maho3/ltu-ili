@@ -19,7 +19,8 @@ from ili.utils.samplers import (EmceeSampler, PyroSampler,
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     from sbi.inference.posteriors import DirectPosterior
-    from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+    from sbi.inference.posteriors import EnsemblePosterior
+    #from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
     from ili.utils.ndes_pt import LampeNPE, LampeEnsemble
     ModelClass = NeuralPosterior
     backend = 'torch'
@@ -95,10 +96,11 @@ class _SampleBasedMetric(_BaseMetric):
                 'Pyro backend is only available for sbi posteriors')
 
         # check if DirectPosterior is available
+        print(type(posterior))
         if self.sample_method == 'direct':
-            # First case: we have a NeuralPosteriorEnsemble instance
+            # First case: we have a EnsemblePosterior instance
             # We only need to check the first element
-            if (isinstance(posterior, NeuralPosteriorEnsemble) and
+            if (isinstance(posterior, EnsemblePosterior) and
                     isinstance(posterior.posteriors[0], DirectPosterior)):
                 return DirectSampler(posterior)
             # Second case (when ValidationRunner.ensemble_mode = False)
