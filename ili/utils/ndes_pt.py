@@ -65,10 +65,10 @@ def load_nde_sbi(
         # check for arguments
         if not (set(model_args.keys()) <= {'hidden_features', 'num_transforms'}):
             raise ValueError(f"Model {model} arguments mispecified.")
-
+    #Please use `from sbi.neural_nets import posterior_nn` in the future (not sbi.utils.posterior_nn)
     # Load NPE models (mdn, maf, nsf, made)
     if 'NPE' in engine:
-        return sbi.utils.posterior_nn(
+        return sbi.neural_nets.posterior_nn(
             model=model, embedding_net=embedding_net, **model_args)
 
     # Load NLE models (mdn, maf, nsf, made)

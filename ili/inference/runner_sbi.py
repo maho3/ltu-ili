@@ -22,9 +22,6 @@ from ili.utils import load_class, load_from_config, load_nde_sbi, update
 
 logging.basicConfig(level=logging.INFO)
 
-def dummy_func(strp = "hello"):
-    print(strp)
-
 class SBIRunner(_BaseRunner):
     """Class to train posterior inference models using the sbi package.
     Follows methodology of:
@@ -263,12 +260,8 @@ class SBIRunner(_BaseRunner):
         # Exponentiate with numerical stability
         weights = torch.exp(val_logprob - val_logprob.max())
         weights /= weights.sum()
-        print(weights.size())
-        print(type(weights) == torch.Tensor)
-        print(type(weights) == Tensor)
-        testdum = torch.tensor(weights)
-        print(testdum == weights)
-        print(isinstance(weights, Tensor) or isinstance(weights, List))
+        #print(weights is Tensor) # sbi wrote this, need to raise issue/make PR
+        #print(isinstance(weights, Tensor) or isinstance(weights, List))
         posterior_ensemble = EnsemblePosterior(
             posteriors=posteriors,
             weights=weights,
@@ -313,9 +306,12 @@ class SBIRunner(_BaseRunner):
         x = torch.Tensor(loader.get_all_data()).to(self.device)
         theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
 
+        # CAREFUL 21/10/2024: now embedding_net is "within" the Callable functions in each instance of models
+        # Do we still need to initialize the embedding with the new sbi.neural_nets funcitons used in ili.utils.load_nde_sbi?
+        
         # instantiate embedding_net architecture, if necessary
-        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
+        # if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
+        #     self.embedding_net.initalize_model(n_input=x.shape[-1])
 
         # train a single round of inference
         t0 = time.time()
