@@ -122,6 +122,8 @@ class LampeNPE(nn.Module):
         log_abs_det_jacobian = self.theta_transform.log_abs_det_jacobian(
             theta, theta  # just for shape
         )  # for Affine/IdentityTransform, this outputs a constant
+        if len(log_abs_det_jacobian.shape) > 1:
+            log_abs_det_jacobian = log_abs_det_jacobian.sum(dim=1)
         return logprob - log_abs_det_jacobian
 
     potential = forward
@@ -243,6 +245,7 @@ def load_nde_lampe(
         - mdn: Mixture Density Network (https://publications.aston.ac.uk/id/eprint/373/1/NCRG_94_004.pdf)
         - maf: Masked Autoregressive Flow (https://arxiv.org/abs/1705.07057)
         - nsf: Neural Spline Flow (https://arxiv.org/abs/1906.04032)
+        - ncsf: Neural Circular Spline Flow (https://arxiv.org/abs/2002.02428)
         - cnf: Continuous Normalizing Flow (https://arxiv.org/abs/1810.01367)
         - nice: Non-linear Independent Components Estimation (https://arxiv.org/abs/1410.8516)
         - gf: Gaussianization Flow (https://arxiv.org/abs/2003.01941)
@@ -287,6 +290,8 @@ def load_nde_lampe(
             flow_class = zuko.flows.autoregressive.MAF
         elif model == 'nsf':
             flow_class = zuko.flows.spline.NSF
+        elif model == 'ncsf':
+            flow_class = zuko.flows.spline.NCSF
         elif model == 'nice':
             flow_class = zuko.flows.coupling.NICE
         elif model == 'gf':
