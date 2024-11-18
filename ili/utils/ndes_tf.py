@@ -13,6 +13,7 @@ All flow-based models (maf) have the configuration:
 
 import pydelfi
 import tensorflow as tf
+import logging
 
 
 def load_nde_pydelfi(
@@ -20,6 +21,7 @@ def load_nde_pydelfi(
     n_data: int,
     model: str,
     index: int = 0,
+    engine: str = 'NLE',
     **model_args
 ):
     """ Load an nde from pydelfi.
@@ -30,8 +32,14 @@ def load_nde_pydelfi(
         model (str): model to use. 
             One of: mdn, maf.
         index (int, optional): index of the nde in the ensemble. Defaults to 0.
+        engine (str, optional): dummy argument to match sbi interface.
+            Must be set to 'NLE' or will be overwritten.
         **model_args: additional arguments to pass to the model.
     """
+    if 'NLE' not in engine:
+        logging.warning(f'Engine {engine} not supported in pydelfi backend. '
+                        'Continuing as if to engine=NLE.')
+
     if model == 'mdn':
         if not (set(model_args.keys()) <= {'hidden_features', 'num_components'}):
             raise ValueError(f"Model {model} arguments mispecified.")
