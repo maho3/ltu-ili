@@ -34,8 +34,6 @@ class SBIRunner(_BaseRunner):
             any sbi inference engine; see _setup_engine)
         nets (List[Callable]): list of neural nets for amortized posteriors,
             likelihood models, or ratio classifiers
-        embedding_net (nn.Module): neural network to compress high
-            dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
         out_dir (str, Path): directory where to store outputs
         proposal (Distribution): proposal distribution from which existing
@@ -53,7 +51,6 @@ class SBIRunner(_BaseRunner):
         train_args: Dict = {},
         out_dir: Union[str, Path] = None,
         device: str = 'cpu',
-        embedding_net: nn.Module = None,
         proposal: Distribution = None,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = None,
@@ -71,7 +68,6 @@ class SBIRunner(_BaseRunner):
             self.proposal = proposal
         self.engine = engine
         self.nets = nets
-        self.embedding_net = embedding_net
         self.num_rounds = self.train_args.pop("num_round", 1)
 
         train_default = dict(
@@ -147,7 +143,6 @@ class SBIRunner(_BaseRunner):
             engine=engine,
             nets=nets,
             device=config["device"],
-            embedding_net=embedding_net,
             train_args=train_args,
             out_dir=out_dir,
             signatures=signatures,
@@ -292,10 +287,6 @@ class SBIRunner(_BaseRunner):
         x = torch.Tensor(loader.get_all_data()).to(self.device)
         theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
 
-        # instantiate embedding_net architecture, if necessary
-        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
-
         # train a single round of inference
         t0 = time.time()
         posterior_ensemble, summaries = self._train_round(
@@ -370,10 +361,6 @@ class SBIRunnerSequential(SBIRunner):
             theta, x = loader.simulate(self.proposal)
             x = torch.Tensor(x).to(self.device)
             theta = torch.Tensor(theta).to(self.device)
-
-        # instantiate embedding_net architecture, if necessary
-        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
 
         # train multiple rounds of inference
         t0 = time.time()
