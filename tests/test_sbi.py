@@ -5,8 +5,6 @@ import numpy as np
 from numpy import testing
 import matplotlib.pyplot as plt
 import torch
-import torch.nn as nn
-import sbi
 import os
 import yaml
 from pathlib import Path
@@ -60,14 +58,6 @@ def test_snpe(monkeypatch):
     # define an inference class (we are doing amortized posterior inference)
     engine = 'NPE'
 
-    # instantiate your neural networks to be used as an ensemble
-    nets = [
-        sbi.utils.posterior_nn(
-            model='maf', hidden_features=50, num_transforms=5),
-        sbi.utils.posterior_nn(
-            model='mdn', hidden_features=50, num_components=2)
-    ]
-
     # define training arguments
     train_args = {
         'training_batch_size': 32,
@@ -82,13 +72,20 @@ def test_snpe(monkeypatch):
     }
     embedding_net = FCN(**embedding_args)
 
+    # instantiate your neural networks to be used as an ensemble
+    nets = [
+        ili.utils.load_nde_sbi(engine='NPE', model='maf', hidden_features=16,
+                               num_transforms=2, embedding_net=embedding_net),
+        ili.utils.load_nde_sbi(engine='NPE', model='mdn', hidden_features=16,
+                               num_components=2, embedding_net=embedding_net),
+    ]
+
     # initialize the trainer
     runner = SBIRunner(
         prior=prior,
         engine=engine,
         nets=nets,
         device=device,
-        embedding_net=embedding_net,
         train_args=train_args,
         proposal=None,
         out_dir=None  # no output path, so nothing will be saved to file
@@ -262,10 +259,11 @@ def test_snle(monkeypatch):
 
         # instantiate your neural networks to be used as an ensemble
         nets = [
-            sbi.utils.likelihood_nn(
-                model='maf', hidden_features=50, num_transforms=5),
-            sbi.utils.likelihood_nn(
-                model='made', hidden_features=50, num_transforms=5)
+            ili.utils.load_nde_sbi(engine='NLE', model='maf',
+                                   hidden_features=16, num_transforms=2),
+            ili.utils.load_nde_sbi(engine='NLE', model='made',
+                                   hidden_features=16, num_transforms=2),
+
         ]
 
         # define training arguments
@@ -281,7 +279,6 @@ def test_snle(monkeypatch):
             engine=engine,
             nets=nets,
             device=device,
-            embedding_net=None,
             train_args=train_args,
             proposal=None,
             out_dir=None  # no output path, so nothing will be saved to file
@@ -392,9 +389,9 @@ def test_snre():
     engine = 'NRE'
 
     nets = [
-        sbi.utils.classifier_nn(
-            model='resnet', hidden_features=50, num_blocks=3),
-        sbi.utils.classifier_nn(model='mlp', hidden_features=50),
+        ili.utils.load_nde_sbi(engine='NRE', model='resnet', hidden_features=16,
+                               num_blocks=3),
+        ili.utils.load_nde_sbi(engine='NRE', model='mlp', hidden_features=16),
     ]
 
     train_args = {'training_batch_size': 32,
@@ -406,7 +403,6 @@ def test_snre():
         engine=engine,
         nets=nets,
         device=device,
-        embedding_net=None,
         train_args=train_args,
         proposal=None,
         out_dir=Path('./toy')
@@ -481,14 +477,6 @@ def test_multiround():
     # define an inference class (we are doing amortized posterior inference)
     engine = 'SNPE'
 
-    # instantiate your neural networks to be used as an ensemble
-    nets = [
-        sbi.utils.posterior_nn(
-            model='maf', hidden_features=100, num_transforms=2),
-        sbi.utils.posterior_nn(
-            model='mdn', hidden_features=50, num_components=6)
-    ]
-
     # define training arguments
     train_args = {
         'training_batch_size': 32,
@@ -503,6 +491,14 @@ def test_multiround():
         'act_fn': "SiLU"
     }
     embedding_net = FCN(**embedding_args)
+
+    # instantiate your neural networks to be used as an ensemble
+    nets = [
+        ili.utils.load_nde_sbi(engine='SNPE', model='maf', hidden_features=16,
+                               num_transforms=2, embedding_net=embedding_net),
+        ili.utils.load_nde_sbi(engine='SNPE', model='mdn', hidden_features=16,
+                               num_components=2, embedding_net=embedding_net),
+    ]
 
     np.testing.assert_almost_equal(
         np.squeeze(all_loader[0].get_fid_parameters()),
@@ -584,8 +580,8 @@ def test_prior():
 
         # instantiate your neural networks to be used as an ensemble
         nets = [
-            sbi.utils.posterior_nn(
-                model='maf', hidden_features=50, num_transforms=5),
+            ili.utils.load_nde_sbi(engine='NPE', model='maf',
+                                   hidden_features=16, num_transforms=2)
         ]
 
         train_args = {'training_batch_size': 32,
@@ -597,7 +593,6 @@ def test_prior():
             engine=engine,
             nets=nets,
             device=device,
-            embedding_net=None,
             train_args=train_args,
             proposal=None,
             out_dir=Path('./toy')
@@ -1523,15 +1518,12 @@ def test_misc():
     # define a prior
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
-    # define an inference class (we are doing amortized posterior inference)
-    engine = 'NPE'
-
     # instantiate your neural networks to be used as an ensemble
     nets = [
-        sbi.utils.posterior_nn(
-            model='maf', hidden_features=50, num_transforms=5),
-        sbi.utils.posterior_nn(
-            model='mdn', hidden_features=50, num_components=2)
+        ili.utils.load_nde_sbi(engine='NPE', model='maf',
+                               hidden_features=16, num_transforms=2),
+        ili.utils.load_nde_sbi(engine='NPE', model='mdn',
+                               hidden_features=16, num_components=2),
     ]
 
     # test for misspecified engine
