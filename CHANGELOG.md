@@ -2,7 +2,7 @@
 
 All notable changes to the ltu-ili package will be documented in this file.
 
-## [0.0.2] - 2024-02-09
+## [0.0.2] - 2024-11-18
 
 ### Added
 - Added customization functionality to the `ili.validation.metrics.PlotSinglePosterior` metric. 
