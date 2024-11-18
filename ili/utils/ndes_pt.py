@@ -170,7 +170,7 @@ class LampeNPE(nn.Module):
             num_remaining -= len(samples)
             pbar.update(len(samples))
             tries += 1
-            if tries > 100:
+            if tries > 10*len(samples)/batch_size:  # 10x the expected number of tries
                 warnings.warn(
                     "Direct sampling took too long. The posterior is poorly "
                     "constrained within the prior support. Consider using "
