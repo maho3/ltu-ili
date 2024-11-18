@@ -513,7 +513,6 @@ def test_multiround():
             engine=engine,
             nets=nets,
             device=device,
-            embedding_net=embedding_net,
             train_args=train_args,
             out_dir='./toy',
         )
