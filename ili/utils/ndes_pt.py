@@ -291,6 +291,10 @@ def load_nde_lampe(
         elif model == 'nsf':
             flow_class = zuko.flows.spline.NSF
         elif model == 'ncsf':
+            logging.warning(
+                "You've selected a Neural Circular Spline Flow, for "
+                "which parameters are expected to be restricted to [-pi,pi]."
+            )
             flow_class = zuko.flows.spline.NCSF
         elif model == 'nice':
             flow_class = zuko.flows.coupling.NICE
