@@ -267,6 +267,7 @@ def load_nde_lampe(
             Defaults to True.
         **model_args: additional arguments to pass to the model.
     """
+    model = model.lower()
     if model == 'mdn':  # for mixture density networks
         if not (set(model_args.keys()) <= {'hidden_features', 'num_components'}):
             raise ValueError(f"Model {model} arguments mispecified.")
@@ -306,6 +307,8 @@ def load_nde_lampe(
             flow_class = zuko.flows.neural.NAF
         elif model == 'unaf':
             flow_class = zuko.flows.neural.UNAF
+        else:
+            raise ValueError(f"Model {model} not implemented.")
 
     embedding_net = deepcopy(embedding_net)
 
