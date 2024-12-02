@@ -213,7 +213,8 @@ class LampeEnsemble(nn.Module):
             num_samples * self.weights/self.weights.sum())
         if show_progress_bars:
             logging.info(
-                f"Sampling models with {int(per_model)} samples each.")
+                f"Sampling models with {per_model.int().tolist()} "
+                "samples each.")
 
         # sample
         samples = torch.cat([
