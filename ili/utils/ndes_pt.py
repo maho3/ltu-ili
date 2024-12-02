@@ -113,6 +113,15 @@ class LampeNPE(nn.Module):
             x = torch.Tensor(x)
         if isinstance(theta, (list, np.ndarray)):
             theta = torch.Tensor(theta)
+        if isinstance(self.nde.flow, zuko.flows.spline.NCSF):
+            if (theta < -np.pi).any() or (theta > np.pi).any():
+                raise ValueError(
+                    "Encountered parameters outside of [-pi,pi]. "
+                    "This is not supported by the chosen NDE, Neural Circular "
+                    "Spline Flow (ncsf)."
+                )
+
+        # move them to device
         x = x.to(self._device)
         theta = theta.to(self._device)
 
