@@ -210,9 +210,10 @@ class LampeEnsemble(nn.Module):
         # determine number of samples per model
         num_samples = np.prod(shape)
         per_model = torch.round(
-            num_samples * self.weights/self.weights.sum())  # .numpy().astype(int)
+            num_samples * self.weights/self.weights.sum())
         if show_progress_bars:
-            logging.info(f"Sampling models with {int(per_model)} samples each.")
+            logging.info(
+                f"Sampling models with {int(per_model)} samples each.")
 
         # sample
         samples = torch.cat([
@@ -301,10 +302,11 @@ def load_nde_lampe(
     embedding_net = deepcopy(embedding_net)
 
     net_constructor = _Lampe_Net_Constructor(
-        flow_class, embedding_net, model_args, 
+        flow_class, embedding_net, model_args,
         device, x_normalize, theta_normalize)
 
     return net_constructor
+
 
 class _Lampe_Net_Constructor():
     """
@@ -328,7 +330,7 @@ class _Lampe_Net_Constructor():
                 LampeNPE: An instance of the LampeNPE model.
     """
 
-    def __init__(self, flow_class, embedding_net, model_args, 
+    def __init__(self, flow_class, embedding_net, model_args,
                  device, x_normalize, theta_normalize):
         self.flow_class = flow_class
         self.embedding_net = embedding_net
@@ -340,7 +342,7 @@ class _Lampe_Net_Constructor():
     def to(self, device):
         self.device = device
         return self
-    
+
     def __print__(self):
         return (
             f"This is a constructor for a Lampe NPE model with the following attributes:\n"
@@ -349,8 +351,7 @@ class _Lampe_Net_Constructor():
             f"Model Arguments: {self.model_args}\n"
             f"Device: {self.device}\n"
         )
-        
-    
+
     def __call__(self, x_batch, theta_batch, prior):
         if hasattr(self.embedding_net, 'initalize_model'):
             self.embedding_net.initalize_model(x_batch.shape[-1])
@@ -407,4 +408,3 @@ class _Lampe_Net_Constructor():
             theta_transform=theta_transform
         ).to(self.device)
         return npe
-    
