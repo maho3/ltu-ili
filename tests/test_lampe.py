@@ -230,13 +230,17 @@ def test_zuko(monkeypatch):
         x_normalize=False, theta_normalize=False)
     prior = ili.utils.Uniform(low=[0, 0], high=[10, 10])
 
-    theta = torch.ones(1, 2)*5
+    theta = torch.ones(1, 2)
     x = torch.zeros(1, 5)
 
     model = nde(x, theta, prior)
 
+    # Test that it works when theta is in [-pi, pi]
+    _ = model(theta, x)
+
+    # Test that it throws an error when theta is not in [-pi, pi]
     unittest.TestCase().assertRaises(
-        ValueError, model, theta, x)
+        ValueError, model, theta*5, x)
 
 
 def test_yaml():

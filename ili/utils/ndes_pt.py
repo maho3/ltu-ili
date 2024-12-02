@@ -132,6 +132,8 @@ class LampeNPE(nn.Module):
             theta, theta  # just for shape
         )  # for Affine/IdentityTransform, this outputs a constant
         if len(log_abs_det_jacobian.shape) > 1:
+            # this happens with the identity_transform, but it should be
+            # equivalent to a scalar. See: https://github.com/pytorch/pytorch/blob/5c2584a14c2283514703a17cba0a57c8bfb0d977/torch/distributions/transforms.py#L363
             log_abs_det_jacobian = log_abs_det_jacobian.sum(dim=1)
         return logprob - log_abs_det_jacobian
 
