@@ -221,6 +221,24 @@ def test_npe(monkeypatch):
     posterior, summaries = runner(loader=loader)
 
 
+def test_zuko(monkeypatch):
+    """Test implementation of zuko flow models in ltu-ili."""
+
+    # Test that NCSF throws an error when theta not in [-pi, pi]
+    nde = ili.utils.load_nde_lampe(
+        model='ncsf', hidden_features=2, num_transforms=2,
+        x_normalize=False, theta_normalize=False)
+    prior = ili.utils.Uniform(low=[0, 0], high=[10, 10])
+
+    theta = torch.ones(1, 2)*5
+    x = torch.zeros(1, 5)
+
+    model = nde(x, theta, prior)
+
+    unittest.TestCase().assertRaises(
+        ValueError, model, theta, x)
+
+
 def test_yaml():
     """Test the LampeRunner integration with yaml config files."""
 
