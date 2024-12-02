@@ -212,7 +212,7 @@ class LampeEnsemble(nn.Module):
         per_model = torch.round(
             num_samples * self.weights/self.weights.sum())  # .numpy().astype(int)
         if show_progress_bars:
-            logging.info(f"Sampling models with {per_model} samples each.")
+            logging.info(f"Sampling models with {int(per_model)} samples each.")
 
         # sample
         samples = torch.cat([
@@ -300,12 +300,64 @@ def load_nde_lampe(
 
     embedding_net = deepcopy(embedding_net)
 
-    def net_constructor(x_batch, theta_batch, prior):
-        if hasattr(embedding_net, 'initalize_model'):
-            embedding_net.initalize_model(x_batch.shape[-1])
+    net_constructor = _Lampe_Net_Constructor(
+        flow_class, embedding_net, model_args, 
+        device, x_normalize, theta_normalize)
+
+    return net_constructor
+
+class _Lampe_Net_Constructor():
+    """
+    Simple, functional wrapper to add an embedding network
+    to a Lampe NPE model.
+    Attributes:
+        flow_class (class): The class of the flow model to be used.
+        embedding_net (torch.nn.Module): The embedding network to process input data.
+        model_args (dict): Arguments to be passed to the flow model.
+        device (torch.device): The device to run the model on (e.g., 'cpu' or 'cuda').
+        x_normalize (bool): Whether to normalize the input data.
+        theta_normalize (bool): Whether to normalize the parameter data.
+    Methods:
+        __call__(x_batch, theta_batch, prior):
+            Constructs and returns a LampeNPE model with the given data and prior.
+            Args:
+                x_batch (torch.Tensor): Batch of input data.
+                theta_batch (torch.Tensor): Batch of parameter data.
+                prior (torch.distributions.Distribution): Prior distribution for the parameters.
+            Returns:
+                LampeNPE: An instance of the LampeNPE model.
+    """
+
+    def __init__(self, flow_class, embedding_net, model_args, 
+                 device, x_normalize, theta_normalize):
+        self.flow_class = flow_class
+        self.embedding_net = embedding_net
+        self.model_args = model_args
+        self.device = device
+        self.x_normalize = x_normalize
+        self.theta_normalize = theta_normalize
+
+    def to(self, device):
+        self.device = device
+        return self
+    
+    def __print__(self):
+        return (
+            f"This is a constructor for a Lampe NPE model with the following attributes:\n"
+            f"Flow Class: {self.flow_class}\n"
+            f"Embedding Network: {self.embedding_net}\n"
+            f"Model Arguments: {self.model_args}\n"
+            f"Device: {self.device}\n"
+        )
+        
+    
+    def __call__(self, x_batch, theta_batch, prior):
+        if hasattr(self.embedding_net, 'initalize_model'):
+            self.embedding_net.initalize_model(x_batch.shape[-1])
+        self.embedding_net = self.embedding_net.to(self.device)
 
         # pass data through embedding network
-        z_batch = embedding_net(x_batch)
+        z_batch = self.embedding_net(x_batch)
         z_shape = z_batch.shape[1:]
         theta_shape = theta_batch.shape[1:]
 
@@ -318,17 +370,17 @@ def load_nde_lampe(
         nde = lampe.inference.NPE(
             theta_dim=theta_shape[0],
             x_dim=z_shape[0],
-            build=flow_class,
-            **model_args
-        ).to(device)
+            build=self.flow_class,
+            **self.model_args
+        ).to(self.device)
 
         # determine transformations
         x_transform = identity_transform
         theta_transform = identity_transform
 
-        if x_normalize:
-            x_mean = x_batch.mean(dim=0).to(device)
-            x_std = x_batch.std(dim=0).to(device)
+        if self.x_normalize:
+            x_mean = x_batch.mean(dim=0).to(self.device)
+            x_std = x_batch.std(dim=0).to(self.device)
 
             # avoid division by zero
             x_std = torch.clamp(x_std, min=1e-16)
@@ -337,9 +389,9 @@ def load_nde_lampe(
             x_transform = AffineTransform(
                 loc=x_mean, scale=x_std, event_dim=1)
 
-        if theta_normalize:
-            theta_mean = theta_batch.mean(dim=0).to(device)
-            theta_std = theta_batch.std(dim=0).to(device)
+        if self.theta_normalize:
+            theta_mean = theta_batch.mean(dim=0).to(self.device)
+            theta_std = theta_batch.std(dim=0).to(self.device)
 
             # avoid division by zero
             theta_std = torch.clamp(theta_std, min=1e-16)
@@ -347,14 +399,12 @@ def load_nde_lampe(
             # z-normalize theta
             theta_transform = AffineTransform(
                 loc=theta_mean, scale=theta_std, event_dim=1)
-
         npe = LampeNPE(
             nde=nde,
-            embedding_net=embedding_net,
+            embedding_net=self.embedding_net,
             prior=prior,
             x_transform=x_transform,
             theta_transform=theta_transform
-        ).to(device)
+        ).to(self.device)
         return npe
-
-    return net_constructor
+    
