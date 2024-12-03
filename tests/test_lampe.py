@@ -57,7 +57,7 @@ def test_npe(monkeypatch):
     train_args = {
         'training_batch_size': 32,
         'learning_rate': 1e-4,
-        'max_num_epochs': 5
+        'max_epochs': 5
     }
 
     # define an embedding network
@@ -72,12 +72,12 @@ def test_npe(monkeypatch):
     # instantiate one of each neural networks to be used as an ensemble
     nets = [
         ili.utils.load_nde_lampe(
-            model='mdn', hidden_features=50, num_components=2,
+            model='mdn', hidden_features=8, num_components=2,
             embedding_net=embedding_net),
     ]
     nets += [
         ili.utils.load_nde_lampe(
-            model=name, hidden_features=50, num_transforms=5)
+            model=name, hidden_features=8, num_transforms=2)
         for name in ['maf', 'nsf', 'ncsf', 'nice', 'gf', 'sospf', 'naf', 'unaf', 'cnf']
     ]
 
@@ -111,7 +111,7 @@ def test_npe(monkeypatch):
 
     # choose a random input
     ind = np.random.randint(len(theta))
-    nsamples = 6
+    nsamples = 5
 
     # generate samples from the posterior using accept/reject sampling
     samples = posterior.sample((nsamples,), torch.Tensor(x[ind]).to(device))
@@ -219,6 +219,37 @@ def test_npe(monkeypatch):
         out_dir=None
     )
     posterior, summaries = runner(loader=loader)
+
+    # test input shape casting of FCN
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
+
+    # make a dataloader
+    loaderND = NumpyLoader(x=np.expand_dims(x, axis=(2, 3)), theta=theta)
+
+    # specify the embedding net
+    embedding_net = FCN(**embedding_args)
+
+    # instantiate your neural networks to be used as an ensemble
+    nets = [
+        ili.utils.load_nde_lampe(
+            model='mdn', hidden_features=8, num_components=2,
+            embedding_net=embedding_net)
+    ]
+
+    # initialize the trainer
+    runner = LampeRunner(
+        prior=prior,
+        nets=nets,
+        engine=engine,
+        device=device,
+        train_args=train_args,
+    )
+
+    # train the model
+    _ = runner(loader=loaderND)
+
+    return
 
 
 def test_zuko(monkeypatch):

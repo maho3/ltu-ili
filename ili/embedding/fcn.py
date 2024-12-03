@@ -50,11 +50,9 @@ class FCN(nn.Module):
         Returns:
             torch.Tensor: data
         """
+        if len(x.shape) > 2:
+            x = x.view(x.shape[0], -1)
         if not hasattr(self, "mlp"):
-            if len(x.shape) == 1:
-                x = x.view(-1, 1)
-            elif len(x.shape) > 2:
-                x = x.view(x.shape[0], -1)
             self.initalize_model(x.shape[-1])
 
         return self.mlp(x)
