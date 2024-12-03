@@ -114,6 +114,15 @@ class LampeNPE(nn.Module):
             x = torch.Tensor(x)
         if isinstance(theta, (list, np.ndarray)):
             theta = torch.Tensor(theta)
+        if isinstance(self.nde.flow, zuko.flows.spline.NCSF):
+            if (theta < -np.pi).any() or (theta > np.pi).any():
+                raise ValueError(
+                    "Encountered parameters outside of [-pi,pi]. "
+                    "This is not supported by the chosen NDE, Neural Circular "
+                    "Spline Flow (ncsf)."
+                )
+
+        # move them to device
         x = x.to(self._device)
         theta = theta.to(self._device)
 
@@ -123,6 +132,10 @@ class LampeNPE(nn.Module):
         log_abs_det_jacobian = self.theta_transform.log_abs_det_jacobian(
             theta, theta  # just for shape
         )  # for Affine/IdentityTransform, this outputs a constant
+        if len(log_abs_det_jacobian.shape) > 1:
+            # this happens with the identity_transform, but it should be
+            # equivalent to a scalar. See: https://github.com/pytorch/pytorch/blob/5c2584a14c2283514703a17cba0a57c8bfb0d977/torch/distributions/transforms.py#L363
+            log_abs_det_jacobian = log_abs_det_jacobian.sum(dim=1)
         return logprob - log_abs_det_jacobian
 
     potential = forward
@@ -253,6 +266,7 @@ def load_nde_lampe(
         - mdn: Mixture Density Network (https://publications.aston.ac.uk/id/eprint/373/1/NCRG_94_004.pdf)
         - maf: Masked Autoregressive Flow (https://arxiv.org/abs/1705.07057)
         - nsf: Neural Spline Flow (https://arxiv.org/abs/1906.04032)
+        - ncsf: Neural Circular Spline Flow (https://arxiv.org/abs/2002.02428)
         - cnf: Continuous Normalizing Flow (https://arxiv.org/abs/1810.01367)
         - nice: Non-linear Independent Components Estimation (https://arxiv.org/abs/1410.8516)
         - gf: Gaussianization Flow (https://arxiv.org/abs/2003.01941)
@@ -274,6 +288,7 @@ def load_nde_lampe(
             Defaults to True.
         **model_args: additional arguments to pass to the model.
     """
+    model = model.lower()
     if model == 'mdn':  # for mixture density networks
         if not (set(model_args.keys()) <= {'hidden_features', 'num_components'}):
             raise ValueError(f"Model {model} arguments mispecified.")
@@ -297,6 +312,12 @@ def load_nde_lampe(
             flow_class = zuko.flows.autoregressive.MAF
         elif model == 'nsf':
             flow_class = zuko.flows.spline.NSF
+        elif model == 'ncsf':
+            logging.warning(
+                "You've selected a Neural Circular Spline Flow, for "
+                "which parameters are expected to be restricted to [-pi,pi]."
+            )
+            flow_class = zuko.flows.spline.NCSF
         elif model == 'nice':
             flow_class = zuko.flows.coupling.NICE
         elif model == 'gf':
@@ -307,6 +328,8 @@ def load_nde_lampe(
             flow_class = zuko.flows.neural.NAF
         elif model == 'unaf':
             flow_class = zuko.flows.neural.UNAF
+        else:
+            raise ValueError(f"Model {model} not implemented.")
 
     embedding_net = deepcopy(embedding_net)
 
