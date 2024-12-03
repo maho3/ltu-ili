@@ -78,7 +78,7 @@ def test_npe(monkeypatch):
     nets += [
         ili.utils.load_nde_lampe(
             model=name, hidden_features=50, num_transforms=5)
-        for name in ['maf', 'nsf', 'nice', 'gf', 'sospf', 'naf', 'unaf', 'cnf']
+        for name in ['maf', 'nsf', 'ncsf', 'nice', 'gf', 'sospf', 'naf', 'unaf', 'cnf']
     ]
 
     # initialize the trainer
@@ -219,6 +219,28 @@ def test_npe(monkeypatch):
         out_dir=None
     )
     posterior, summaries = runner(loader=loader)
+
+
+def test_zuko(monkeypatch):
+    """Test implementation of zuko flow models in ltu-ili."""
+
+    # Test that NCSF throws an error when theta not in [-pi, pi]
+    nde = ili.utils.load_nde_lampe(
+        model='ncsf', hidden_features=2, num_transforms=2,
+        x_normalize=False, theta_normalize=False)
+    prior = ili.utils.Uniform(low=[0, 0], high=[10, 10])
+
+    theta = torch.ones(1, 2)
+    x = torch.zeros(1, 5)
+
+    model = nde(x, theta, prior)
+
+    # Test that it works when theta is in [-pi, pi]
+    _ = model(theta, x)
+
+    # Test that it throws an error when theta is not in [-pi, pi]
+    unittest.TestCase().assertRaises(
+        ValueError, model, theta*5, x)
 
 
 def test_yaml():
