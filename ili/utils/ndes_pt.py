@@ -303,7 +303,6 @@ def load_nde_lampe(
             f'Engine {engine} not supported in lampe backend. '
             'You probably meant to specify engine="NPE" or to use the NLE or NRE'
             ' engines in the sbi or pydelfi backends.')
-
     model = model.lower()
 
     # check the model parameterizations

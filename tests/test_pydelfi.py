@@ -474,7 +474,7 @@ def test_universal():
         NotImplementedError,
         load_nde_pydelfi,
         n_params=theta.shape[1], n_data=x.shape[1],
-        model='nsf', hidden_features=50, num_components=2
+        model='nsf', hidden_features=50, num_transforms=5
     )
 
     # test that it works if you underspecify
