@@ -70,6 +70,8 @@ class LampeRunner():
             self.out_dir = Path(self.out_dir)
             self.out_dir.mkdir(parents=True, exist_ok=True)
         self.device = device
+        for n in self.nets:  # ensure all nets are on the same device
+            n.device = self.device
         if proposal is None:
             self.proposal = prior
         else:
