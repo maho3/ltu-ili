@@ -59,6 +59,9 @@ We keep an updated repository of relevant interesting papers and resources [at t
 ## Contributing
 Before contributing, please familiarize yourself with the contribution workflow described in [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Recent Changes
+We keep a record of recent changes in the project in the [CHANGELOG.md](CHANGELOG.md) file. If you are interested in the latest features, bug fixes, and improvements, you can find them there.
+
 ## Contact
 If you have comments, questions, or feedback, please [write us an issue](https://github.com/maho3/ltu-ili/issues). The current leads of the Learning the Universe ILI working group are Benjamin Wandelt (benwandelt@gmail.com) and Matthew Ho (matthew.annam.ho@gmail.com).
 
