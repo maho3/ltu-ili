@@ -387,12 +387,10 @@ class _Lampe_Net_Constructor():
         )
 
     def __call__(self, x_batch, theta_batch, prior):
-        if hasattr(self.embedding_net, 'initalize_model'):
-            self.embedding_net.initalize_model(x_batch.shape[-1])
-        self.embedding_net = self.embedding_net.to(self.device)
 
         # pass data through embedding network
-        z_batch = self.embedding_net(x_batch)
+        z_batch = self.embedding_net(x_batch.cpu())
+        self.embedding_net = self.embedding_net.to(self.device)
         z_shape = z_batch.shape[1:]
         theta_shape = theta_batch.shape[1:]
 
