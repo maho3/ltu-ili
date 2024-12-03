@@ -460,6 +460,13 @@ def test_universal():
     unittest.TestCase().assertRaises(
         ValueError,
         load_nde_pydelfi,
+        engine='NPE',
+        n_params=theta.shape[1], n_data=x.shape[1],
+        model='mdn', hidden_features=50, num_transforms=5
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_pydelfi,
         n_params=theta.shape[1], n_data=x.shape[1],
         model='mdn', hidden_features=50, num_transforms=5
     )

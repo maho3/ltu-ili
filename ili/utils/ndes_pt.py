@@ -299,21 +299,32 @@ def load_nde_lampe(
         **model_args: additional arguments to pass to the model.
     """
     if 'NPE' not in engine:
-        logging.warning(f'Engine {engine} not supported in lampe backend. '
-                        'Continuing as if to engine=NPE.')
+        raise ValueError(
+            f'Engine {engine} not supported in lampe backend. '
+            'You probably meant to specify engine="NPE" or to use the NLE or NRE'
+            ' engines in the sbi or pydelfi backends.')
 
     model = model.lower()
-    if model == 'mdn':  # for mixture density networks
-        if not (set(model_args.keys()) <= {'hidden_features', 'num_components'}):
-            raise ValueError(f"Model {model} arguments mispecified.")
+
+    # check the model parameterizations
+    if model == 'mdn':
         model_defaults = dict(hidden_features=16, num_components=3)
-        model_args = {**model_defaults, **model_args}
+    else:
+        model_defaults = dict(hidden_features=16, num_transforms=2)
+    if not (set(model_args.keys()) <= set(model_defaults.keys())):
+        raise ValueError(
+            f"Model {model} arguments mispecified. Extra arguments found: "
+            f"{set(model_args.keys()) - set(model_defaults.keys())}.")
+
+    # set defaults
+    model_args = {**model_defaults, **model_args}
+
+    # setup models
+    if model == 'mdn':  # for mixture density networks
         model_args['hidden_features'] = [model_args['hidden_features']] * 3
         model_args['components'] = model_args.pop('num_components', 2)
         flow_class = zuko.flows.mixture.GMM
     else:
-        model_defaults = dict(hidden_features=16, num_transforms=2)
-        model_args = {**model_defaults, **model_args}
         if model == 'cnf':  # for continuous flow models
             # number of time embeddings
             model_args['hidden_features'] = [
@@ -321,8 +332,6 @@ def load_nde_lampe(
             model_args['freqs'] = model_args.pop('num_transforms', 2)
             flow_class = zuko.flows.continuous.CNF
         else:  # for all discrete flow models
-            if not (set(model_args.keys()) <= {'hidden_features', 'num_transforms'}):
-                raise ValueError(f"Model {model} arguments mispecified.")
             model_args['hidden_features'] = [
                 model_args['hidden_features']] * 2
             model_args['transforms'] = model_args.pop('num_transforms', 2)
