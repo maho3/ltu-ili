@@ -52,7 +52,7 @@ def load_nde_sbi(
     if 'NRE' in engine:
         if model not in ['linear', 'mlp', 'resnet']:
             raise ValueError(f"Model {model} not implemented for {engine}.")
-        return sbi.utils.classifier_nn(
+        return sbi.neural_nets.classifier_nn(
             model=model, embedding_net_x=embedding_net, **model_args)
 
     if model not in ['mdn', 'maf', 'nsf', 'made']:
@@ -78,7 +78,7 @@ def load_nde_sbi(
             logging.warning(
                 "Using an embedding_net with NLE models compresses theta, not "
                 "x as might be expected.")
-        return sbi.utils.likelihood_nn(
+        return sbi.neural_nets.likelihood_nn(
             model=model, embedding_net=embedding_net, **model_args)
 
     raise ValueError(f"Engine {engine} not implemented.")

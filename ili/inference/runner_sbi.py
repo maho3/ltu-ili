@@ -132,24 +132,21 @@ class SBIRunner(_BaseRunner):
 
         # load inference class and neural nets
         engine = config["model"]["engine"]
-        nets = [load_nde_sbi(config['model']['engine'],
-                             embedding_net=embedding_net,
-                             **model_args)
-                for model_args in config['model']['nets']]
+        nets = []
 
-        # # initialize
-        # return cls(
-        #     prior=prior,
-        #     proposal=proposal,
-        #     engine=engine,
-        #     nets=nets,
-        #     device=config["device"],
-        #     embedding_net=embedding_net,
-        #     train_args=train_args,
-        #     out_dir=out_dir,
-        #     signatures=signatures,
-        #     name=name,
-        # )
+        # For every different nets architecture
+        for model_args in config['model']['nets']:
+            if "repeats" in model_args:
+                n_size = model_args["repeats"]
+                model_args.pop("repeats")
+            else:
+                n_size = 1
+
+            # Repeat to have an ensemble of n_size >=1 of the same nets architecture
+            for n in range(n_size):
+                nets.append(load_nde_sbi(config['model']['engine'],
+                             embedding_net=embedding_net,
+                             **model_args))
 
         # initialize
         return cls(
