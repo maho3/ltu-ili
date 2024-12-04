@@ -15,7 +15,9 @@ from math import ceil
 try:
     import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
-    from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+    #from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+    #from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble #"NeuralPosteriorEnsemble was renamed EnsemblePosterior and moved to sbi.inference.posteriors.ensemble_posterior. sbi.utils.posterior_ensemble
+    from sbi.inference.posteriors import EnsemblePosterior
     from sbi.inference.posteriors import (
         DirectPosterior, MCMCPosterior, VIPosterior)
     from sbi.inference.potentials.posterior_based_potential import (
@@ -147,9 +149,9 @@ class PyroSampler(_MCMCSampler):
         # convert DirectPosteriors to MCMCPosteriors
         if isinstance(posterior, DirectPosterior):
             posterior = self._Direct_to_MCMC(posterior)
-        elif isinstance(posterior, NeuralPosteriorEnsemble):
+        elif isinstance(posterior, EnsemblePosterior):
             posteriors = posterior.posteriors
-            posterior = NeuralPosteriorEnsemble(
+            posterior = EnsemblePosterior(
                 [(self._Direct_to_MCMC(p) if isinstance(p, DirectPosterior)
                   else p)
                  for p in posteriors],
@@ -256,7 +258,7 @@ class VISampler(ABC):
                  dist: str = 'maf', **train_kwargs) -> None:
         if isinstance(posterior, DirectPosterior):
             posterior = self._Direct_to_VI(posterior)
-        elif isinstance(posterior, NeuralPosteriorEnsemble):
+        elif isinstance(posterior, EnsemblePosterior):
             posterior = VIPosterior(
                 potential_fn=posterior.potential_fn,
                 prior=posterior.prior,
