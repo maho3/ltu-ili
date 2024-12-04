@@ -153,6 +153,8 @@ class LampeNPE(nn.Module):
         show_progress_bars: bool = True
     ) -> torch.Tensor:
         """Accept-reject sampling"""
+        if isinstance(shape, int):
+            shape = (shape,)
 
         # check inputs
         if isinstance(x, (list, np.ndarray)):
@@ -230,6 +232,9 @@ class LampeEnsemble(nn.Module):
         x: Any,
         show_progress_bars: bool = True
     ):
+        if isinstance(shape, int):
+            shape = (shape,)
+
         # determine number of samples per model
         num_samples = np.prod(shape)
         per_model = torch.round(
@@ -261,6 +266,7 @@ def load_nde_lampe(
     device: Optional[str] = 'cpu',
     x_normalize: bool = True,
     theta_normalize: bool = True,
+    engine: str = 'NPE',
     **model_args
 ):
     """Load an nde from lampe.
@@ -288,50 +294,69 @@ def load_nde_lampe(
             Defaults to True.
         theta_normalize (bool, optional): whether to z-normalize theta.
             Defaults to True.
+        engine (str, optional): dummy argument to match sbi interface.
+            Must be set to 'NPE' or will be overwritten.
         **model_args: additional arguments to pass to the model.
     """
+    if 'NPE' not in engine:
+        raise ValueError(
+            f'Engine {engine} not supported in lampe backend. '
+            'You probably meant to specify engine="NPE" or to use the NLE or NRE'
+            ' engines in the sbi or pydelfi backends.')
     model = model.lower()
+
+    # check the model parameterizations
+    if model == 'mdn':
+        model_defaults = dict(hidden_features=16, num_components=3)
+    else:
+        model_defaults = dict(hidden_features=16, num_transforms=2)
+    if not (set(model_args.keys()) <= set(model_defaults.keys())):
+        raise ValueError(
+            f"Model {model} arguments mispecified. Extra arguments found: "
+            f"{set(model_args.keys()) - set(model_defaults.keys())}.")
+
+    # set defaults
+    model_args = {**model_defaults, **model_args}
+
+    # setup models
     if model == 'mdn':  # for mixture density networks
-        if not (set(model_args.keys()) <= {'hidden_features', 'num_components'}):
-            raise ValueError(f"Model {model} arguments mispecified.")
         model_args['hidden_features'] = [model_args['hidden_features']] * 3
         model_args['components'] = model_args.pop('num_components', 2)
         flow_class = zuko.flows.mixture.GMM
-    elif model == 'cnf':  # for continuous flow models
-        # number of time embeddings
-        model_args['hidden_features'] = [
-            model_args['hidden_features']] * 2
-        model_args['freqs'] = model_args.pop('num_transforms', 2)
-        flow_class = zuko.flows.continuous.CNF
-    else:  # for all discrete flow models
-        if not (set(model_args.keys()) <= {'hidden_features', 'num_transforms'}):
-            raise ValueError(f"Model {model} arguments mispecified.")
-        model_args['hidden_features'] = [
-            model_args['hidden_features']] * 2
-        model_args['transforms'] = model_args.pop('num_transforms', 2)
+    else:
+        if model == 'cnf':  # for continuous flow models
+            # number of time embeddings
+            model_args['hidden_features'] = [
+                model_args['hidden_features']] * 2
+            model_args['freqs'] = model_args.pop('num_transforms', 2)
+            flow_class = zuko.flows.continuous.CNF
+        else:  # for all discrete flow models
+            model_args['hidden_features'] = [
+                model_args['hidden_features']] * 2
+            model_args['transforms'] = model_args.pop('num_transforms', 2)
 
-        if model == 'maf':
-            flow_class = zuko.flows.autoregressive.MAF
-        elif model == 'nsf':
-            flow_class = zuko.flows.spline.NSF
-        elif model == 'ncsf':
-            logging.warning(
-                "You've selected a Neural Circular Spline Flow, for "
-                "which parameters are expected to be restricted to [-pi,pi]."
-            )
-            flow_class = zuko.flows.spline.NCSF
-        elif model == 'nice':
-            flow_class = zuko.flows.coupling.NICE
-        elif model == 'gf':
-            flow_class = zuko.flows.gaussianization.GF
-        elif model == 'sospf':
-            flow_class = zuko.flows.polynomial.SOSPF
-        elif model == 'naf':
-            flow_class = zuko.flows.neural.NAF
-        elif model == 'unaf':
-            flow_class = zuko.flows.neural.UNAF
-        else:
-            raise ValueError(f"Model {model} not implemented.")
+            if model == 'maf':
+                flow_class = zuko.flows.autoregressive.MAF
+            elif model == 'nsf':
+                flow_class = zuko.flows.spline.NSF
+            elif model == 'ncsf':
+                logging.warning(
+                    "You've selected a Neural Circular Spline Flow, for "
+                    "which parameters are expected to be restricted to [-pi,pi]."
+                )
+                flow_class = zuko.flows.spline.NCSF
+            elif model == 'nice':
+                flow_class = zuko.flows.coupling.NICE
+            elif model == 'gf':
+                flow_class = zuko.flows.gaussianization.GF
+            elif model == 'sospf':
+                flow_class = zuko.flows.polynomial.SOSPF
+            elif model == 'naf':
+                flow_class = zuko.flows.neural.NAF
+            elif model == 'unaf':
+                flow_class = zuko.flows.neural.UNAF
+            else:
+                raise ValueError(f"Model {model} not implemented.")
 
     embedding_net = deepcopy(embedding_net)
 

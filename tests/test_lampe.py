@@ -81,6 +81,14 @@ def test_npe(monkeypatch):
         for name in ['maf', 'nsf', 'ncsf', 'nice', 'gf', 'sospf', 'naf', 'unaf', 'cnf']
     ]
 
+    # check that we throw an error for misspecified arguments
+    unittest.TestCase().assertRaises(
+        ValueError, ili.utils.load_nde_lampe, model='mdn', engine='NLE')
+    unittest.TestCase().assertRaises(
+        ValueError, ili.utils.load_nde_lampe, model='mdn', num_transforms=2)
+    unittest.TestCase().assertRaises(
+        ValueError, ili.utils.load_nde_lampe, model='maf', num_components=2)
+
     # initialize the trainer
     runner = LampeRunner(
         prior=prior,
@@ -115,6 +123,8 @@ def test_npe(monkeypatch):
 
     # generate samples from the posterior using accept/reject sampling
     samples = posterior.sample((nsamples,), torch.Tensor(x[ind]).to(device))
+    _ = posterior.sample(nsamples, x[ind])  # test input casting
+    _ = posterior.posteriors[0].sample(0, x[ind])  # test input casting
 
     # calculate the log_prob for each sample
     log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
