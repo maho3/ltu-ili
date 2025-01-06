@@ -13,11 +13,12 @@ model:
   name: 'toy_lampe'
   nets:
     - model: 'nsf'  # Masked Autoregressive Flow
-      hidden_features: 5
+      hidden_features: 6
       num_transforms: 2
     - model: 'mdn'  # Mixture Density Network
       hidden_features: 10
       num_components: 4
+      repeats: 2
 
 # Specify the neural training hyperparameters
 train_args:

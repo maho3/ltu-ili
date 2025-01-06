@@ -68,7 +68,17 @@ class SBIRunner(_BaseRunner):
         else:
             self.proposal = proposal
         self.engine = engine
-        self.nets = nets
+        #self.nets = nets
+        # Below, to handle the new "repeats" argument
+        nets_list = []
+        for net_el in nets:
+            if isinstance(net_el,List):
+                for net in net_el:
+                    nets_list.append(net)
+            else:
+                nets_list.append(net_el)
+        self.nets= nets_list
+                    
         self.num_rounds = self.train_args.pop("num_round", 1)
 
         train_default = dict(

@@ -54,7 +54,15 @@ class LampeRunner():
         signatures: Optional[List[str]] = None,
     ):
         self.prior = prior
-        self.nets = nets
+        #self.nets = nets
+        nets_list = []
+        for net_el in nets:
+            if isinstance(net_el,List):
+                for net in net_el:
+                    nets_list.append(net)
+            else:
+                nets_list.append(net_el)
+        self.nets= nets_list
         if engine != 'NPE':
             logging.warning(
                 'lampe only supports NPE engine. Engine set to NPE.')
