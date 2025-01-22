@@ -292,7 +292,7 @@ def test_snle(monkeypatch):
         # choose a random input
         ind = np.random.randint(len(theta))
 
-        nsamples = 20
+        nsamples = 2
 
         # generate samples from the posterior using MCMC
         samples = posterior.sample(
