@@ -347,7 +347,7 @@ def test_yaml():
     data['embedding_net'] = {
         'module': 'ili.embedding',
         'class': 'FCN',
-        'args': {'n_hidden': [10, 10], 'act_fn': 'SiLU'}
+        'args': {'n_hidden': [10, 10], 'act_fn': 'SiLU',"n_input":x.shape[1]}
     }
     with open('./toy_lampe/infer_embed.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
