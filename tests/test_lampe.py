@@ -63,7 +63,7 @@ def test_npe(monkeypatch):
     # define an embedding network
     embedding_args = {
         'n_hidden': [x.shape[1], x.shape[1]],
-        'act_fn': "SiLU"
+        'act_fn': "SiLU", "n_input":x.shape[1]
     }
     embedding_net = FCN(**embedding_args)
 
@@ -273,8 +273,10 @@ def test_zuko(monkeypatch):
 
     theta = torch.ones(1, 2)
     x = torch.zeros(1, 5)
-
-    model = nde(x, theta, prior)
+    
+    # with the new repeats argument, nde is a list.
+    nde_0 = nde[0]
+    model = nde_0(x, theta, prior)
 
     # Test that it works when theta is in [-pi, pi]
     _ = model(theta, x)

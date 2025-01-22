@@ -12,24 +12,20 @@ class FCN(nn.Module):
     """Fully connected network to compress data.
 
     Args:
+        n_input: dimensionality of the input
         n_hidden (List[int]): number of hidden units per layer
         act_fn (str):  activation function to use
     """
 
     def __init__(
-        self, n_hidden: List[int], act_fn: str = "SiLU"
+        self,n_input, n_hidden: List[int], act_fn: str = "SiLU"
     ):
-        super().__init__()
+        #super().__init__()
+        super(FCN,self).__init__()
         self.act_fn = getattr(nn, act_fn)()
         self.n_layers = len(n_hidden)
         self.n_hidden = n_hidden
 
-    def initalize_model(self, n_input: int):
-        """Initialize network once the input dimensionality is known.
-
-        Args:
-            n_input (int): input dimensionality
-        """
         model = []
         n_left = n_input
         for layer in range(self.n_layers):
@@ -56,3 +52,6 @@ class FCN(nn.Module):
             self.initalize_model(x.shape[-1])
 
         return self.mlp(x)
+
+    # def parameters(self, recurse = True):
+    #     return super().parameters(recurse)

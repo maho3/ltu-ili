@@ -68,7 +68,7 @@ def test_snpe(monkeypatch):
     # define an embedding network
     embedding_args = {
         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
-        'act_fn': "SiLU"
+        'act_fn': "SiLU","n_input":x.shape[1] 
     }
     embedding_net = FCN(**embedding_args)
 
@@ -292,7 +292,7 @@ def test_snle(monkeypatch):
         # choose a random input
         ind = np.random.randint(len(theta))
 
-        nsamples = 2
+        nsamples = 20
 
         # generate samples from the posterior using MCMC
         samples = posterior.sample(
@@ -302,7 +302,7 @@ def test_snle(monkeypatch):
 
         # calculate the potential (prop. to log_prob) for each sample
         log_prob = posterior.log_prob(
-            nsamples,
+            samples,
             x[ind]
         ).detach().cpu().numpy()
 
