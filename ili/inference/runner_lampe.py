@@ -61,7 +61,7 @@ class LampeRunner():
         self.engine = 'NPE'
         self.train_args = dict(
             training_batch_size=50, learning_rate=5e-4,
-            stop_after_epochs=30, clip_max_norm=5,
+            stop_after_epochs=30, clip_max_norm=5, weight_decay=0,
             lr_decay_factor=1, lr_patience=10,
             max_epochs=int(1e10),
             validation_fraction=0.1
@@ -229,7 +229,8 @@ class LampeRunner():
             # define optimizer
             optimizer = torch.optim.Adam(
                 model.parameters(),
-                lr=self.train_args["learning_rate"]
+                lr=self.train_args["learning_rate"],
+                weight_decay=self.train_args["weight_decay"]
             )
             stepper = lampe.utils.GDStep(
                 optimizer, clip=self.train_args["clip_max_norm"])
