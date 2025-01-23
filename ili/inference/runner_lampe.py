@@ -62,8 +62,10 @@ class LampeRunner():
         self.train_args = dict(
             training_batch_size=50, learning_rate=5e-4,
             stop_after_epochs=30, clip_max_norm=5,
+            lr_decay_factor=1, lr_patience=10,
             max_epochs=int(1e10),
-            validation_fraction=0.1)
+            validation_fraction=0.1
+        )
         self.train_args.update(train_args)
         self.out_dir = out_dir
         if self.out_dir is not None:
@@ -231,6 +233,9 @@ class LampeRunner():
             )
             stepper = lampe.utils.GDStep(
                 optimizer, clip=self.train_args["clip_max_norm"])
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, factor=self.train_args["lr_decay_factor"],
+                patience=self.train_args["lr_patience"])
 
             # train model
             best_val = float('inf')
@@ -248,7 +253,10 @@ class LampeRunner():
                     tq.set_postfix(
                         loss=loss_train,
                         loss_val=loss_val,
+                        lr=scheduler.get_last_lr()[0]
                     )
+                    if self.train_args["lr_decay_factor"] < 1:
+                        scheduler.step(loss_val)
                     summary['training_log_probs'].append(-loss_train)
                     summary['validation_log_probs'].append(-loss_val)
 
