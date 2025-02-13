@@ -213,7 +213,7 @@ class SBIRunner(_BaseRunner):
             )
         else:
             print('using specified train and val indices')
-            num_training_examples = train_indices.shape[0]
+            num_training_examples = self.train_indices.shape[0]
             train_indices = self.train_indices
             val_indices = self.val_indices
                          
