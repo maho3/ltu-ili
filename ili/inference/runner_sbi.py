@@ -201,7 +201,7 @@ class SBIRunner(_BaseRunner):
         starting_round = 0  # NOTE: won't work for SNPE_A, but we don't use it
         x, _, _ = model.get_simulations(starting_round)
 
-        if self.train_indices is not None:     
+        if self.train_indices is None:     
             # split into training and validation randomly
             num_examples = x.shape[0]
             permuted_indices = torch.randperm(num_examples)
@@ -212,6 +212,7 @@ class SBIRunner(_BaseRunner):
                 permuted_indices[num_training_examples:],
             )
         else:
+            print('using specified train and val indices')
             num_training_examples = train_indices.shape[0]
             train_indices = self.train_indices
             val_indices = self.val_indices
