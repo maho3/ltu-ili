@@ -418,205 +418,205 @@ def test_snre():
     return
 
 
-# def test_multiround():
-#     """Test the SNPE inference class with multiround training and a
-#     simple toy simulator."""
+def test_multiround():
+    """Test the SNPE inference class with multiround training and a
+    simple toy simulator."""
 
-#     device = 'cpu'
+    device = 'cpu'
 
-#     def simulator(params):
-#         # create toy 'simulations'
-#         x = np.arange(10)
-#         y = params @ np.array([np.sin(x), x ** 2, x])
-#         y += np.random.randn(len(params), len(x))
-#         return y
-#     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
-#     x = simulator(theta)
+    def simulator(params):
+        # create toy 'simulations'
+        x = np.arange(10)
+        y = params @ np.array([np.sin(x), x ** 2, x])
+        y += np.random.randn(len(params), len(x))
+        return y
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = simulator(theta)
 
-#     # construct a working directory
-#     if not os.path.isdir("toy"):
-#         os.mkdir("toy")
+    # construct a working directory
+    if not os.path.isdir("toy"):
+        os.mkdir("toy")
 
-#     # simulate a single test observation and save as numpy files
-#     theta0 = np.zeros((1, 3))+0.5
-#     x0 = simulator(theta0)
-#     np.save('toy/thetaobs.npy', theta0[0])
-#     np.save('toy/xobs.npy', x0[0])
+    # simulate a single test observation and save as numpy files
+    theta0 = np.zeros((1, 3))+0.5
+    x0 = simulator(theta0)
+    np.save('toy/thetaobs.npy', theta0[0])
+    np.save('toy/xobs.npy', x0[0])
 
-#     np.save('toy/theta.npy', theta)
-#     np.save('toy/x.npy', x)
+    np.save('toy/theta.npy', theta)
+    np.save('toy/x.npy', x)
 
-#     # setup a dataloader which can simulate
-#     # first uses existing data, second simulates all rounds
-#     all_loader = [
-#         SBISimulator(
-#             in_dir='./toy',
-#             xobs_file='xobs.npy',
-#             thetafid_file='thetaobs.npy',
-#             x_file='x.npy',
-#             theta_file='theta.npy',
-#             num_simulations=400,
-#             simulator=simulator,
-#             save_simulated=True
-#         ),
-#         SBISimulator(
-#             in_dir='./toy',
-#             xobs_file='xobs.npy',
-#             num_simulations=400,
-#             simulator=simulator,
-#             save_simulated=False
-#         ),
-#     ]
-#     # train an SBI sequential model to infer x -> theta
+    # setup a dataloader which can simulate
+    # first uses existing data, second simulates all rounds
+    all_loader = [
+        SBISimulator(
+            in_dir='./toy',
+            xobs_file='xobs.npy',
+            thetafid_file='thetaobs.npy',
+            x_file='x.npy',
+            theta_file='theta.npy',
+            num_simulations=400,
+            simulator=simulator,
+            save_simulated=True
+        ),
+        SBISimulator(
+            in_dir='./toy',
+            xobs_file='xobs.npy',
+            num_simulations=400,
+            simulator=simulator,
+            save_simulated=False
+        ),
+    ]
+    # train an SBI sequential model to infer x -> theta
 
-#     # define a prior
-#     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
+    # define a prior
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
-#     #  Check lengths of simulator
-#     unittest.TestCase().assertEqual(len(all_loader[0]), 200)
-#     all_loader[0].simulate(prior)
-#     unittest.TestCase().assertEqual(len(all_loader[0]), 600)
-#     unittest.TestCase().assertEqual(len(all_loader[1]), 0)
+    #  Check lengths of simulator
+    unittest.TestCase().assertEqual(len(all_loader[0]), 200)
+    all_loader[0].simulate(prior)
+    unittest.TestCase().assertEqual(len(all_loader[0]), 600)
+    unittest.TestCase().assertEqual(len(all_loader[1]), 0)
 
-#     # define an inference class (we are doing amortized posterior inference)
-#     engine = 'SNPE'
+    # define an inference class (we are doing amortized posterior inference)
+    engine = 'SNPE'
 
-#     # define training arguments
-#     train_args = {
-#         'training_batch_size': 32,
-#         'learning_rate': 1e-3,
-#         'max_num_epochs': 5,
-#         'num_round': 2,
-#     }
+    # define training arguments
+    train_args = {
+        'training_batch_size': 32,
+        'learning_rate': 1e-3,
+        'max_num_epochs': 5,
+        'num_round': 2,
+    }
 
-#     # define an embedding network
-#     embedding_args = {
-#         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
-#         'act_fn': "SiLU", "n_input":x.shape[1]
-#     }
-#     embedding_net = FCN(**embedding_args)
+    # define an embedding network
+    embedding_args = {
+        'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
+        'act_fn': "SiLU", "n_input":x.shape[1]
+    }
+    embedding_net = FCN(**embedding_args)
 
-#     # instantiate your neural networks to be used as an ensemble
-#     nets = [
-#         ili.utils.load_nde_sbi(engine='SNPE', model='maf', hidden_features=16,
-#                                num_transforms=2, embedding_net=embedding_net),
-#         ili.utils.load_nde_sbi(engine='SNPE', model='mdn', hidden_features=16,
-#                                num_components=2, embedding_net=embedding_net),
-#     ]
+    # instantiate your neural networks to be used as an ensemble
+    nets = [
+        ili.utils.load_nde_sbi(engine='SNPE', model='maf', hidden_features=16,
+                               num_transforms=2, embedding_net=embedding_net),
+        ili.utils.load_nde_sbi(engine='SNPE', model='mdn', hidden_features=16,
+                               num_components=2, embedding_net=embedding_net),
+    ]
 
-#     np.testing.assert_almost_equal(
-#         np.squeeze(all_loader[0].get_fid_parameters()),
-#         np.squeeze(theta0)
-#     )
+    np.testing.assert_almost_equal(
+        np.squeeze(all_loader[0].get_fid_parameters()),
+        np.squeeze(theta0)
+    )
 
-#     for loader in all_loader:
+    for loader in all_loader:
 
-#         # initialize the trainer
-#         runner = SBIRunnerSequential(
-#             prior=prior,
-#             engine=engine,
-#             nets=nets,
-#             device=device,
-#             train_args=train_args,
-#             out_dir='./toy',
-#         )
+        # initialize the trainer
+        runner = SBIRunnerSequential(
+            prior=prior,
+            engine=engine,
+            nets=nets,
+            device=device,
+            train_args=train_args,
+            out_dir='./toy',
+        )
 
-#         # train the model
-#         runner(loader=loader, seed=1)
+        # train the model
+        runner(loader=loader, seed=1)
 
-#     # sample an ABC model to infer x -> theta
-#     train_args = {
-#         'num_simulations': 1000,
-#         'quantile': 0.1,
-#     }
+    # sample an ABC model to infer x -> theta
+    train_args = {
+        'num_simulations': 1000,
+        'quantile': 0.1,
+    }
 
-#     # define an inference class (we are doing approximate bayesian computation)
-#     engine = 'MCABC'
+    # define an inference class (we are doing approximate bayesian computation)
+    engine = 'MCABC'
 
-#     runner = ABCRunner(
-#         prior=prior,
-#         engine=engine,
-#         device=device,
-#         train_args=train_args,
-#         out_dir='./toy',
-#     )
-#     runner(loader=all_loader[0])
+    runner = ABCRunner(
+        prior=prior,
+        engine=engine,
+        device=device,
+        train_args=train_args,
+        out_dir='./toy',
+    )
+    runner(loader=all_loader[0])
 
-#     return
+    return
 
 
-# def test_prior():
-#     """Test the prior classes."""
+def test_prior():
+    """Test the prior classes."""
 
-#     # create the same synthetic catalog as the previous example
-#     def simulator(params):
-#         # create toy simulations
-#         x = np.linspace(0, 10, 20)
-#         y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
-#         y += 1*np.random.randn(len(x))
-#         return y
+    # create the same synthetic catalog as the previous example
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
 
-#     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
-#     x = np.array([simulator(t) for t in theta])
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
 
-#     # make a dataloader
-#     loader = NumpyLoader(x=x, theta=theta)
+    # make a dataloader
+    loader = NumpyLoader(x=x, theta=theta)
 
-#     # define a prior
-#     priors = [
-#         ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device),
-#         ili.utils.IndependentNormal(
-#             loc=[0, 0, 0], scale=[1, 1, 1], device=device),
-#         ili.utils.MultivariateNormal(
-#             loc=[0, 0, 0], covariance_matrix=np.diag([1, 2, 3]), device=device),
-#         ili.utils.IndependentTruncatedNormal(
-#             loc=[0, 0, 0], scale=[1, 1, 1], low=[0, 0, 0], high=[1, 1, 1],
-#             device=device),
-#         ili.utils.LowRankMultivariateNormal(
-#             loc=[0, 0, 0], cov_factor=np.diag([1, 2, 3]), cov_diag=[1, 1, 1],
-#             device=device),
-#     ]
+    # define a prior
+    priors = [
+        ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device),
+        ili.utils.IndependentNormal(
+            loc=[0, 0, 0], scale=[1, 1, 1], device=device),
+        ili.utils.MultivariateNormal(
+            loc=[0, 0, 0], covariance_matrix=np.diag([1, 2, 3]), device=device),
+        ili.utils.IndependentTruncatedNormal(
+            loc=[0, 0, 0], scale=[1, 1, 1], low=[0, 0, 0], high=[1, 1, 1],
+            device=device),
+        ili.utils.LowRankMultivariateNormal(
+            loc=[0, 0, 0], cov_factor=np.diag([1, 2, 3]), cov_diag=[1, 1, 1],
+            device=device),
+    ]
 
-#     for p in priors:
-#         # define an inference class (we are doing amortized posterior inference)
-#         engine = 'NPE'
+    for p in priors:
+        # define an inference class (we are doing amortized posterior inference)
+        engine = 'NPE'
 
-#         # instantiate your neural networks to be used as an ensemble
-#         nets = [
-#             ili.utils.load_nde_sbi(engine='NPE', model='maf',
-#                                    hidden_features=16, num_transforms=2)
-#         ]
+        # instantiate your neural networks to be used as an ensemble
+        nets = [
+            ili.utils.load_nde_sbi(engine='NPE', model='maf',
+                                   hidden_features=16, num_transforms=2)
+        ]
 
-#         train_args = {'training_batch_size': 32,
-#                       'learning_rate': 0.001, 'max_num_epochs': 5}
+        train_args = {'training_batch_size': 32,
+                      'learning_rate': 0.001, 'max_num_epochs': 5}
 
-#         # initialize the trainer
-#         runner = SBIRunner(
-#             prior=p,
-#             engine=engine,
-#             nets=nets,
-#             device=device,
-#             train_args=train_args,
-#             proposal=None,
-#             out_dir=Path('./toy')
-#         )
+        # initialize the trainer
+        runner = SBIRunner(
+            prior=p,
+            engine=engine,
+            nets=nets,
+            device=device,
+            train_args=train_args,
+            proposal=None,
+            out_dir=Path('./toy')
+        )
 
-#         # train the model. this outputs a posterior model and training logs
-#         posterior, summaries = runner(loader=loader)
+        # train the model. this outputs a posterior model and training logs
+        posterior, summaries = runner(loader=loader)
 
-#         # choose a random input
-#         ind = np.random.randint(len(theta))
+        # choose a random input
+        ind = np.random.randint(len(theta))
 
-#         nsamples = 20
+        nsamples = 20
 
-#         # generate samples from the posterior using accept/reject sampling
-#         samples = posterior.sample(
-#             (nsamples,), torch.Tensor(x[ind]).to(device))
+        # generate samples from the posterior using accept/reject sampling
+        samples = posterior.sample(
+            (nsamples,), torch.Tensor(x[ind]).to(device))
 
-#         # calculate the log_prob for each sample
-#         log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
+        # calculate the log_prob for each sample
+        log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
 
-#     return
+    return
 
 
 # def test_custom_priors():
