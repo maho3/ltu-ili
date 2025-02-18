@@ -1332,226 +1332,226 @@ def test_loaders():
     return
 
 
-# def test_universal():
-#     """Test SBIRunner's integration with the universal configuration"""
-#     # Setup a toy problem
+def test_universal():
+    """Test SBIRunner's integration with the universal configuration"""
+    # Setup a toy problem
 
-#     # construct a working directory
-#     if not os.path.isdir("toy"):
-#         os.mkdir("toy")
+    # construct a working directory
+    if not os.path.isdir("toy"):
+        os.mkdir("toy")
 
-#     # create synthetic catalog
-#     def simulator(params):
-#         # create toy simulations
-#         x = np.linspace(0, 10, 20)
-#         y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
-#         y += 1*np.random.randn(len(x))
-#         return y
+    # create synthetic catalog
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
 
-#     theta = np.random.rand(20, 3)  # 200 simulations, 3 parameters
-#     x = np.array([simulator(t) for t in theta])
+    theta = np.random.rand(20, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
 
-#     # make a dataloader
-#     loader = NumpyLoader(x=x, theta=theta)
+    # make a dataloader
+    loader = NumpyLoader(x=x, theta=theta)
 
-#     # define a prior
-#     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
+    # define a prior
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
-#     nets = [
-#         ili.utils.load_nde_sbi(
-#             engine='NPE',
-#             model='maf', hidden_features=50, num_transforms=5),
-#         ili.utils.load_nde_sbi(
-#             engine='NPE',
-#             model='mdn', hidden_features=50, num_components=2)
-#     ]
+    nets = [
+        ili.utils.load_nde_sbi(
+            engine='NPE',
+            model='maf', hidden_features=50, num_transforms=5),
+        ili.utils.load_nde_sbi(
+            engine='NPE',
+            model='mdn', hidden_features=50, num_components=2)
+    ]
 
-#     # -------
-#     # Tests of InferenceRunner
+    # -------
+    # Tests of InferenceRunner
 
-#     # InferenceRunner isn't supposed to be initialized
-#     unittest.TestCase().assertRaises(
-#         NotImplementedError,
-#         InferenceRunner
-#     )
+    # InferenceRunner isn't supposed to be initialized
+    unittest.TestCase().assertRaises(
+        NotImplementedError,
+        InferenceRunner
+    )
 
-#     # check that the correct trainers are loaded
-#     runner0 = InferenceRunner.load(
-#         backend='sbi',
-#         engine='NPE',
-#         prior=prior,
-#         nets=nets
-#     )
-#     assert isinstance(runner0, SBIRunner)
+    # check that the correct trainers are loaded
+    runner0 = InferenceRunner.load(
+        backend='sbi',
+        engine='NPE',
+        prior=prior,
+        nets=nets
+    )
+    assert isinstance(runner0, SBIRunner)
 
-#     runner1 = InferenceRunner.load(
-#         backend='sbi',
-#         engine='SNPE',
-#         prior=prior,
-#         nets=nets
-#     )
-#     assert isinstance(runner1, SBIRunnerSequential)
+    runner1 = InferenceRunner.load(
+        backend='sbi',
+        engine='SNPE',
+        prior=prior,
+        nets=nets
+    )
+    assert isinstance(runner1, SBIRunnerSequential)
 
-#     # misspecified backend
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         InferenceRunner.load,
-#         backend='andre',
-#         engine='SNPE',
-#         prior=prior,
-#         nets=nets
-#     )
+    # misspecified backend
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='andre',
+        engine='SNPE',
+        prior=prior,
+        nets=nets
+    )
 
-#     # you can't call an sbi engine that doesn't exist
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         InferenceRunner.load,
-#         backend='sbi',
-#         engine='ANDRE',
-#         prior=prior,
-#         nets=nets
-#     )
+    # you can't call an sbi engine that doesn't exist
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='sbi',
+        engine='ANDRE',
+        prior=prior,
+        nets=nets
+    )
 
-#     # you can't load a pydelfi backend in the torch interface
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         InferenceRunner.load,
-#         backend='pydelfi',
-#         engine='NLE',
-#         prior=prior,
-#         nets=nets
-#     )
+    # you can't load a pydelfi backend in the torch interface
+    unittest.TestCase().assertRaises(
+        ValueError,
+        InferenceRunner.load,
+        backend='pydelfi',
+        engine='NLE',
+        prior=prior,
+        nets=nets
+    )
 
-#     netcfg = [
-#         dict(model='maf', hidden_features=50, num_transforms=5),
-#         dict(model='mdn', hidden_features=50, num_components=2)
-#     ]
-#     priorcfg = dict(
-#         module='ili.utils',
-#         args=dict(
-#             low=[0, 0, 0],
-#             high=[1, 1, 1],
-#         ),
-#     )
-#     priorcfg['class'] = 'Uniform'
-#     modelcfg = dict(
-#         backend='sbi',
-#         engine='NPE',
-#         nets=netcfg,
-#     )
-#     cfg = dict(
-#         model=modelcfg,
-#         prior=priorcfg,
-#         device='cpu',
-#         out_dir='./toy',
-#         train_args={}
-#     )
-#     with open('./toy/inf_univ.yml', 'w') as outfile:
-#         yaml.dump(cfg, outfile, default_flow_style=False)
-#     runner = InferenceRunner.from_config('./toy/inf_univ.yml')
+    netcfg = [
+        dict(model='maf', hidden_features=50, num_transforms=5),
+        dict(model='mdn', hidden_features=50, num_components=2)
+    ]
+    priorcfg = dict(
+        module='ili.utils',
+        args=dict(
+            low=[0, 0, 0],
+            high=[1, 1, 1],
+        ),
+    )
+    priorcfg['class'] = 'Uniform'
+    modelcfg = dict(
+        backend='sbi',
+        engine='NPE',
+        nets=netcfg,
+    )
+    cfg = dict(
+        model=modelcfg,
+        prior=priorcfg,
+        device='cpu',
+        out_dir='./toy',
+        train_args={}
+    )
+    with open('./toy/inf_univ.yml', 'w') as outfile:
+        yaml.dump(cfg, outfile, default_flow_style=False)
+    runner = InferenceRunner.from_config('./toy/inf_univ.yml')
 
-#     # -------
-#     # Test ndes_pt
+    # -------
+    # Test ndes_pt
 
-#     # test that it works
-#     model = load_nde_sbi(
-#         engine='NPE',
-#         model='maf', hidden_features=50, num_transforms=5)
+    # test that it works
+    model = load_nde_sbi(
+        engine='NPE',
+        model='maf', hidden_features=50, num_transforms=5)
 
-#     # test that it breaks if you misspecify model configs
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         load_nde_sbi,
-#         engine='NPE',
-#         model='maf', hidden_features=50, num_components=2
-#     )
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         load_nde_sbi,
-#         engine='NPE',
-#         model='mdn', hidden_features=50, num_transforms=5
-#     )
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         load_nde_sbi,
-#         engine='NRE',
-#         model='mdn', hidden_features=50, num_components=2
-#     )
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         load_nde_sbi,
-#         engine='NRE',
-#         model='andre', hidden_features=50, num_components=2
-#     )
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         load_nde_sbi,
-#         engine='ANDRE',
-#         model='nsf', hidden_features=50, num_components=2
-#     )
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         load_nde_sbi,
-#         engine='NPE',
-#         model='andre', hidden_features=50, num_components=2
-#     )
+    # test that it breaks if you misspecify model configs
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_sbi,
+        engine='NPE',
+        model='maf', hidden_features=50, num_components=2
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_sbi,
+        engine='NPE',
+        model='mdn', hidden_features=50, num_transforms=5
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_sbi,
+        engine='NRE',
+        model='mdn', hidden_features=50, num_components=2
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_sbi,
+        engine='NRE',
+        model='andre', hidden_features=50, num_components=2
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_sbi,
+        engine='ANDRE',
+        model='nsf', hidden_features=50, num_components=2
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        load_nde_sbi,
+        engine='NPE',
+        model='andre', hidden_features=50, num_components=2
+    )
 
-#     # test that it works if you underspecify
-#     model = load_nde_sbi(
-#         engine='NLE',
-#         model='maf', hidden_features=50)
+    # test that it works if you underspecify
+    model = load_nde_sbi(
+        engine='NLE',
+        model='maf', hidden_features=50)
 
 
-# def test_misc():
-#     """Test miscellaneous problems with SBIRunner."""
+def test_misc():
+    """Test miscellaneous problems with SBIRunner."""
 
-#     # create synthetic catalog
-#     def simulator(params):
-#         # create toy simulations
-#         x = np.linspace(0, 10, 20)
-#         y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
-#         y += 1*np.random.randn(len(x))
-#         return y
+    # create synthetic catalog
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
 
-#     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
-#     x = np.array([simulator(t) for t in theta])
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
 
-#     # make a dataloader
-#     loader = NumpyLoader(x=x, theta=theta)
+    # make a dataloader
+    loader = NumpyLoader(x=x, theta=theta)
 
-#     # define a prior
-#     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
+    # define a prior
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
-#     # instantiate your neural networks to be used as an ensemble
-#     nets = [
-#         ili.utils.load_nde_sbi(engine='NPE', model='maf',
-#                                hidden_features=16, num_transforms=2),
-#         ili.utils.load_nde_sbi(engine='NPE', model='mdn',
-#                                hidden_features=16, num_components=2),
-#     ]
+    # instantiate your neural networks to be used as an ensemble
+    nets = [
+        ili.utils.load_nde_sbi(engine='NPE', model='maf',
+                               hidden_features=16, num_transforms=2),
+        ili.utils.load_nde_sbi(engine='NPE', model='mdn',
+                               hidden_features=16, num_components=2),
+    ]
 
-#     # test for misspecified engine
-#     runner = SBIRunner(
-#         prior=prior,
-#         engine='ANDRE',
-#         nets=nets,
-#         device=device,
-#     )
-#     unittest.TestCase().assertRaises(
-#         AttributeError,
-#         runner._setup_engine,
-#         net=nets[0],
-#     )
+    # test for misspecified engine
+    runner = SBIRunner(
+        prior=prior,
+        engine='ANDRE',
+        nets=nets,
+        device=device,
+    )
+    unittest.TestCase().assertRaises(
+        AttributeError,
+        runner._setup_engine,
+        net=nets[0],
+    )
 
-#     # SBIRunnerSequential shouldn't work without get_obs_data or simulate
-#     runner = SBIRunnerSequential(
-#         prior=prior,
-#         engine='SNPE',
-#         nets=nets,
-#         device=device,
-#     )
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         runner,
-#         loader=loader
-#     )
+    # SBIRunnerSequential shouldn't work without get_obs_data or simulate
+    runner = SBIRunnerSequential(
+        prior=prior,
+        engine='SNPE',
+        nets=nets,
+        device=device,
+    )
+    unittest.TestCase().assertRaises(
+        ValueError,
+        runner,
+        loader=loader
+    )
