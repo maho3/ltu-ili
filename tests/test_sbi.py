@@ -619,420 +619,420 @@ def test_prior():
     return
 
 
-# def test_custom_priors():
-#     from ili.utils.distributions_pt import (
-#         _UnivariateTruncatedNormal, _TruncatedStandardNormal)
+def test_custom_priors():
+    from ili.utils.distributions_pt import (
+        _UnivariateTruncatedNormal, _TruncatedStandardNormal)
 
-#     loc, scale, low, high, value = 0.0, 1.0, -1.0, 1.0, 0.5
-#     dist = _UnivariateTruncatedNormal(loc, scale, low, high)
-#     cdf = dist.cdf(value)
-#     testing.assert_almost_equal(cdf.item(), 0.780453, decimal=5)
-#     icdf = dist.icdf(value)
-#     np.testing.assert_almost_equal(icdf.item(), 0.0, decimal=5)
-#     log_prob = dist.log_prob(value)
-#     testing.assert_almost_equal(log_prob.item(), -0.66222, decimal=5)
+    loc, scale, low, high, value = 0.0, 1.0, -1.0, 1.0, 0.5
+    dist = _UnivariateTruncatedNormal(loc, scale, low, high)
+    cdf = dist.cdf(value)
+    testing.assert_almost_equal(cdf.item(), 0.780453, decimal=5)
+    icdf = dist.icdf(value)
+    np.testing.assert_almost_equal(icdf.item(), 0.0, decimal=5)
+    log_prob = dist.log_prob(value)
+    testing.assert_almost_equal(log_prob.item(), -0.66222, decimal=5)
 
-#     # Test IndependentTruncatedNormal
-#     loc, scale, low, high, value = \
-#         [0.0, 0.0], [1.0, 1.0], [-1.0, -1.0], [1.0, 1.0], [0.5, 0.1]
-#     dist = ili.utils.IndependentTruncatedNormal(loc, scale, low, high)
-#     log_prob = dist.log_prob(torch.Tensor(value))
-#     testing.assert_almost_equal(log_prob.item(), -1.20445, decimal=5)
-#     sample = dist.sample()[:, 0]
-#     testing.assert_array_less(sample.numpy(), high)
-#     testing.assert_array_less(low, sample.numpy())
-#     # Test _TruncatedStandardNormal
-#     low, high = torch.FloatTensor([0.0, 0.0]), torch.FloatTensor([1.0, 1.0])
-#     dist = _TruncatedStandardNormal(low, high, validate_args=True)
-#     testing.assert_array_less(dist.mean, high)
-#     testing.assert_(torch.all(dist.variance >= 0))
-#     testing.assert_(torch.allclose(dist.support.lower_bound, low))
-#     testing.assert_(torch.allclose(dist.support.upper_bound, high))
-#     unittest.TestCase().assertEqual(low.shape, dist.auc.shape)
-#     unittest.TestCase().assertEqual(low.shape, dist.entropy().shape)
-#     value = torch.rand(100, len(low)) * (high - low) + low
-#     cdf = dist.cdf(value)
-#     testing.assert_(torch.all(cdf <= 1.0))
-#     testing.assert_(torch.all(cdf >= 0.0))
-#     unittest.TestCase().assertEqual(cdf.shape, value.shape)
-#     lp = dist.log_prob(value)
-#     unittest.TestCase().assertEqual(lp.shape, value.shape)
-#     dist = _TruncatedStandardNormal(low[0], high[0])
-#     try:
-#         _TruncatedStandardNormal(high, low)  # bounds in wrong order
-#         success = False
-#     except Exception as e:
-#         success = True
-#     unittest.TestCase().assertTrue(success)
-#     try:
-#         _TruncatedStandardNormal(
-#             low.float(), high.double())  # bounds wrong type
-#         success = False
-#     except Exception as e:
-#         success = True
-#     unittest.TestCase().assertTrue(success)
-#     _TruncatedStandardNormal(0.0, 1.0)  # bounds are numbers
+    # Test IndependentTruncatedNormal
+    loc, scale, low, high, value = \
+        [0.0, 0.0], [1.0, 1.0], [-1.0, -1.0], [1.0, 1.0], [0.5, 0.1]
+    dist = ili.utils.IndependentTruncatedNormal(loc, scale, low, high)
+    log_prob = dist.log_prob(torch.Tensor(value))
+    testing.assert_almost_equal(log_prob.item(), -1.20445, decimal=5)
+    sample = dist.sample()[:, 0]
+    testing.assert_array_less(sample.numpy(), high)
+    testing.assert_array_less(low, sample.numpy())
+    # Test _TruncatedStandardNormal
+    low, high = torch.FloatTensor([0.0, 0.0]), torch.FloatTensor([1.0, 1.0])
+    dist = _TruncatedStandardNormal(low, high, validate_args=True)
+    testing.assert_array_less(dist.mean, high)
+    testing.assert_(torch.all(dist.variance >= 0))
+    testing.assert_(torch.allclose(dist.support.lower_bound, low))
+    testing.assert_(torch.allclose(dist.support.upper_bound, high))
+    unittest.TestCase().assertEqual(low.shape, dist.auc.shape)
+    unittest.TestCase().assertEqual(low.shape, dist.entropy().shape)
+    value = torch.rand(100, len(low)) * (high - low) + low
+    cdf = dist.cdf(value)
+    testing.assert_(torch.all(cdf <= 1.0))
+    testing.assert_(torch.all(cdf >= 0.0))
+    unittest.TestCase().assertEqual(cdf.shape, value.shape)
+    lp = dist.log_prob(value)
+    unittest.TestCase().assertEqual(lp.shape, value.shape)
+    dist = _TruncatedStandardNormal(low[0], high[0])
+    try:
+        _TruncatedStandardNormal(high, low)  # bounds in wrong order
+        success = False
+    except Exception as e:
+        success = True
+    unittest.TestCase().assertTrue(success)
+    try:
+        _TruncatedStandardNormal(
+            low.float(), high.double())  # bounds wrong type
+        success = False
+    except Exception as e:
+        success = True
+    unittest.TestCase().assertTrue(success)
+    _TruncatedStandardNormal(0.0, 1.0)  # bounds are numbers
 
 
-# def test_yaml():
-#     """Test SNPE/SNLE/SNRE/ABC inference classes instantiation
-#     with yaml config files."""
+def test_yaml():
+    """Test SNPE/SNLE/SNRE/ABC inference classes instantiation
+    with yaml config files."""
 
-#     if not os.path.isdir("toy"):
-#         os.mkdir("toy")
+    if not os.path.isdir("toy"):
+        os.mkdir("toy")
 
-#     # create synthetic catalog
-#     def simulator(params):
-#         # create toy 'simulations'
-#         x = np.arange(10)
-#         y = params @ np.array([np.sin(x), x ** 2, x])
-#         y += np.random.randn(len(params), len(x))
-#         return y
+    # create synthetic catalog
+    def simulator(params):
+        # create toy 'simulations'
+        x = np.arange(10)
+        y = params @ np.array([np.sin(x), x ** 2, x])
+        y += np.random.randn(len(params), len(x))
+        return y
 
-#     # simulate data and save as numpy files
-#     np.random.seed(1)
-#     theta = np.random.rand(50, 3)  # 50 simulations, 3 parameters
-#     x = simulator(theta)
-#     np.save("toy/theta.npy", theta)
-#     np.save("toy/x.npy", x)
+    # simulate data and save as numpy files
+    np.random.seed(1)
+    theta = np.random.rand(50, 3)  # 50 simulations, 3 parameters
+    x = simulator(theta)
+    np.save("toy/theta.npy", theta)
+    np.save("toy/x.npy", x)
 
-#     # save a subset of these in a separate file
-#     np.save("toy/theta_val.npy", theta[:2, :])
-#     np.save("toy/x_val.npy", x[:2, :])
+    # save a subset of these in a separate file
+    np.save("toy/theta_val.npy", theta[:2, :])
+    np.save("toy/x_val.npy", x[:2, :])
 
-#     # simulate a single test observation and save as numpy files
-#     theta0 = np.zeros((1, 3))
-#     x0 = simulator(theta0)
-#     np.save('toy/thetaobs.npy', theta[0])
-#     np.save('toy/xobs.npy', x[0])
+    # simulate a single test observation and save as numpy files
+    theta0 = np.zeros((1, 3))
+    x0 = simulator(theta0)
+    np.save('toy/thetaobs.npy', theta[0])
+    np.save('toy/xobs.npy', x[0])
 
-#     # Run for single round
+    # Run for single round
 
-#     # simulate data and save as numpy files
-#     theta = np.random.rand(10, 3)  # 10 simulations, 3 parameters
-#     x = simulator(theta)
-#     np.save("toy/theta.npy", theta)
-#     np.save("toy/x.npy", x)
+    # simulate data and save as numpy files
+    theta = np.random.rand(10, 3)  # 10 simulations, 3 parameters
+    x = simulator(theta)
+    np.save("toy/theta.npy", theta)
+    np.save("toy/x.npy", x)
 
-#     # Yaml file for data - standard
-#     data = dict(
-#         in_dir='./toy',
-#         x_file='x.npy',
-#         theta_file='theta.npy'
-#     )
-#     with open('./toy/data.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for data - standard
+    data = dict(
+        in_dir='./toy',
+        x_file='x.npy',
+        theta_file='theta.npy'
+    )
+    with open('./toy/data.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # Yaml file for data - subset
-#     data = dict(
-#         in_dir='./toy',
-#         x_file='x_val.npy',
-#         theta_file='theta_val.npy'
-#     )
-#     with open('./toy/data_val.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for data - subset
+    data = dict(
+        in_dir='./toy',
+        x_file='x_val.npy',
+        theta_file='theta_val.npy'
+    )
+    with open('./toy/data_val.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # Yaml file for data - multiround
-#     data = dict(
-#         in_dir='./toy',
-#         xobs_file='xobs.npy',
-#         thetafid_file='thetaobs.npy',
-#         x_file='x.npy',
-#         theta_file='theta.npy',
-#         num_simulations=10,
-#     )
-#     with open('./toy/data_multi.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for data - multiround
+    data = dict(
+        in_dir='./toy',
+        xobs_file='xobs.npy',
+        thetafid_file='thetaobs.npy',
+        x_file='x.npy',
+        theta_file='theta.npy',
+        num_simulations=10,
+    )
+    with open('./toy/data_multi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # Yaml file for infer - standard
-#     data = dict(
-#         prior={'module': 'ili.utils',
-#                'class': 'IndependentNormal',
-#                'args': dict(
-#                    loc=[0.5, 0.5, 0.5],
-#                    scale=[0.5, 0.5, 0.5],
-#                ),
-#                },
-#         proposal={'module': 'ili.utils',
-#                   'class': 'IndependentNormal',
-#                   'args': dict(
-#                       loc=[0.5, 0.5, 0.5],
-#                       scale=[0.5, 0.5, 0.5],
-#                   ),
-#                   },
-#         model={'engine': 'SNPE',
-#                'nets': [
-#                    dict(model='maf', hidden_features=50,
-#                         num_transforms=5, signature='maf1'),
-#                    dict(model='mdn', hidden_features=50, num_components=2)],
-#                'name': 'test_snpe'
-#                },
-#         train_args=dict(
-#             training_batch_size=32,
-#             learning_rate=0.001,
-#         ),
-#         embedding_net={'module': 'ili.embedding',
-#                        'class': 'FCN',
-#                        'args': {
-#                            'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
-#                            'act_fn': "SiLU",
-#                            "n_input":x.shape[1]
-#                        },
-#                        },
-#         device='cpu',
-#         out_dir='./toy'
-#     )
-#     with open('./toy/infer_snpe.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
-#     data['model']['engine'] = 'SNLE'
-#     data['model']['nets'] = [
-#         dict(model='maf', hidden_features=50, num_transforms=5),
-#         dict(model='made', hidden_features=50, num_transforms=5)]
-#     with open('./toy/infer_snle.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
-#     data['model']['engine'] = 'SNRE'
-#     data['model']['nets'] = [
-#         dict(model='resnet', hidden_features=50, num_blocks=3),
-#         dict(model='mlp', hidden_features=50)]
-#     with open('./toy/infer_snre.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for infer - standard
+    data = dict(
+        prior={'module': 'ili.utils',
+               'class': 'IndependentNormal',
+               'args': dict(
+                   loc=[0.5, 0.5, 0.5],
+                   scale=[0.5, 0.5, 0.5],
+               ),
+               },
+        proposal={'module': 'ili.utils',
+                  'class': 'IndependentNormal',
+                  'args': dict(
+                      loc=[0.5, 0.5, 0.5],
+                      scale=[0.5, 0.5, 0.5],
+                  ),
+                  },
+        model={'engine': 'SNPE',
+               'nets': [
+                   dict(model='maf', hidden_features=50,
+                        num_transforms=5, signature='maf1'),
+                   dict(model='mdn', hidden_features=50, num_components=2)],
+               'name': 'test_snpe'
+               },
+        train_args=dict(
+            training_batch_size=32,
+            learning_rate=0.001,
+        ),
+        embedding_net={'module': 'ili.embedding',
+                       'class': 'FCN',
+                       'args': {
+                           'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
+                           'act_fn': "SiLU",
+                           "n_input":x.shape[1]
+                       },
+                       },
+        device='cpu',
+        out_dir='./toy'
+    )
+    with open('./toy/infer_snpe.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    data['model']['engine'] = 'SNLE'
+    data['model']['nets'] = [
+        dict(model='maf', hidden_features=50, num_transforms=5),
+        dict(model='made', hidden_features=50, num_transforms=5)]
+    with open('./toy/infer_snle.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    data['model']['engine'] = 'SNRE'
+    data['model']['nets'] = [
+        dict(model='resnet', hidden_features=50, num_blocks=3),
+        dict(model='mlp', hidden_features=50)]
+    with open('./toy/infer_snre.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # Yaml file for infer - multiround
-#     data = dict(
-#         prior={'module': 'ili.utils',
-#                'class': 'Uniform',
-#                'args': dict(
-#                    low=[0, 0, 0],
-#                    high=[1, 1, 1],
-#                ),
-#                },
-#         model={'engine': 'SNPE_C',
-#                'nets': [
-#                    dict(model='maf', hidden_features=100, num_transforms=2),
-#                    dict(model='mdn', hidden_features=50, num_components=6)],
-#                },
-#         train_args=dict(
-#             training_batch_size=32,
-#             learning_rate=0.01,
-#             num_round=2,
-#         ),
-#         device='cpu',
-#         out_dir='./toy'
-#     )
-#     with open('./toy/infer_multi.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for infer - multiround
+    data = dict(
+        prior={'module': 'ili.utils',
+               'class': 'Uniform',
+               'args': dict(
+                   low=[0, 0, 0],
+                   high=[1, 1, 1],
+               ),
+               },
+        model={'engine': 'SNPE_C',
+               'nets': [
+                   dict(model='maf', hidden_features=100, num_transforms=2),
+                   dict(model='mdn', hidden_features=50, num_components=6)],
+               },
+        train_args=dict(
+            training_batch_size=32,
+            learning_rate=0.01,
+            num_round=2,
+        ),
+        device='cpu',
+        out_dir='./toy'
+    )
+    with open('./toy/infer_multi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     #  Yaml file for infer - ABC
-#     data = dict(
-#         prior={'module': 'ili.utils',
-#                'class': 'Uniform',
-#                'args': dict(
-#                    low=[0, 0, 0],
-#                    high=[1, 1, 1],
-#                ),
-#                },
-#         model={'engine': 'MCABC',
-#                'name': 'toy_abc',
-#                'num_workers': 8,
-#                },
-#         train_args=dict(
-#             num_simulations=1000000,
-#             quantile=0.01,
-#         ),
-#         device='cpu',
-#         out_dir='./toy',
-#     )
-#     with open('./toy/infer_abc.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    #  Yaml file for infer - ABC
+    data = dict(
+        prior={'module': 'ili.utils',
+               'class': 'Uniform',
+               'args': dict(
+                   low=[0, 0, 0],
+                   high=[1, 1, 1],
+               ),
+               },
+        model={'engine': 'MCABC',
+               'name': 'toy_abc',
+               'num_workers': 8,
+               },
+        train_args=dict(
+            num_simulations=1000000,
+            quantile=0.01,
+        ),
+        device='cpu',
+        out_dir='./toy',
+    )
+    with open('./toy/infer_abc.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # Make a matplotlib style file
-#     style = {
-#         'figure.figsize': '10,6',
-#         'figure.facecolor': 'white',
-#         'figure.dpi': 200,
-#         'savefig.dpi': 200,
-#         'savefig.bbox': 'tight',
-#         'font.size': 14,
-#         'font.weight': 300,
-#         'xtick.major.width': 1,
-#         'ytick.major.width': 1,
-#         'xtick.labelsize': 'small',
-#         'ytick.labelsize': 'small',
-#         'xtick.top': True,
-#         'ytick.right': True,
-#         'xtick.direction': 'in',
-#         'ytick.direction': 'in',
-#         'xtick.minor.visible': True,
-#         'ytick.minor.visible': True,
-#         'xtick.major.size': 5,
-#         'ytick.major.size': 5,
-#         'xtick.minor.size': 3,
-#         'ytick.minor.size': 3,
-#         'legend.fontsize': 'small',
-#         'lines.linewidth': 2,
-#         'image.origin': 'lower',
-#         'mathtext.fontset': 'cm',
-#         'savefig.edgecolor': 'white',
-#         'savefig.facecolor': 'white',
-#     }
-#     with open('./toy/style.mcstyle', 'w') as fout:
-#         for k, v in style.items():
-#             print(f'{k} : {v}', file=fout)
+    # Make a matplotlib style file
+    style = {
+        'figure.figsize': '10,6',
+        'figure.facecolor': 'white',
+        'figure.dpi': 200,
+        'savefig.dpi': 200,
+        'savefig.bbox': 'tight',
+        'font.size': 14,
+        'font.weight': 300,
+        'xtick.major.width': 1,
+        'ytick.major.width': 1,
+        'xtick.labelsize': 'small',
+        'ytick.labelsize': 'small',
+        'xtick.top': True,
+        'ytick.right': True,
+        'xtick.direction': 'in',
+        'ytick.direction': 'in',
+        'xtick.minor.visible': True,
+        'ytick.minor.visible': True,
+        'xtick.major.size': 5,
+        'ytick.major.size': 5,
+        'xtick.minor.size': 3,
+        'ytick.minor.size': 3,
+        'legend.fontsize': 'small',
+        'lines.linewidth': 2,
+        'image.origin': 'lower',
+        'mathtext.fontset': 'cm',
+        'savefig.edgecolor': 'white',
+        'savefig.facecolor': 'white',
+    }
+    with open('./toy/style.mcstyle', 'w') as fout:
+        for k, v in style.items():
+            print(f'{k} : {v}', file=fout)
 
-#     # Make a matplotlib style file
-#     style = {
-#         'figure.figsize': '10,6',
-#         'figure.facecolor': 'white',
-#         'figure.dpi': 200,
-#         'savefig.dpi': 200,
-#         'savefig.bbox': 'tight',
-#         'font.size': 14,
-#         'font.weight': 300,
-#         'xtick.major.width': 1,
-#         'ytick.major.width': 1,
-#         'xtick.labelsize': 'small',
-#         'ytick.labelsize': 'small',
-#         'xtick.top': True,
-#         'ytick.right': True,
-#         'xtick.direction': 'in',
-#         'ytick.direction': 'in',
-#         'xtick.minor.visible': True,
-#         'ytick.minor.visible': True,
-#         'xtick.major.size': 5,
-#         'ytick.major.size': 5,
-#         'xtick.minor.size': 3,
-#         'ytick.minor.size': 3,
-#         'legend.fontsize': 'small',
-#         'lines.linewidth': 2,
-#         'image.origin': 'lower',
-#         'mathtext.fontset': 'cm',
-#         'savefig.edgecolor': 'white',
-#         'savefig.facecolor': 'white',
-#     }
-#     with open('./toy/style.mcstyle', 'w') as fout:
-#         for k, v in style.items():
-#             print(f'{k} : {v}', file=fout)
+    # Make a matplotlib style file
+    style = {
+        'figure.figsize': '10,6',
+        'figure.facecolor': 'white',
+        'figure.dpi': 200,
+        'savefig.dpi': 200,
+        'savefig.bbox': 'tight',
+        'font.size': 14,
+        'font.weight': 300,
+        'xtick.major.width': 1,
+        'ytick.major.width': 1,
+        'xtick.labelsize': 'small',
+        'ytick.labelsize': 'small',
+        'xtick.top': True,
+        'ytick.right': True,
+        'xtick.direction': 'in',
+        'ytick.direction': 'in',
+        'xtick.minor.visible': True,
+        'ytick.minor.visible': True,
+        'xtick.major.size': 5,
+        'ytick.major.size': 5,
+        'xtick.minor.size': 3,
+        'ytick.minor.size': 3,
+        'legend.fontsize': 'small',
+        'lines.linewidth': 2,
+        'image.origin': 'lower',
+        'mathtext.fontset': 'cm',
+        'savefig.edgecolor': 'white',
+        'savefig.facecolor': 'white',
+    }
+    with open('./toy/style.mcstyle', 'w') as fout:
+        for k, v in style.items():
+            print(f'{k} : {v}', file=fout)
 
-#     # Yaml file for validation
-#     data = dict(
-#         out_dir='./toy',
-#         posterior_file='./posterior.pkl',
-#         style_path='./toy/style.mcstyle',
-#         labels=['t1', 't2', 't3'],
-#         ensemble_mode=False,
-#         metrics=dict(
-#             single_example={
-#                 'module': 'ili.validation.metrics',
-#                 'class': 'PlotSinglePosterior',
-#                 'args': dict(
-#                     num_samples=2,
-#                     sample_method='direct',
-#                     sample_params=dict(
-#                         num_chains=1,
-#                         burn_in=1,
-#                         thin=1,
-#                     )
-#                 )
-#             },
-#             coverage={
-#                 'module': 'ili.validation.metrics',
-#                 'class': 'PosteriorCoverage',
-#                 'args': dict(
-#                     plot_list=["coverage", "histogram", "predictions", "tarp"],
-#                     num_samples=2,
-#                     sample_method='direct',
-#                     sample_params=dict(
-#                         num_chains=1,
-#                         burn_in=1,
-#                         thin=1,
-#                     )
-#                 )
-#             },
-#             save_samples={
-#                 'module': 'ili.validation.metrics',
-#                 'class': 'PosteriorSamples',
-#                 'args': dict(
-#                     num_samples=1,
-#                     sample_method='direct',
-#                     sample_params=dict(
-#                         num_chains=1,
-#                         burn_in=1,
-#                         thin=1
-#                     )
-#                 )
-#             },
-#         )
-#     )
-#     with open('./toy/val.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for validation
+    data = dict(
+        out_dir='./toy',
+        posterior_file='./posterior.pkl',
+        style_path='./toy/style.mcstyle',
+        labels=['t1', 't2', 't3'],
+        ensemble_mode=False,
+        metrics=dict(
+            single_example={
+                'module': 'ili.validation.metrics',
+                'class': 'PlotSinglePosterior',
+                'args': dict(
+                    num_samples=2,
+                    sample_method='direct',
+                    sample_params=dict(
+                        num_chains=1,
+                        burn_in=1,
+                        thin=1,
+                    )
+                )
+            },
+            coverage={
+                'module': 'ili.validation.metrics',
+                'class': 'PosteriorCoverage',
+                'args': dict(
+                    plot_list=["coverage", "histogram", "predictions", "tarp"],
+                    num_samples=2,
+                    sample_method='direct',
+                    sample_params=dict(
+                        num_chains=1,
+                        burn_in=1,
+                        thin=1,
+                    )
+                )
+            },
+            save_samples={
+                'module': 'ili.validation.metrics',
+                'class': 'PosteriorSamples',
+                'args': dict(
+                    num_samples=1,
+                    sample_method='direct',
+                    sample_params=dict(
+                        num_chains=1,
+                        burn_in=1,
+                        thin=1
+                    )
+                )
+            },
+        )
+    )
+    with open('./toy/val.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     data['metrics']['save_samples']['args']['sample_method'] = 'vi'
-#     data['metrics'] = {
-#         'save_samples': {
-#             'module': 'ili.validation.metrics',
-#             'class': 'PosteriorSamples',
-#             'args': dict(
-#                 num_samples=1,
-#                 sample_method='direct',
-#                 sample_params=dict(
-#                     num_chains=1,
-#                     burn_in=1,
-#                     thin=1
-#                 )
-#             )
-#         }
-#     }
-#     with open('./toy/val_vi.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    data['metrics']['save_samples']['args']['sample_method'] = 'vi'
+    data['metrics'] = {
+        'save_samples': {
+            'module': 'ili.validation.metrics',
+            'class': 'PosteriorSamples',
+            'args': dict(
+                num_samples=1,
+                sample_method='direct',
+                sample_params=dict(
+                    num_chains=1,
+                    burn_in=1,
+                    thin=1
+                )
+            )
+        }
+    }
+    with open('./toy/val_vi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     data['metrics']['save_samples']['args']['sample_method'] = 'slice_np'
-#     with open('./toy/val_slice_np.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    data['metrics']['save_samples']['args']['sample_method'] = 'slice_np'
+    with open('./toy/val_slice_np.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     data['metrics']['save_samples']['args']['sample_method'] = 'vi'
-#     with open('./toy/val_vi.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    data['metrics']['save_samples']['args']['sample_method'] = 'vi'
+    with open('./toy/val_vi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     data['metrics']['save_samples']['args']['sample_method'] = 'slice_np'
-#     with open('./toy/val_slice_np.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    data['metrics']['save_samples']['args']['sample_method'] = 'slice_np'
+    with open('./toy/val_slice_np.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # -------
+    # -------
 
-#     # Test objects
-#     StaticNumpyLoader.from_config("./toy/data.yml")
-#     SBIRunner.from_config("./toy/infer_snpe.yml")
-#     SBIRunner.from_config("./toy/infer_snle.yml")
-#     SBIRunner.from_config("./toy/infer_snre.yml")
+    # Test objects
+    StaticNumpyLoader.from_config("./toy/data.yml")
+    SBIRunner.from_config("./toy/infer_snpe.yml")
+    SBIRunner.from_config("./toy/infer_snle.yml")
+    SBIRunner.from_config("./toy/infer_snre.yml")
 
-#     # -------
-#     # Run for multi round
+    # -------
+    # Run for multi round
 
-#     loader = SBISimulator.from_config("./toy/data_multi.yml")
-#     loader.set_simulator(simulator)
-#     run_seq = SBIRunnerSequential.from_config("./toy/infer_multi.yml")
-#     run_seq(loader=loader)
+    loader = SBISimulator.from_config("./toy/data_multi.yml")
+    loader.set_simulator(simulator)
+    run_seq = SBIRunnerSequential.from_config("./toy/infer_multi.yml")
+    run_seq(loader=loader)
 
-#     # -------
-#     # Run for ABC
+    # -------
+    # Run for ABC
 
-#     ABCRunner.from_config("./toy/infer_abc.yml")
+    ABCRunner.from_config("./toy/infer_abc.yml")
 
-#     # -------
-#     # Run validation
+    # -------
+    # Run validation
 
-#     val_runner = ValidationRunner.from_config("./toy/val.yml")
-#     val_runner(loader=loader)
+    val_runner = ValidationRunner.from_config("./toy/val.yml")
+    val_runner(loader=loader)
 
-#     loader = StaticNumpyLoader.from_config("./toy/data_val.yml")
+    loader = StaticNumpyLoader.from_config("./toy/data_val.yml")
 
-#     val_runner = ValidationRunner.from_config("./toy/val_vi.yml")
-#     val_runner(loader=loader)
+    val_runner = ValidationRunner.from_config("./toy/val_vi.yml")
+    val_runner(loader=loader)
 
-#     val_runner = ValidationRunner.from_config("./toy/val_slice_np.yml")
-#     val_runner(loader=loader)
+    val_runner = ValidationRunner.from_config("./toy/val_slice_np.yml")
+    val_runner(loader=loader)
 
-#     return
+    return
 
 
 # def test_loaders():
