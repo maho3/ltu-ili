@@ -674,128 +674,128 @@ def test_custom_priors():
     _TruncatedStandardNormal(0.0, 1.0)  # bounds are numbers
 
 
-# def test_yaml():
-#     """Test SNPE/SNLE/SNRE/ABC inference classes instantiation
-#     with yaml config files."""
+def test_yaml():
+    """Test SNPE/SNLE/SNRE/ABC inference classes instantiation
+    with yaml config files."""
 
-#     if not os.path.isdir("toy"):
-#         os.mkdir("toy")
+    if not os.path.isdir("toy"):
+        os.mkdir("toy")
 
-#     # create synthetic catalog
-#     def simulator(params):
-#         # create toy 'simulations'
-#         x = np.arange(10)
-#         y = params @ np.array([np.sin(x), x ** 2, x])
-#         y += np.random.randn(len(params), len(x))
-#         return y
+    # create synthetic catalog
+    def simulator(params):
+        # create toy 'simulations'
+        x = np.arange(10)
+        y = params @ np.array([np.sin(x), x ** 2, x])
+        y += np.random.randn(len(params), len(x))
+        return y
 
-#     # simulate data and save as numpy files
-#     np.random.seed(1)
-#     theta = np.random.rand(50, 3)  # 50 simulations, 3 parameters
-#     x = simulator(theta)
-#     np.save("toy/theta.npy", theta)
-#     np.save("toy/x.npy", x)
+    # simulate data and save as numpy files
+    np.random.seed(1)
+    theta = np.random.rand(50, 3)  # 50 simulations, 3 parameters
+    x = simulator(theta)
+    np.save("toy/theta.npy", theta)
+    np.save("toy/x.npy", x)
 
-#     # save a subset of these in a separate file
-#     np.save("toy/theta_val.npy", theta[:2, :])
-#     np.save("toy/x_val.npy", x[:2, :])
+    # save a subset of these in a separate file
+    np.save("toy/theta_val.npy", theta[:2, :])
+    np.save("toy/x_val.npy", x[:2, :])
 
-#     # simulate a single test observation and save as numpy files
-#     theta0 = np.zeros((1, 3))
-#     x0 = simulator(theta0)
-#     np.save('toy/thetaobs.npy', theta[0])
-#     np.save('toy/xobs.npy', x[0])
+    # simulate a single test observation and save as numpy files
+    theta0 = np.zeros((1, 3))
+    x0 = simulator(theta0)
+    np.save('toy/thetaobs.npy', theta[0])
+    np.save('toy/xobs.npy', x[0])
 
-#     # Run for single round
+    # Run for single round
 
-#     # simulate data and save as numpy files
-#     theta = np.random.rand(10, 3)  # 10 simulations, 3 parameters
-#     x = simulator(theta)
-#     np.save("toy/theta.npy", theta)
-#     np.save("toy/x.npy", x)
+    # simulate data and save as numpy files
+    theta = np.random.rand(10, 3)  # 10 simulations, 3 parameters
+    x = simulator(theta)
+    np.save("toy/theta.npy", theta)
+    np.save("toy/x.npy", x)
 
-#     # Yaml file for data - standard
-#     data = dict(
-#         in_dir='./toy',
-#         x_file='x.npy',
-#         theta_file='theta.npy'
-#     )
-#     with open('./toy/data.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for data - standard
+    data = dict(
+        in_dir='./toy',
+        x_file='x.npy',
+        theta_file='theta.npy'
+    )
+    with open('./toy/data.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # Yaml file for data - subset
-#     data = dict(
-#         in_dir='./toy',
-#         x_file='x_val.npy',
-#         theta_file='theta_val.npy'
-#     )
-#     with open('./toy/data_val.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for data - subset
+    data = dict(
+        in_dir='./toy',
+        x_file='x_val.npy',
+        theta_file='theta_val.npy'
+    )
+    with open('./toy/data_val.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # Yaml file for data - multiround
-#     data = dict(
-#         in_dir='./toy',
-#         xobs_file='xobs.npy',
-#         thetafid_file='thetaobs.npy',
-#         x_file='x.npy',
-#         theta_file='theta.npy',
-#         num_simulations=10,
-#     )
-#     with open('./toy/data_multi.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for data - multiround
+    data = dict(
+        in_dir='./toy',
+        xobs_file='xobs.npy',
+        thetafid_file='thetaobs.npy',
+        x_file='x.npy',
+        theta_file='theta.npy',
+        num_simulations=10,
+    )
+    with open('./toy/data_multi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # Yaml file for infer - standard
-#     data = dict(
-#         prior={'module': 'ili.utils',
-#                'class': 'IndependentNormal',
-#                'args': dict(
-#                    loc=[0.5, 0.5, 0.5],
-#                    scale=[0.5, 0.5, 0.5],
-#                ),
-#                },
-#         proposal={'module': 'ili.utils',
-#                   'class': 'IndependentNormal',
-#                   'args': dict(
-#                       loc=[0.5, 0.5, 0.5],
-#                       scale=[0.5, 0.5, 0.5],
-#                   ),
-#                   },
-#         model={'engine': 'SNPE',
-#                'nets': [
-#                    dict(model='maf', hidden_features=50,
-#                         num_transforms=5, signature='maf1'),
-#                    dict(model='mdn', hidden_features=50, num_components=2)],
-#                'name': 'test_snpe'
-#                },
-#         train_args=dict(
-#             training_batch_size=32,
-#             learning_rate=0.001,
-#         ),
-#         embedding_net={'module': 'ili.embedding',
-#                        'class': 'FCN',
-#                        'args': {
-#                            'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
-#                            'act_fn': "SiLU",
-#                            "n_input":x.shape[1]
-#                        },
-#                        },
-#         device='cpu',
-#         out_dir='./toy'
-#     )
-#     with open('./toy/infer_snpe.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
-#     data['model']['engine'] = 'SNLE'
-#     data['model']['nets'] = [
-#         dict(model='maf', hidden_features=50, num_transforms=5),
-#         dict(model='made', hidden_features=50, num_transforms=5)]
-#     with open('./toy/infer_snle.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
-#     data['model']['engine'] = 'SNRE'
-#     data['model']['nets'] = [
-#         dict(model='resnet', hidden_features=50, num_blocks=3),
-#         dict(model='mlp', hidden_features=50)]
-#     with open('./toy/infer_snre.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for infer - standard
+    data = dict(
+        prior={'module': 'ili.utils',
+               'class': 'IndependentNormal',
+               'args': dict(
+                   loc=[0.5, 0.5, 0.5],
+                   scale=[0.5, 0.5, 0.5],
+               ),
+               },
+        proposal={'module': 'ili.utils',
+                  'class': 'IndependentNormal',
+                  'args': dict(
+                      loc=[0.5, 0.5, 0.5],
+                      scale=[0.5, 0.5, 0.5],
+                  ),
+                  },
+        model={'engine': 'NPE',
+               'nets': [
+                   dict(model='maf', hidden_features=50,
+                        num_transforms=5, signature='maf1'),
+                   dict(model='mdn', hidden_features=50, num_components=2)],
+               'name': 'test_snpe'
+               },
+        train_args=dict(
+            training_batch_size=32,
+            learning_rate=0.001,
+        ),
+        embedding_net={'module': 'ili.embedding',
+                       'class': 'FCN',
+                       'args': {
+                           'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
+                           'act_fn': "SiLU",
+                           "n_input":x.shape[1]
+                       },
+                       },
+        device='cpu',
+        out_dir='./toy'
+    )
+    with open('./toy/infer_snpe.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    data['model']['engine'] = 'NLE'
+    data['model']['nets'] = [
+        dict(model='maf', hidden_features=50, num_transforms=5),
+        dict(model='made', hidden_features=50, num_transforms=5)]
+    with open('./toy/infer_snle.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
+    data['model']['engine'] = 'NRE'
+    data['model']['nets'] = [
+        dict(model='resnet', hidden_features=50, num_blocks=3),
+        dict(model='mlp', hidden_features=50)]
+    with open('./toy/infer_snre.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
 #     # Yaml file for infer - multiround
 #     data = dict(
