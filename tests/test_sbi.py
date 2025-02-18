@@ -222,200 +222,200 @@ def test_snpe(monkeypatch):
     return
 
 
-# def test_snle(monkeypatch):
-#     """Test the SNLE inference class with a simple toy model."""
+def test_snle(monkeypatch):
+    """Test the SNLE inference class with a simple toy model."""
 
-#     monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, 'show', lambda: None)
 
-#     # create the same synthetic catalog as the previous example
-#     def simulator_0(params):
-#         # create toy simulations
-#         x = np.linspace(0, 10, 20)
-#         y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
-#         y += 1*np.random.randn(len(x))
-#         return y
+    # create the same synthetic catalog as the previous example
+    def simulator_0(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
 
-#     # here use only one parameter
-#     def simulator_1(params):
-#         # create toy simulations
-#         x = np.linspace(0, 10, 20)
-#         y = 3 * params[0] * np.sin(x)
-#         y += 1*np.random.randn(len(x))
-#         return y
+    # here use only one parameter
+    def simulator_1(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x)
+        y += 1*np.random.randn(len(x))
+        return y
 
-#     for npar, simulator in zip([3, 1], [simulator_0, simulator_1]):
+    for npar, simulator in zip([3, 1], [simulator_0, simulator_1]):
 
-#         print("SIMULATOR", npar)
+        print("SIMULATOR", npar)
 
-#         # 200 simulations, npar parameters
-#         theta = np.atleast_2d(np.random.rand(200, npar))
-#         x = np.array([simulator(t) for t in theta])
+        # 200 simulations, npar parameters
+        theta = np.atleast_2d(np.random.rand(200, npar))
+        x = np.array([simulator(t) for t in theta])
 
-#         # make a dataloader
-#         loader = NumpyLoader(x=x, theta=theta)
+        # make a dataloader
+        loader = NumpyLoader(x=x, theta=theta)
 
-#         # define a prior
-#         prior = ili.utils.IndependentNormal(
-#             loc=[0]*npar, scale=[1]*npar, device=device)
+        # define a prior
+        prior = ili.utils.IndependentNormal(
+            loc=[0]*npar, scale=[1]*npar, device=device)
 
-#         # define an inference class (we are doing amortized likelihood inference)
-#         engine = 'NLE'
+        # define an inference class (we are doing amortized likelihood inference)
+        engine = 'NLE'
 
-#         # instantiate your neural networks to be used as an ensemble
-#         nets = [
-#             ili.utils.load_nde_sbi(engine='NLE', model='maf',
-#                                    hidden_features=16, num_transforms=2),
-#             ili.utils.load_nde_sbi(engine='NLE', model='made',
-#                                    hidden_features=16, num_transforms=2),
+        # instantiate your neural networks to be used as an ensemble
+        nets = [
+            ili.utils.load_nde_sbi(engine='NLE', model='maf',
+                                   hidden_features=16, num_transforms=2),
+            ili.utils.load_nde_sbi(engine='NLE', model='made',
+                                   hidden_features=16, num_transforms=2),
 
-#         ]
+        ]
 
-#         # define training arguments
-#         train_args = {
-#             'training_batch_size': 32,
-#             'learning_rate': 1e-4,
-#             'max_num_epochs': 5
-#         }
+        # define training arguments
+        train_args = {
+            'training_batch_size': 32,
+            'learning_rate': 1e-4,
+            'max_num_epochs': 5
+        }
 
-#         # initialize the trainer
-#         runner = SBIRunner(
-#             prior=prior,
-#             engine=engine,
-#             nets=nets,
-#             device=device,
-#             train_args=train_args,
-#             proposal=None,
-#             out_dir=None  # no output path, so nothing will be saved to file
-#         )
+        # initialize the trainer
+        runner = SBIRunner(
+            prior=prior,
+            engine=engine,
+            nets=nets,
+            device=device,
+            train_args=train_args,
+            proposal=None,
+            out_dir=None  # no output path, so nothing will be saved to file
+        )
 
-#         # train the model. this outputs a posterior model and training logs
-#         posterior, summaries = runner(loader=loader, seed=1)
+        # train the model. this outputs a posterior model and training logs
+        posterior, summaries = runner(loader=loader, seed=1)
 
-#         signatures = posterior.signatures
+        signatures = posterior.signatures
 
-#         # choose a random input
-#         ind = np.random.randint(len(theta))
+        # choose a random input
+        ind = np.random.randint(len(theta))
 
-#         nsamples = 2
+        nsamples = 2
 
-#         # generate samples from the posterior using MCMC
-#         samples = posterior.sample(
-#             (nsamples,), x[ind],
-#             method='slice_np_vectorized', num_chains=2
-#         ).detach().cpu().numpy()
+        # generate samples from the posterior using MCMC
+        samples = posterior.sample(
+            (nsamples,), x[ind],
+            method='slice_np_vectorized', num_chains=2
+        ).detach().cpu().numpy()
 
-#         # calculate the potential (prop. to log_prob) for each sample
-#         log_prob = posterior.log_prob(
-#             samples,
-#             x[ind]
-#         ).detach().cpu().numpy()
+        # calculate the potential (prop. to log_prob) for each sample
+        log_prob = posterior.log_prob(
+            samples,
+            x[ind]
+        ).detach().cpu().numpy()
 
-#         # use ltu-ili's built-in validation metrics to plot the posterior
-#         metric = PlotSinglePosterior(
-#             out_dir=None, num_samples=nsamples,
-#             sample_method='slice_np_vectorized',
-#             sample_params={'num_chains': 2, 'burn_in': 1, 'thin': 1},
-#             labels=[f'$\\theta_{i}$' for i in range(npar)],
-#             seed=1, save_samples=True,
-#         )
-#         fig = metric(
-#             posterior=posterior,
-#             x_obs=x[ind], theta_fid=theta[ind],
-#             x=x, theta=theta
-#         )
+        # use ltu-ili's built-in validation metrics to plot the posterior
+        metric = PlotSinglePosterior(
+            out_dir=None, num_samples=nsamples,
+            sample_method='slice_np_vectorized',
+            sample_params={'num_chains': 2, 'burn_in': 1, 'thin': 1},
+            labels=[f'$\\theta_{i}$' for i in range(npar)],
+            seed=1, save_samples=True,
+        )
+        fig = metric(
+            posterior=posterior,
+            x_obs=x[ind], theta_fid=theta[ind],
+            x=x, theta=theta
+        )
 
-#         metric = PlotSinglePosterior(
-#             out_dir=None, num_samples=nsamples,
-#             sample_method='vi',
-#             sample_params={'dist': 'maf',
-#                            'n_particles': 32, 'learning_rate': 0.01},
-#             labels=[f'$\\theta_{i}$' for i in range(npar)]
-#         )
-#         fig = metric(
-#             posterior=posterior,
-#             x_obs=x[ind], theta_fid=theta[ind],
-#             x=x, theta=theta
-#         )
+        metric = PlotSinglePosterior(
+            out_dir=None, num_samples=nsamples,
+            sample_method='vi',
+            sample_params={'dist': 'maf',
+                           'n_particles': 32, 'learning_rate': 0.01},
+            labels=[f'$\\theta_{i}$' for i in range(npar)]
+        )
+        fig = metric(
+            posterior=posterior,
+            x_obs=x[ind], theta_fid=theta[ind],
+            x=x, theta=theta
+        )
 
-#         if npar == 1:
-#             # Cannot sample directly for snle
-#             metric = PosteriorCoverage(
-#                 out_dir=None, num_samples=nsamples,
-#                 sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(npar)],
-#                 plot_list=["predictions", "coverage", "histogram"]
-#             )
-#             unittest.TestCase().assertRaises(
-#                 ValueError,
-#                 metric,
-#                 posterior=posterior,
-#                 x_obs=x[ind],
-#                 theta_fid=theta[ind],
-#                 x=x[:2],
-#                 theta=theta[:2]
-#             )
+        if npar == 1:
+            # Cannot sample directly for snle
+            metric = PosteriorCoverage(
+                out_dir=None, num_samples=nsamples,
+                sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(npar)],
+                plot_list=["predictions", "coverage", "histogram"]
+            )
+            unittest.TestCase().assertRaises(
+                ValueError,
+                metric,
+                posterior=posterior,
+                x_obs=x[ind],
+                theta_fid=theta[ind],
+                x=x[:2],
+                theta=theta[:2]
+            )
 
-#             # Can sample with vi for snle
-#             metric = PosteriorCoverage(
-#                 out_dir=None, num_samples=nsamples,
-#                 sample_method='vi', labels=[f'$\\theta_{i}$' for i in range(npar)],
-#                 plot_list=["predictions", "coverage", "histogram"]
-#             )
-#             metric(
-#                 posterior=posterior,
-#                 x_obs=x[ind], theta_fid=theta[ind],
-#                 x=x[:2], theta=theta[:2]
-#             )
+            # Can sample with vi for snle
+            metric = PosteriorCoverage(
+                out_dir=None, num_samples=nsamples,
+                sample_method='vi', labels=[f'$\\theta_{i}$' for i in range(npar)],
+                plot_list=["predictions", "coverage", "histogram"]
+            )
+            metric(
+                posterior=posterior,
+                x_obs=x[ind], theta_fid=theta[ind],
+                x=x[:2], theta=theta[:2]
+            )
 
-#     return
+    return
 
 
-# def test_snre():
-#     """Test the SNRE inference class with a simple toy model."""
+def test_snre():
+    """Test the SNRE inference class with a simple toy model."""
 
-#     # create the same synthetic catalog as the previous example
-#     def simulator(params):
-#         # create toy simulations
-#         x = np.linspace(0, 10, 20)
-#         y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
-#         y += 1*np.random.randn(len(x))
-#         return y
+    # create the same synthetic catalog as the previous example
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
 
-#     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
-#     x = np.array([simulator(t) for t in theta])
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
 
-#     # make a dataloader
-#     loader = NumpyLoader(x=x, theta=theta)
+    # make a dataloader
+    loader = NumpyLoader(x=x, theta=theta)
 
-#     # define a prior
-#     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
+    # define a prior
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
-#     # define an inference class (we are doing amortized likelihood inference)
-#     engine = 'NRE'
+    # define an inference class (we are doing amortized likelihood inference)
+    engine = 'NRE'
 
-#     nets = [
-#         ili.utils.load_nde_sbi(engine='NRE', model='resnet', hidden_features=16,
-#                                num_blocks=3),
-#         ili.utils.load_nde_sbi(engine='NRE', model='mlp', hidden_features=16),
-#     ]
+    nets = [
+        ili.utils.load_nde_sbi(engine='NRE', model='resnet', hidden_features=16,
+                               num_blocks=3),
+        ili.utils.load_nde_sbi(engine='NRE', model='mlp', hidden_features=16),
+    ]
 
-#     train_args = {'training_batch_size': 32,
-#                   'learning_rate': 0.001, 'max_num_epochs': 5}
+    train_args = {'training_batch_size': 32,
+                  'learning_rate': 0.001, 'max_num_epochs': 5}
 
-#     # initialize the trainer
-#     runner = SBIRunner(
-#         prior=prior,
-#         engine=engine,
-#         nets=nets,
-#         device=device,
-#         train_args=train_args,
-#         proposal=None,
-#         out_dir=Path('./toy')
-#     )
+    # initialize the trainer
+    runner = SBIRunner(
+        prior=prior,
+        engine=engine,
+        nets=nets,
+        device=device,
+        train_args=train_args,
+        proposal=None,
+        out_dir=Path('./toy')
+    )
 
-#     # train the model. this outputs a posterior model and training logs
-#     posterior, summaries = runner(loader=loader)
+    # train the model. this outputs a posterior model and training logs
+    posterior, summaries = runner(loader=loader)
 
-#     return
+    return
 
 
 # def test_multiround():
