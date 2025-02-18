@@ -797,213 +797,213 @@ def test_yaml():
     with open('./toy/infer_snre.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
-#     # Yaml file for infer - multiround
-#     data = dict(
-#         prior={'module': 'ili.utils',
-#                'class': 'Uniform',
-#                'args': dict(
-#                    low=[0, 0, 0],
-#                    high=[1, 1, 1],
-#                ),
-#                },
-#         model={'engine': 'SNPE_C',
-#                'nets': [
-#                    dict(model='maf', hidden_features=100, num_transforms=2),
-#                    dict(model='mdn', hidden_features=50, num_components=6)],
-#                },
-#         train_args=dict(
-#             training_batch_size=32,
-#             learning_rate=0.01,
-#             num_round=2,
-#         ),
-#         device='cpu',
-#         out_dir='./toy'
-#     )
-#     with open('./toy/infer_multi.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for infer - multiround
+    data = dict(
+        prior={'module': 'ili.utils',
+               'class': 'Uniform',
+               'args': dict(
+                   low=[0, 0, 0],
+                   high=[1, 1, 1],
+               ),
+               },
+        model={'engine': 'SNPE',
+               'nets': [
+                   dict(model='maf', hidden_features=100, num_transforms=2),
+                   dict(model='mdn', hidden_features=50, num_components=6)],
+               },
+        train_args=dict(
+            training_batch_size=32,
+            learning_rate=0.01,
+            num_round=2,
+        ),
+        device='cpu',
+        out_dir='./toy'
+    )
+    with open('./toy/infer_multi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     #  Yaml file for infer - ABC
-#     data = dict(
-#         prior={'module': 'ili.utils',
-#                'class': 'Uniform',
-#                'args': dict(
-#                    low=[0, 0, 0],
-#                    high=[1, 1, 1],
-#                ),
-#                },
-#         model={'engine': 'MCABC',
-#                'name': 'toy_abc',
-#                'num_workers': 8,
-#                },
-#         train_args=dict(
-#             num_simulations=1000000,
-#             quantile=0.01,
-#         ),
-#         device='cpu',
-#         out_dir='./toy',
-#     )
-#     with open('./toy/infer_abc.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    #  Yaml file for infer - ABC
+    data = dict(
+        prior={'module': 'ili.utils',
+               'class': 'Uniform',
+               'args': dict(
+                   low=[0, 0, 0],
+                   high=[1, 1, 1],
+               ),
+               },
+        model={'engine': 'MCABC',
+               'name': 'toy_abc',
+               'num_workers': 8,
+               },
+        train_args=dict(
+            num_simulations=1000,
+            quantile=0.01,
+        ),
+        device='cpu',
+        out_dir='./toy',
+    )
+    with open('./toy/infer_abc.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # Make a matplotlib style file
-#     style = {
-#         'figure.figsize': '10,6',
-#         'figure.facecolor': 'white',
-#         'figure.dpi': 200,
-#         'savefig.dpi': 200,
-#         'savefig.bbox': 'tight',
-#         'font.size': 14,
-#         'font.weight': 300,
-#         'xtick.major.width': 1,
-#         'ytick.major.width': 1,
-#         'xtick.labelsize': 'small',
-#         'ytick.labelsize': 'small',
-#         'xtick.top': True,
-#         'ytick.right': True,
-#         'xtick.direction': 'in',
-#         'ytick.direction': 'in',
-#         'xtick.minor.visible': True,
-#         'ytick.minor.visible': True,
-#         'xtick.major.size': 5,
-#         'ytick.major.size': 5,
-#         'xtick.minor.size': 3,
-#         'ytick.minor.size': 3,
-#         'legend.fontsize': 'small',
-#         'lines.linewidth': 2,
-#         'image.origin': 'lower',
-#         'mathtext.fontset': 'cm',
-#         'savefig.edgecolor': 'white',
-#         'savefig.facecolor': 'white',
-#     }
-#     with open('./toy/style.mcstyle', 'w') as fout:
-#         for k, v in style.items():
-#             print(f'{k} : {v}', file=fout)
+    # Make a matplotlib style file
+    style = {
+        'figure.figsize': '10,6',
+        'figure.facecolor': 'white',
+        'figure.dpi': 200,
+        'savefig.dpi': 200,
+        'savefig.bbox': 'tight',
+        'font.size': 14,
+        'font.weight': 300,
+        'xtick.major.width': 1,
+        'ytick.major.width': 1,
+        'xtick.labelsize': 'small',
+        'ytick.labelsize': 'small',
+        'xtick.top': True,
+        'ytick.right': True,
+        'xtick.direction': 'in',
+        'ytick.direction': 'in',
+        'xtick.minor.visible': True,
+        'ytick.minor.visible': True,
+        'xtick.major.size': 5,
+        'ytick.major.size': 5,
+        'xtick.minor.size': 3,
+        'ytick.minor.size': 3,
+        'legend.fontsize': 'small',
+        'lines.linewidth': 2,
+        'image.origin': 'lower',
+        'mathtext.fontset': 'cm',
+        'savefig.edgecolor': 'white',
+        'savefig.facecolor': 'white',
+    }
+    with open('./toy/style.mcstyle', 'w') as fout:
+        for k, v in style.items():
+            print(f'{k} : {v}', file=fout)
 
-#     # Make a matplotlib style file
-#     style = {
-#         'figure.figsize': '10,6',
-#         'figure.facecolor': 'white',
-#         'figure.dpi': 200,
-#         'savefig.dpi': 200,
-#         'savefig.bbox': 'tight',
-#         'font.size': 14,
-#         'font.weight': 300,
-#         'xtick.major.width': 1,
-#         'ytick.major.width': 1,
-#         'xtick.labelsize': 'small',
-#         'ytick.labelsize': 'small',
-#         'xtick.top': True,
-#         'ytick.right': True,
-#         'xtick.direction': 'in',
-#         'ytick.direction': 'in',
-#         'xtick.minor.visible': True,
-#         'ytick.minor.visible': True,
-#         'xtick.major.size': 5,
-#         'ytick.major.size': 5,
-#         'xtick.minor.size': 3,
-#         'ytick.minor.size': 3,
-#         'legend.fontsize': 'small',
-#         'lines.linewidth': 2,
-#         'image.origin': 'lower',
-#         'mathtext.fontset': 'cm',
-#         'savefig.edgecolor': 'white',
-#         'savefig.facecolor': 'white',
-#     }
-#     with open('./toy/style.mcstyle', 'w') as fout:
-#         for k, v in style.items():
-#             print(f'{k} : {v}', file=fout)
+    # Make a matplotlib style file
+    style = {
+        'figure.figsize': '10,6',
+        'figure.facecolor': 'white',
+        'figure.dpi': 200,
+        'savefig.dpi': 200,
+        'savefig.bbox': 'tight',
+        'font.size': 14,
+        'font.weight': 300,
+        'xtick.major.width': 1,
+        'ytick.major.width': 1,
+        'xtick.labelsize': 'small',
+        'ytick.labelsize': 'small',
+        'xtick.top': True,
+        'ytick.right': True,
+        'xtick.direction': 'in',
+        'ytick.direction': 'in',
+        'xtick.minor.visible': True,
+        'ytick.minor.visible': True,
+        'xtick.major.size': 5,
+        'ytick.major.size': 5,
+        'xtick.minor.size': 3,
+        'ytick.minor.size': 3,
+        'legend.fontsize': 'small',
+        'lines.linewidth': 2,
+        'image.origin': 'lower',
+        'mathtext.fontset': 'cm',
+        'savefig.edgecolor': 'white',
+        'savefig.facecolor': 'white',
+    }
+    with open('./toy/style.mcstyle', 'w') as fout:
+        for k, v in style.items():
+            print(f'{k} : {v}', file=fout)
 
-#     # Yaml file for validation
-#     data = dict(
-#         out_dir='./toy',
-#         posterior_file='./posterior.pkl',
-#         style_path='./toy/style.mcstyle',
-#         labels=['t1', 't2', 't3'],
-#         ensemble_mode=False,
-#         metrics=dict(
-#             single_example={
-#                 'module': 'ili.validation.metrics',
-#                 'class': 'PlotSinglePosterior',
-#                 'args': dict(
-#                     num_samples=2,
-#                     sample_method='direct',
-#                     sample_params=dict(
-#                         num_chains=1,
-#                         burn_in=1,
-#                         thin=1,
-#                     )
-#                 )
-#             },
-#             coverage={
-#                 'module': 'ili.validation.metrics',
-#                 'class': 'PosteriorCoverage',
-#                 'args': dict(
-#                     plot_list=["coverage", "histogram", "predictions", "tarp"],
-#                     num_samples=2,
-#                     sample_method='direct',
-#                     sample_params=dict(
-#                         num_chains=1,
-#                         burn_in=1,
-#                         thin=1,
-#                     )
-#                 )
-#             },
-#             save_samples={
-#                 'module': 'ili.validation.metrics',
-#                 'class': 'PosteriorSamples',
-#                 'args': dict(
-#                     num_samples=1,
-#                     sample_method='direct',
-#                     sample_params=dict(
-#                         num_chains=1,
-#                         burn_in=1,
-#                         thin=1
-#                     )
-#                 )
-#             },
-#         )
-#     )
-#     with open('./toy/val.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    # Yaml file for validation
+    data = dict(
+        out_dir='./toy',
+        posterior_file='./posterior.pkl',
+        style_path='./toy/style.mcstyle',
+        labels=['t1', 't2', 't3'],
+        ensemble_mode=False,
+        metrics=dict(
+            single_example={
+                'module': 'ili.validation.metrics',
+                'class': 'PlotSinglePosterior',
+                'args': dict(
+                    num_samples=2,
+                    sample_method='direct',
+                    sample_params=dict(
+                        num_chains=1,
+                        burn_in=1,
+                        thin=1,
+                    )
+                )
+            },
+            coverage={
+                'module': 'ili.validation.metrics',
+                'class': 'PosteriorCoverage',
+                'args': dict(
+                    plot_list=["coverage", "histogram", "predictions", "tarp"],
+                    num_samples=2,
+                    sample_method='direct',
+                    sample_params=dict(
+                        num_chains=1,
+                        burn_in=1,
+                        thin=1,
+                    )
+                )
+            },
+            save_samples={
+                'module': 'ili.validation.metrics',
+                'class': 'PosteriorSamples',
+                'args': dict(
+                    num_samples=1,
+                    sample_method='direct',
+                    sample_params=dict(
+                        num_chains=1,
+                        burn_in=1,
+                        thin=1
+                    )
+                )
+            },
+        )
+    )
+    with open('./toy/val.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     data['metrics']['save_samples']['args']['sample_method'] = 'vi'
-#     data['metrics'] = {
-#         'save_samples': {
-#             'module': 'ili.validation.metrics',
-#             'class': 'PosteriorSamples',
-#             'args': dict(
-#                 num_samples=1,
-#                 sample_method='direct',
-#                 sample_params=dict(
-#                     num_chains=1,
-#                     burn_in=1,
-#                     thin=1
-#                 )
-#             )
-#         }
-#     }
-#     with open('./toy/val_vi.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    data['metrics']['save_samples']['args']['sample_method'] = 'vi'
+    data['metrics'] = {
+        'save_samples': {
+            'module': 'ili.validation.metrics',
+            'class': 'PosteriorSamples',
+            'args': dict(
+                num_samples=1,
+                sample_method='direct',
+                sample_params=dict(
+                    num_chains=1,
+                    burn_in=1,
+                    thin=1
+                )
+            )
+        }
+    }
+    with open('./toy/val_vi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     data['metrics']['save_samples']['args']['sample_method'] = 'slice_np'
-#     with open('./toy/val_slice_np.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    data['metrics']['save_samples']['args']['sample_method'] = 'slice_np'
+    with open('./toy/val_slice_np.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     data['metrics']['save_samples']['args']['sample_method'] = 'vi'
-#     with open('./toy/val_vi.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    data['metrics']['save_samples']['args']['sample_method'] = 'vi'
+    with open('./toy/val_vi.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     data['metrics']['save_samples']['args']['sample_method'] = 'slice_np'
-#     with open('./toy/val_slice_np.yml', 'w') as outfile:
-#         yaml.dump(data, outfile, default_flow_style=False)
+    data['metrics']['save_samples']['args']['sample_method'] = 'slice_np'
+    with open('./toy/val_slice_np.yml', 'w') as outfile:
+        yaml.dump(data, outfile, default_flow_style=False)
 
-#     # -------
+    # -------
 
-#     # Test objects
-#     StaticNumpyLoader.from_config("./toy/data.yml")
-#     SBIRunner.from_config("./toy/infer_snpe.yml")
-#     SBIRunner.from_config("./toy/infer_snle.yml")
-#     SBIRunner.from_config("./toy/infer_snre.yml")
+    # Test objects
+    StaticNumpyLoader.from_config("./toy/data.yml")
+    SBIRunner.from_config("./toy/infer_snpe.yml")
+    SBIRunner.from_config("./toy/infer_snle.yml")
+    SBIRunner.from_config("./toy/infer_snre.yml")
 
 #     # -------
 #     # Run for multi round
