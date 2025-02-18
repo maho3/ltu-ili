@@ -1018,21 +1018,21 @@ def test_yaml():
 
     ABCRunner.from_config("./toy/infer_abc.yml")
 
-#     # -------
-#     # Run validation
+    # -------
+    # Run validation
 
-#     val_runner = ValidationRunner.from_config("./toy/val.yml")
-#     val_runner(loader=loader)
+    val_runner = ValidationRunner.from_config("./toy/val.yml")
+    val_runner(loader=loader)
 
-#     loader = StaticNumpyLoader.from_config("./toy/data_val.yml")
+    loader = StaticNumpyLoader.from_config("./toy/data_val.yml")
 
-#     val_runner = ValidationRunner.from_config("./toy/val_vi.yml")
-#     val_runner(loader=loader)
+    val_runner = ValidationRunner.from_config("./toy/val_vi.yml")
+    val_runner(loader=loader)
 
-#     val_runner = ValidationRunner.from_config("./toy/val_slice_np.yml")
-#     val_runner(loader=loader)
+    val_runner = ValidationRunner.from_config("./toy/val_slice_np.yml")
+    val_runner(loader=loader)
 
-#     return
+    return
 
 
 def test_loaders():
