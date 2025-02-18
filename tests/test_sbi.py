@@ -33,193 +33,193 @@ def test_dummy(monkeypatch):
     print("HELLO")
     return
 
-# def test_snpe(monkeypatch):
-#     """Test the SNPE inference class with a simple toy model."""
+def test_snpe(monkeypatch):
+    """Test the SNPE inference class with a simple toy model."""
 
-#     monkeypatch.setattr(plt, 'show', lambda: None)
+    monkeypatch.setattr(plt, 'show', lambda: None)
 
-#     # construct a working directory
-#     if not os.path.isdir("toy"):
-#         os.mkdir("toy")
+    # construct a working directory
+    if not os.path.isdir("toy"):
+        os.mkdir("toy")
 
-#     # create synthetic catalog
-#     def simulator(params):
-#         # create toy simulations
-#         x = np.linspace(0, 10, 20)
-#         y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
-#         y += 1*np.random.randn(len(x))
-#         return y
+    # create synthetic catalog
+    def simulator(params):
+        # create toy simulations
+        x = np.linspace(0, 10, 20)
+        y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+        y += 1*np.random.randn(len(x))
+        return y
 
-#     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
-#     x = np.array([simulator(t) for t in theta])
+    theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
+    x = np.array([simulator(t) for t in theta])
 
-#     # make a dataloader
-#     loader = NumpyLoader(x=x, theta=theta)
+    # make a dataloader
+    loader = NumpyLoader(x=x, theta=theta)
 
-#     # define a prior
-#     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
+    # define a prior
+    prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
 
-#     # define an inference class (we are doing amortized posterior inference)
-#     engine = 'NPE'
+    # define an inference class (we are doing amortized posterior inference)
+    engine = 'NPE'
 
-#     # define training arguments
-#     train_args = {
-#         'training_batch_size': 32,
-#         'learning_rate': 1e-4,
-#         'max_num_epochs': 5
-#     }
+    # define training arguments
+    train_args = {
+        'training_batch_size': 32,
+        'learning_rate': 1e-4,
+        'max_num_epochs': 5
+    }
 
-#     # define an embedding network
-#     embedding_args = {
-#         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
-#         'act_fn': "SiLU","n_input":x.shape[1] 
-#     }
-#     embedding_net = FCN(**embedding_args)
+    # define an embedding network
+    embedding_args = {
+        'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
+        'act_fn': "SiLU","n_input":x.shape[1] 
+    }
+    embedding_net = FCN(**embedding_args)
 
-#     # instantiate your neural networks to be used as an ensemble
-#     nets = [
-#         ili.utils.load_nde_sbi(engine='NPE', model='maf', hidden_features=16,
-#                                num_transforms=2, embedding_net=embedding_net),
-#         ili.utils.load_nde_sbi(engine='NPE', model='mdn', hidden_features=16,
-#                                num_components=2, embedding_net=embedding_net),
-#     ]
+    # instantiate your neural networks to be used as an ensemble
+    nets = [
+        ili.utils.load_nde_sbi(engine='NPE', model='maf', hidden_features=16,
+                               num_transforms=2, embedding_net=embedding_net),
+        ili.utils.load_nde_sbi(engine='NPE', model='mdn', hidden_features=16,
+                               num_components=2, embedding_net=embedding_net),
+    ]
 
-#     # initialize the trainer
-#     runner = SBIRunner(
-#         prior=prior,
-#         engine=engine,
-#         nets=nets,
-#         device=device,
-#         train_args=train_args,
-#         proposal=None,
-#         out_dir=None  # no output path, so nothing will be saved to file
-#     )
+    # initialize the trainer
+    runner = SBIRunner(
+        prior=prior,
+        engine=engine,
+        nets=nets,
+        device=device,
+        train_args=train_args,
+        proposal=None,
+        out_dir=None  # no output path, so nothing will be saved to file
+    )
 
-#     # train the model
-#     posterior, summaries = runner(loader=loader)
+    # train the model
+    posterior, summaries = runner(loader=loader)
 
-#     signatures = posterior.signatures
+    signatures = posterior.signatures
 
-#     # choose a random input
-#     ind = np.random.randint(len(theta))
-#     # Check the forward of the embedding network
-#     r = embedding_net.forward(torch.FloatTensor(x))
-#     unittest.TestCase().assertIsInstance(r, torch.Tensor)
-#     unittest.TestCase().assertEqual(r.shape[0], x.shape[0])
-#     nsamples = 6
+    # choose a random input
+    ind = np.random.randint(len(theta))
+    # Check the forward of the embedding network
+    r = embedding_net.forward(torch.FloatTensor(x))
+    unittest.TestCase().assertIsInstance(r, torch.Tensor)
+    unittest.TestCase().assertEqual(r.shape[0], x.shape[0])
+    nsamples = 6
 
-#     # generate samples from the posterior using accept/reject sampling
-#     samples = posterior.sample((nsamples,), torch.Tensor(x[ind]).to(device))
+    # generate samples from the posterior using accept/reject sampling
+    samples = posterior.sample((nsamples,), torch.Tensor(x[ind]).to(device))
 
-#     # calculate the log_prob for each sample
-#     log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
+    # calculate the log_prob for each sample
+    log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
 
-#     # use ltu-ili's built-in validation metrics to plot the posterior
-#     if os.path.isfile('./toy/single_samples.npy'):
-#         os.remove('./toy/single_samples.npy')
+    # use ltu-ili's built-in validation metrics to plot the posterior
+    if os.path.isfile('./toy/single_samples.npy'):
+        os.remove('./toy/single_samples.npy')
 
-#     metric = PlotSinglePosterior(
-#         out_dir='./toy', num_samples=nsamples,
-#         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
-#         seed=1, save_samples=True
-#     )
-#     fig = metric(
-#         posterior=posterior,
-#         x_obs=x[ind], theta_fid=theta[ind],
-#         x=x, theta=theta,
-#         name='M1'
-#     )
-#     fig = metric(
-#         posterior=posterior,
-#         x_obs=x[ind], theta_fid=theta[ind],
-#         x=x, theta=theta,
-#         lower=[0, 0, 0], upper=[1, 1, 1],
-#         plot_kws=dict(fill=True),
-#         name='M2',
-#         grid=fig
-#     )
-#     # check that samples were saved
-#     unittest.TestCase().assertTrue(os.path.isfile('./toy/single_samples.npy'))
+    metric = PlotSinglePosterior(
+        out_dir='./toy', num_samples=nsamples,
+        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
+        seed=1, save_samples=True
+    )
+    fig = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_fid=theta[ind],
+        x=x, theta=theta,
+        name='M1'
+    )
+    fig = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_fid=theta[ind],
+        x=x, theta=theta,
+        lower=[0, 0, 0], upper=[1, 1, 1],
+        plot_kws=dict(fill=True),
+        name='M2',
+        grid=fig
+    )
+    # check that samples were saved
+    unittest.TestCase().assertTrue(os.path.isfile('./toy/single_samples.npy'))
 
-#     # PlotSinglePosterior must be given x or x_obs
-#     unittest.TestCase().assertRaises(
-#         ValueError,
-#         metric,
-#         posterior=posterior,
-#     )
+    # PlotSinglePosterior must be given x or x_obs
+    unittest.TestCase().assertRaises(
+        ValueError,
+        metric,
+        posterior=posterior,
+    )
 
-#     # calculate and plot the rank statistics + TARP to describe univariate
-#     # posterior coverage
-#     metric = PosteriorCoverage(
-#         out_dir=None, num_samples=nsamples,
-#         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
-#         plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"]
-#     )
-#     fig = metric(
-#         posterior=posterior,
-#         x_obs=x[ind], theta_fid=theta[ind],
-#         x=x, theta=theta
-#     )
+    # calculate and plot the rank statistics + TARP to describe univariate
+    # posterior coverage
+    metric = PosteriorCoverage(
+        out_dir=None, num_samples=nsamples,
+        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
+        plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"]
+    )
+    fig = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_fid=theta[ind],
+        x=x, theta=theta
+    )
 
-#     # repeat but save to file and do tarp without bootstrapping
-#     metric = PosteriorCoverage(
-#         out_dir=Path('./toy'), num_samples=nsamples,
-#         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
-#         plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"],
-#         save_samples=True,
-#     )
-#     fig = metric(
-#         posterior=posterior,
-#         x_obs=x[ind], theta_fid=theta[ind],
-#         x=x, theta=theta, bootstrap=False,
-#     )
-#     # get samples using emcee with the PosteriorSamples class
-#     nsamp = 2
-#     nchain = 6
-#     ntest = 1
-#     metric = PosteriorSamples(
-#         out_dir=None, num_samples=nsamp,
-#         sample_method='emcee',
-#         labels=[f'$\\theta_{i}$' for i in range(3)],
-#         sample_params={'num_chains': nchain})
-#     samples = metric(
-#         posterior=posterior,
-#         x_obs=x[ind], theta_fid=theta[ind],
-#         x=x[:ntest], theta=theta[:ntest],
-#         skip_initial_state_check=True,
-#     )
-#     unittest.TestCase().assertIsInstance(samples, np.ndarray)
-#     unittest.TestCase().assertListEqual(
-#         list(samples.shape), [nsamp, ntest, 3])
+    # repeat but save to file and do tarp without bootstrapping
+    metric = PosteriorCoverage(
+        out_dir=Path('./toy'), num_samples=nsamples,
+        sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
+        plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"],
+        save_samples=True,
+    )
+    fig = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_fid=theta[ind],
+        x=x, theta=theta, bootstrap=False,
+    )
+    # get samples using emcee with the PosteriorSamples class
+    nsamp = 2
+    nchain = 6
+    ntest = 1
+    metric = PosteriorSamples(
+        out_dir=None, num_samples=nsamp,
+        sample_method='emcee',
+        labels=[f'$\\theta_{i}$' for i in range(3)],
+        sample_params={'num_chains': nchain})
+    samples = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_fid=theta[ind],
+        x=x[:ntest], theta=theta[:ntest],
+        skip_initial_state_check=True,
+    )
+    unittest.TestCase().assertIsInstance(samples, np.ndarray)
+    unittest.TestCase().assertListEqual(
+        list(samples.shape), [nsamp, ntest, 3])
 
-#     # get samples using direct method with PosteriorSamples class
-#     metric = PosteriorSamples(
-#         out_dir=None, num_samples=nsamp,
-#         sample_method='direct',
-#         labels=[f'$\\theta_{i}$' for i in range(3)])
-#     samples = metric(
-#         posterior=posterior,
-#         x_obs=x[ind], theta_fid=theta[ind],
-#         x=x[:ntest], theta=theta[:ntest, :],
-#     )
-#     unittest.TestCase().assertIsInstance(samples, np.ndarray)
-#     unittest.TestCase().assertListEqual(list(samples.shape), [nsamp, ntest, 3])
+    # get samples using direct method with PosteriorSamples class
+    metric = PosteriorSamples(
+        out_dir=None, num_samples=nsamp,
+        sample_method='direct',
+        labels=[f'$\\theta_{i}$' for i in range(3)])
+    samples = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_fid=theta[ind],
+        x=x[:ntest], theta=theta[:ntest, :],
+    )
+    unittest.TestCase().assertIsInstance(samples, np.ndarray)
+    unittest.TestCase().assertListEqual(list(samples.shape), [nsamp, ntest, 3])
 
-#     # get samples using pyro with the PosteriorSamples class
-#     metric = PosteriorSamples(
-#         out_dir=None, num_samples=nsamp,
-#         sample_method='slice_np_vectorized',
-#         labels=[f'$\\theta_{i}$' for i in range(3)],
-#         sample_params={'num_chains': nchain})
-#     samples = metric(
-#         posterior=posterior,
-#         x_obs=x[ind], theta_fid=theta[ind],
-#         x=x[:ntest], theta=theta[:ntest, :],
-#     )
-#     unittest.TestCase().assertIsInstance(samples, np.ndarray)
-#     unittest.TestCase().assertListEqual(list(samples.shape), [nsamp, ntest, 3])
+    # get samples using pyro with the PosteriorSamples class
+    metric = PosteriorSamples(
+        out_dir=None, num_samples=nsamp,
+        sample_method='slice_np_vectorized',
+        labels=[f'$\\theta_{i}$' for i in range(3)],
+        sample_params={'num_chains': nchain})
+    samples = metric(
+        posterior=posterior,
+        x_obs=x[ind], theta_fid=theta[ind],
+        x=x[:ntest], theta=theta[:ntest, :],
+    )
+    unittest.TestCase().assertIsInstance(samples, np.ndarray)
+    unittest.TestCase().assertListEqual(list(samples.shape), [nsamp, ntest, 3])
 
-#     return
+    return
 
 
 # def test_snle(monkeypatch):
