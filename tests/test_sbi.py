@@ -526,7 +526,7 @@ def test_multiround():
 
     # sample an ABC model to infer x -> theta
     train_args = {
-        'num_simulations': 1000,
+        'num_simulations': 100,
         'quantile': 0.1,
     }
 
@@ -1005,18 +1005,18 @@ def test_yaml():
     SBIRunner.from_config("./toy/infer_snle.yml")
     SBIRunner.from_config("./toy/infer_snre.yml")
 
-#     # -------
-#     # Run for multi round
+    # -------
+    # Run for multi round
 
-#     loader = SBISimulator.from_config("./toy/data_multi.yml")
-#     loader.set_simulator(simulator)
-#     run_seq = SBIRunnerSequential.from_config("./toy/infer_multi.yml")
-#     run_seq(loader=loader)
+    loader = SBISimulator.from_config("./toy/data_multi.yml")
+    loader.set_simulator(simulator)
+    run_seq = SBIRunnerSequential.from_config("./toy/infer_multi.yml")
+    run_seq(loader=loader)
 
-#     # -------
-#     # Run for ABC
+    # -------
+    # Run for ABC
 
-#     ABCRunner.from_config("./toy/infer_abc.yml")
+    ABCRunner.from_config("./toy/infer_abc.yml")
 
 #     # -------
 #     # Run validation
