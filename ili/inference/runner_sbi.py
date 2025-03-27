@@ -258,7 +258,7 @@ class SBIRunner(_BaseRunner):
             summaries.append(model.summary)
 
         # ensemble all trained models, weighted by validation loss
-        val_logprob = torch.tensor([float(x["best_validation_loss"][-1]) for x in summaries]).to(self.device)
+        val_logprob = torch.tensor([-1.*float(x["best_validation_loss"][-1]) for x in summaries]).to(self.device)
         
         # Exponentiate with numerical stability
         weights = torch.exp(val_logprob - val_logprob.max())
