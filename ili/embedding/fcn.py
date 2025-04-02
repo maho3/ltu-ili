@@ -18,14 +18,27 @@ class FCN(nn.Module):
     """
 
     def __init__(
-        self,n_input, n_hidden: List[int], act_fn: str = "SiLU"
+        self, n_hidden: List[int], act_fn: str = "SiLU", n_input = None
     ):
         #super().__init__()
         super(FCN,self).__init__()
         self.act_fn = getattr(nn, act_fn)()
         self.n_layers = len(n_hidden)
         self.n_hidden = n_hidden
+        
+        # allows to have non empty Parameters for check_net_device in sbi
+        self.dummy = nn.Parameter(torch.Tensor([0]),requires_grad = False) 
 
+        # Allows to specify n_input
+        if n_input is not None:
+            initalize_model(n_input)
+
+    def initalize_model(self, n_input: int):
+        """Initialize network once the input dimensionality is known.
+
+        Args:
+            n_input (int): input dimensionality
+        """
         model = []
         n_left = n_input
         for layer in range(self.n_layers):
@@ -52,6 +65,3 @@ class FCN(nn.Module):
             self.initalize_model(x.shape[-1])
 
         return self.mlp(x)
-
-    # def parameters(self, recurse = True):
-    #     return super().parameters(recurse)
