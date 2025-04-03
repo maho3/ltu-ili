@@ -31,9 +31,9 @@ class FCN(nn.Module):
 
         # Allows to specify n_input
         if n_input is not None:
-            initalize_model(n_input)
+            self.initialize_model(n_input)
 
-    def initalize_model(self, n_input: int):
+    def initialize_model(self, n_input: int):
         """Initialize network once the input dimensionality is known.
 
         Args:
