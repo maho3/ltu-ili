@@ -63,7 +63,7 @@ def test_npe(monkeypatch):
     # define an embedding network
     embedding_args = {
         'n_hidden': [x.shape[1], x.shape[1]],
-        'act_fn': "SiLU", "n_input":x.shape[1]
+        'act_fn': "SiLU", "n_input": x.shape[1]
     }
     embedding_net = FCN(**embedding_args)
 
@@ -273,7 +273,7 @@ def test_zuko(monkeypatch):
 
     theta = torch.ones(1, 2)
     x = torch.zeros(1, 5)
-    
+
     # with the new repeats argument, nde is a list.
     nde_0 = nde[0]
     model = nde_0(x, theta, prior)
@@ -347,7 +347,7 @@ def test_yaml():
     data['embedding_net'] = {
         'module': 'ili.embedding',
         'class': 'FCN',
-        'args': {'n_hidden': [10, 10], 'act_fn': 'SiLU',"n_input":x.shape[1]}
+        'args': {'n_hidden': [10, 10], 'act_fn': 'SiLU', "n_input": x.shape[1]}
     }
     with open('./toy_lampe/infer_embed.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)

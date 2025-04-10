@@ -31,12 +31,17 @@ from torch.distributions import Distribution
 from torch.distributions.transforms import (
     identity_transform, AffineTransform, Transform)
 
+try:  # sbi > 0.22.0
+    from sbi import neural_nets
+except ImportError:  # sbi <= 0.22.0
+    from sbi import utils as neural_nets
+
 
 def load_nde_sbi(
         engine: str,
         model: str,
         embedding_net: nn.Module = nn.Identity(),
-        repeats = 1,
+        repeats=1,
         **model_args):
     """Load an nde from sbi.
 
@@ -47,14 +52,18 @@ def load_nde_sbi(
             One of: mdn, maf, nsf, made, linear, mlp, resnet.
         embedding_net (nn.Module, optional): embedding network to use.
             Defaults to nn.Identity().
+        repeats (int, optional): number of models to load. Defaults to 1.
         **model_args: additional arguments to pass to the model.
     """
     # load NRE models (linear, mlp, resnet)
     if 'NRE' in engine:
         if model not in ['linear', 'mlp', 'resnet']:
             raise ValueError(f"Model {model} not implemented for {engine}.")
-        return [sbi.neural_nets.classifier_nn(
-            model=model, embedding_net_x=embedding_net, **model_args) for n in range(repeats)]
+        return [
+            neural_nets.classifier_nn(
+                model=model, embedding_net_x=embedding_net,
+                **model_args) for _ in range(repeats)
+        ]
 
     if model not in ['mdn', 'maf', 'nsf', 'made']:
         raise ValueError(f"Model {model} not implemented for {engine}.")
@@ -67,11 +76,14 @@ def load_nde_sbi(
         # check for arguments
         if not (set(model_args.keys()) <= {'hidden_features', 'num_transforms'}):
             raise ValueError(f"Model {model} arguments mispecified.")
-    #Please use `from sbi.neural_nets import posterior_nn` in the future (not sbi.utils.posterior_nn)
+    # Please use `from sbi.neural_nets import posterior_nn` in the future (not sbi.utils.posterior_nn)
     # Load NPE models (mdn, maf, nsf, made)
     if 'NPE' in engine:
-        return [sbi.neural_nets.posterior_nn(
-            model=model, embedding_net=embedding_net, **model_args) for n in range(repeats)]
+        return [
+            neural_nets.posterior_nn(
+                model=model, embedding_net=embedding_net,
+                **model_args) for _ in range(repeats)
+        ]
 
     # Load NLE models (mdn, maf, nsf, made)
     if 'NLE' in engine:
@@ -79,8 +91,11 @@ def load_nde_sbi(
             logging.warning(
                 "Using an embedding_net with NLE models compresses theta, not "
                 "x as might be expected.")
-        return [sbi.neural_nets.likelihood_nn(
-            model=model, embedding_net=embedding_net, **model_args) for n in range(repeats)]
+        return [
+            neural_nets.likelihood_nn(
+                model=model, embedding_net=embedding_net,
+                **model_args) for _ in range(repeats)
+        ]
 
     raise ValueError(f"Engine {engine} not implemented.")
 
@@ -251,9 +266,6 @@ class LampeEnsemble(nn.Module):
             for nde, N in zip(self.posteriors, per_model)
         ], dim=0)
         samples = samples[:num_samples]
-        # Jan. 2025: debugging purpose for PlotSinglePosterior that sometimes fails in the Lampe Backend
-        if num_samples != shape[0]:
-            print(num_samples)
         return samples.reshape(*shape, -1)
 
     def log_prob(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -271,7 +283,7 @@ def load_nde_lampe(
     x_normalize: bool = True,
     theta_normalize: bool = True,
     engine: str = 'NPE',
-    repeats = 1,
+    repeats=1,
     **model_args
 ):
     """Load an nde from lampe.
@@ -365,9 +377,11 @@ def load_nde_lampe(
 
     embedding_net = deepcopy(embedding_net)
 
-    net_constructor = [_Lampe_Net_Constructor(
-        flow_class, embedding_net, model_args,
-        device, x_normalize, theta_normalize) for n in range(repeats)]
+    net_constructor = [
+        _Lampe_Net_Constructor(
+            flow_class, embedding_net, model_args,
+            device, x_normalize, theta_normalize) for _ in range(repeats)
+    ]
 
     return net_constructor
 

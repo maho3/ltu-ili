@@ -12,13 +12,14 @@ from typing import List, Optional, Union, Dict
 from ili.dataloaders import _BaseLoader
 from ili.validation.metrics import _BaseMetric
 from ili.utils import load_from_config, update
-#from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble #"NeuralPosteriorEnsemble was renamed EnsemblePosterior and moved to sbi.inference.posteriors.ensemble_posterior. sbi.utils.posterior_ensemble
-#from sbi.inference.posteriors import EnsemblePosterior
+
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
-    #from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
-    from sbi.inference.posteriors import EnsemblePosterior
+    try:  # sbi > 0.22.0
+        from sbi.utils.posteriors import EnsemblePosterior
+    except ImportError:  # sbi < 0.22.0
+        from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
     interface = 'torch'
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper

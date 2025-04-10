@@ -28,10 +28,12 @@ from ili.utils import load_nde_sbi
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Device:', device)
 
+
 def test_dummy(monkeypatch):
     monkeypatch.setattr(plt, 'show', lambda: None)
     print("HELLO")
     return
+
 
 def test_snpe(monkeypatch):
     """Test the SNPE inference class with a simple toy model."""
@@ -72,7 +74,7 @@ def test_snpe(monkeypatch):
     # define an embedding network
     embedding_args = {
         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
-        'act_fn': "SiLU","n_input":x.shape[1] 
+        'act_fn': "SiLU", "n_input": x.shape[1]
     }
     embedding_net = FCN(**embedding_args)
 
@@ -492,7 +494,7 @@ def test_multiround():
     # define an embedding network
     embedding_args = {
         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
-        'act_fn': "SiLU", "n_input":x.shape[1]
+        'act_fn': "SiLU", "n_input": x.shape[1]
     }
     embedding_net = FCN(**embedding_args)
 
@@ -776,7 +778,7 @@ def test_yaml():
                        'args': {
                            'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
                            'act_fn': "SiLU",
-                           "n_input":x.shape[1]
+                           "n_input": x.shape[1]
                        },
                        },
         device='cpu',

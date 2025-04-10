@@ -12,22 +12,21 @@ class FCN(nn.Module):
     """Fully connected network to compress data.
 
     Args:
-        n_input: dimensionality of the input
         n_hidden (List[int]): number of hidden units per layer
         act_fn (str):  activation function to use
+        n_input (int): dimensionality of the input (optional)
     """
 
     def __init__(
-        self, n_hidden: List[int], act_fn: str = "SiLU", n_input = None
+        self, n_hidden: List[int], act_fn: str = "SiLU", n_input=None
     ):
-        #super().__init__()
-        super(FCN,self).__init__()
+        super(FCN, self).__init__()
         self.act_fn = getattr(nn, act_fn)()
         self.n_layers = len(n_hidden)
         self.n_hidden = n_hidden
-        
+
         # allows to have non empty Parameters for check_net_device in sbi
-        self.dummy = nn.Parameter(torch.Tensor([0]),requires_grad = False) 
+        self.dummy = nn.Parameter(torch.Tensor([0]), requires_grad=False)
 
         # Allows to specify n_input
         if n_input is not None:

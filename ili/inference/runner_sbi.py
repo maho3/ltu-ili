@@ -9,18 +9,21 @@ import logging
 import pickle
 import torch
 import torch.nn as nn
-from torch import Tensor
 from pathlib import Path
 from typing import Dict, List, Callable, Optional, Union
 from torch.distributions import Distribution
 from sbi.inference import NeuralInference
-#from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble #"NeuralPosteriorEnsemble was renamed EnsemblePosterior and moved to sbi.inference.posteriors.ensemble_posterior. sbi.utils.posterior_ensemble
-from sbi.inference.posteriors import EnsemblePosterior
 from .base import _BaseRunner
+try:  # sbi > 0.22.0
+    from sbi.utils.posteriors import EnsemblePosterior
+except ImportError:  # sbi < 0.22.0
+    from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
+
 from ili.dataloaders import _BaseLoader
 from ili.utils import load_class, load_from_config, load_nde_sbi, update
 
 logging.basicConfig(level=logging.INFO)
+
 
 class SBIRunner(_BaseRunner):
     """Class to train posterior inference models using the sbi package.
@@ -68,17 +71,16 @@ class SBIRunner(_BaseRunner):
         else:
             self.proposal = proposal
         self.engine = engine
-        #self.nets = nets
-        # Below, to handle the new "repeats" argument
+        # Below, to handle the repeats
         nets_list = []
         for net_el in nets:
-            if isinstance(net_el,List):
+            if isinstance(net_el, List):
                 for net in net_el:
                     nets_list.append(net)
             else:
                 nets_list.append(net_el)
-        self.nets= nets_list
-                    
+        self.nets = nets_list
+
         self.num_rounds = self.train_args.pop("num_round", 1)
 
         train_default = dict(
@@ -155,8 +157,8 @@ class SBIRunner(_BaseRunner):
             # Repeat to have an ensemble of n_size >=1 of the same nets architecture
             for n in range(n_size):
                 nets.append(load_nde_sbi(config['model']['engine'],
-                             embedding_net=embedding_net,
-                             **model_args))
+                                         embedding_net=embedding_net,
+                                         **model_args))
 
         # initialize
         return cls(
@@ -258,13 +260,12 @@ class SBIRunner(_BaseRunner):
             summaries.append(model.summary)
 
         # ensemble all trained models, weighted by validation loss
-        val_logprob = torch.tensor([-1.*float(x["best_validation_loss"][-1]) for x in summaries]).to(self.device)
-        
+        val_logprob = torch.tensor(
+            [-1.*float(x["best_validation_loss"][-1]) for x in summaries]).to(self.device)
+
         # Exponentiate with numerical stability
         weights = torch.exp(val_logprob - val_logprob.max())
         weights /= weights.sum()
-        #print(weights is Tensor) # sbi wrote this, need to raise issue/make PR
-        #print(isinstance(weights, Tensor) or isinstance(weights, List))
         posterior_ensemble = EnsemblePosterior(
             posteriors=posteriors,
             weights=weights,
