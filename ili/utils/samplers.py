@@ -8,7 +8,6 @@ import os
 import numpy as np
 import emcee
 from abc import ABC
-from collections.abc import Sequence
 from typing import Any
 from math import ceil
 
@@ -21,7 +20,7 @@ try:
         posterior_estimator_based_potential)
     ModelClass = NeuralPosterior
     try:  # sbi > 0.22.0
-        from sbi.utils.posteriors import EnsemblePosterior
+        from sbi.inference.posteriors import EnsemblePosterior
     except ImportError:  # sbi < 0.22.0
         from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
 except ModuleNotFoundError:

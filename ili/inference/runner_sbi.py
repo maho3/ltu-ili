@@ -16,7 +16,7 @@ from torch.distributions import Distribution
 from sbi.inference import NeuralInference
 from .base import _BaseRunner
 try:  # sbi > 0.22.0
-    from sbi.utils.posteriors import EnsemblePosterior
+    from sbi.inference.posteriors import EnsemblePosterior
 except ImportError:  # sbi < 0.22.0
     from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
 

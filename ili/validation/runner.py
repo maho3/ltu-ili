@@ -17,7 +17,7 @@ try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
     try:  # sbi > 0.22.0
-        from sbi.utils.posteriors import EnsemblePosterior
+        from sbi.inference.posteriors import EnsemblePosterior
     except ImportError:  # sbi < 0.22.0
         from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
     interface = 'torch'

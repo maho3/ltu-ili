@@ -20,7 +20,7 @@ try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     from sbi.inference.posteriors import DirectPosterior
     try:  # sbi > 0.22.0
-        from sbi.utils.posteriors import EnsemblePosterior
+        from sbi.inference.posteriors import EnsemblePosterior
     except ImportError:  # sbi < 0.22.0
         from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
     from ili.utils.ndes_pt import LampeNPE, LampeEnsemble
