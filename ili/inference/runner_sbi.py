@@ -261,18 +261,18 @@ class SBIRunner(_BaseRunner):
             # TODO: deprecate in future versions
             if "training_log_probs" in model.summary:
                 model.summary["training_loss"] = \
-                    -1.*np.array(model.summary["training_log_probs"])
+                    [-1.*x for x in model.summary["training_log_probs"]]
                 model.summary["validation_loss"] = \
-                    -1.*np.array(model.summary["validation_log_probs"])
+                    [-1.*x for x in model.summary["validation_log_probs"]]
                 model.summary["best_validation_loss"] = \
-                    -1.*np.array(model.summary["best_validation_log_prob"])
+                    [-1.*x for x in model.summary["best_validation_log_prob"]]
             else:
-                model.summary[f"training_log_probs"] = \
-                    -1.*np.array(model.summary[f"training_loss"])
-                model.summary[f"validation_log_probs"] = \
-                    -1.*np.array(model.summary[f"validation_loss"])
-                model.summary[f"best_validation_log_prob"] = \
-                    -1.*np.array(model.summary[f"best_validation_loss"])
+                model.summary["training_log_probs"] = \
+                    [-1.*x for x in model.summary["training_loss"]]
+                model.summary["validation_log_probs"] = \
+                    [-1.*x for x in model.summary["validation_loss"]]
+                model.summary["best_validation_log_prob"] = \
+                    [-1.*x for x in model.summary["best_validation_loss"]]
 
             # save model
             posteriors.append(model.build_posterior())
