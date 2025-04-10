@@ -255,6 +255,10 @@ class SBIRunner(_BaseRunner):
                 model.epoch, model._val_log_prob = 0, float("-Inf")
                 model.train(**self.train_args,  resume_training=True)
 
+            # copy loss as log_probs (to conform to sbi<=0.22.0)
+            model.summary["best_validation_log_prob"] = \
+                -1.*model.summary["best_validation_loss"][-1]
+
             # save model
             posteriors.append(model.build_posterior())
             summaries.append(model.summary)
