@@ -32,6 +32,7 @@ from torch.distributions.transforms import (
     identity_transform, AffineTransform, Transform)
 
 try:  # sbi > 0.22.0
+    from sbi.neural_nets import posterior_nn
     from sbi import neural_nets
 except ImportError:  # sbi <= 0.22.0
     from sbi import utils as neural_nets

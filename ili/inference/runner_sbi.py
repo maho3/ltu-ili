@@ -9,6 +9,7 @@ import logging
 import pickle
 import torch
 import torch.nn as nn
+import numpy as np
 from pathlib import Path
 from typing import Dict, List, Callable, Optional, Union
 from torch.distributions import Distribution
@@ -255,9 +256,23 @@ class SBIRunner(_BaseRunner):
                 model.epoch, model._val_log_prob = 0, float("-Inf")
                 model.train(**self.train_args,  resume_training=True)
 
-            # copy loss as log_probs (to conform to sbi<=0.22.0)
-            model.summary["best_validation_log_prob"] = \
-                -1.*model.summary["best_validation_loss"][-1]
+            # duplicate loss record (for backwards compatibility)
+            # this is a mess, sorry
+            # TODO: deprecate in future versions
+            if "training_log_probs" in model.summary:
+                model.summary["training_loss"] = \
+                    -1.*np.array(model.summary["training_log_probs"])
+                model.summary["validation_loss"] = \
+                    -1.*np.array(model.summary["validation_log_probs"])
+                model.summary["best_validation_loss"] = \
+                    -1.*np.array(model.summary["best_validation_log_prob"])
+            else:
+                model.summary[f"training_log_probs"] = \
+                    -1.*np.array(model.summary[f"training_loss"])
+                model.summary[f"validation_log_probs"] = \
+                    -1.*np.array(model.summary[f"validation_loss"])
+                model.summary[f"best_validation_log_prob"] = \
+                    -1.*np.array(model.summary[f"best_validation_loss"])
 
             # save model
             posteriors.append(model.build_posterior())
