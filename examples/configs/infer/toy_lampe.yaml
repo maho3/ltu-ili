@@ -18,6 +18,7 @@ model:
     - model: 'mdn'  # Mixture Density Network
       hidden_features: 10
       num_components: 4
+      repeats: 2
 
 # Specify the neural training hyperparameters
 train_args:

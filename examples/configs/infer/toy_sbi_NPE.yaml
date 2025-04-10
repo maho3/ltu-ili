@@ -16,6 +16,7 @@ model:
       hidden_features: 50
       num_transforms: 5 
       signature: "maf"
+      repeats: 3
     - model: 'mdn'  # Mixture Density Network
       hidden_features: 50 
       num_components: 6

@@ -16,7 +16,10 @@ from ili.utils import load_from_config, update
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
-    from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
+    try:  # sbi > 0.22.0
+        from sbi.inference.posteriors import EnsemblePosterior
+    except ImportError:  # sbi < 0.22.0
+        from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
     interface = 'torch'
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
@@ -161,7 +164,7 @@ class ValidationRunner():
         # evaluate metrics on each posterior in the ensemble separately
         global interface
         if ((not self.ensemble_mode) and (interface == 'torch') and
-                isinstance(self.posterior, NeuralPosteriorEnsemble)):
+                isinstance(self.posterior, EnsemblePosterior)):
             n = 0
             for posterior_model in self.posterior.posteriors:
                 signature = self.signatures[n]+"_"

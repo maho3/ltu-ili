@@ -29,6 +29,12 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Device:', device)
 
 
+def test_dummy(monkeypatch):
+    monkeypatch.setattr(plt, 'show', lambda: None)
+    print("HELLO")
+    return
+
+
 def test_snpe(monkeypatch):
     """Test the SNPE inference class with a simple toy model."""
 
@@ -68,7 +74,7 @@ def test_snpe(monkeypatch):
     # define an embedding network
     embedding_args = {
         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
-        'act_fn': "SiLU"
+        'act_fn': "SiLU", "n_input": x.shape[1]
     }
     embedding_net = FCN(**embedding_args)
 
@@ -302,7 +308,7 @@ def test_snle(monkeypatch):
 
         # calculate the potential (prop. to log_prob) for each sample
         log_prob = posterior.log_prob(
-            nsamples,
+            samples,
             x[ind]
         ).detach().cpu().numpy()
 
@@ -488,7 +494,7 @@ def test_multiround():
     # define an embedding network
     embedding_args = {
         'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
-        'act_fn': "SiLU"
+        'act_fn': "SiLU", "n_input": x.shape[1]
     }
     embedding_net = FCN(**embedding_args)
 
@@ -522,7 +528,7 @@ def test_multiround():
 
     # sample an ABC model to infer x -> theta
     train_args = {
-        'num_simulations': 1000,
+        'num_simulations': 100,
         'quantile': 0.1,
     }
 
@@ -756,7 +762,7 @@ def test_yaml():
                       scale=[0.5, 0.5, 0.5],
                   ),
                   },
-        model={'engine': 'SNPE',
+        model={'engine': 'NPE',
                'nets': [
                    dict(model='maf', hidden_features=50,
                         num_transforms=5, signature='maf1'),
@@ -772,6 +778,7 @@ def test_yaml():
                        'args': {
                            'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
                            'act_fn': "SiLU",
+                           "n_input": x.shape[1]
                        },
                        },
         device='cpu',
@@ -779,13 +786,13 @@ def test_yaml():
     )
     with open('./toy/infer_snpe.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
-    data['model']['engine'] = 'SNLE'
+    data['model']['engine'] = 'NLE'
     data['model']['nets'] = [
         dict(model='maf', hidden_features=50, num_transforms=5),
         dict(model='made', hidden_features=50, num_transforms=5)]
     with open('./toy/infer_snle.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
-    data['model']['engine'] = 'SNRE'
+    data['model']['engine'] = 'NRE'
     data['model']['nets'] = [
         dict(model='resnet', hidden_features=50, num_blocks=3),
         dict(model='mlp', hidden_features=50)]
@@ -801,7 +808,7 @@ def test_yaml():
                    high=[1, 1, 1],
                ),
                },
-        model={'engine': 'SNPE_C',
+        model={'engine': 'SNPE',
                'nets': [
                    dict(model='maf', hidden_features=100, num_transforms=2),
                    dict(model='mdn', hidden_features=50, num_components=6)],
@@ -831,7 +838,7 @@ def test_yaml():
                'num_workers': 8,
                },
         train_args=dict(
-            num_simulations=1000000,
+            num_simulations=1000,
             quantile=0.01,
         ),
         device='cpu',

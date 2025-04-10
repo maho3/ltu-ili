@@ -8,19 +8,21 @@ import os
 import numpy as np
 import emcee
 from abc import ABC
-from collections.abc import Sequence
 from typing import Any
 from math import ceil
 
 try:
     import torch
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
-    from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
     from sbi.inference.posteriors import (
         DirectPosterior, MCMCPosterior, VIPosterior)
     from sbi.inference.potentials.posterior_based_potential import (
         posterior_estimator_based_potential)
     ModelClass = NeuralPosterior
+    try:  # sbi > 0.22.0
+        from sbi.inference.posteriors import EnsemblePosterior
+    except ImportError:  # sbi < 0.22.0
+        from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper
@@ -147,9 +149,9 @@ class PyroSampler(_MCMCSampler):
         # convert DirectPosteriors to MCMCPosteriors
         if isinstance(posterior, DirectPosterior):
             posterior = self._Direct_to_MCMC(posterior)
-        elif isinstance(posterior, NeuralPosteriorEnsemble):
+        elif isinstance(posterior, EnsemblePosterior):
             posteriors = posterior.posteriors
-            posterior = NeuralPosteriorEnsemble(
+            posterior = EnsemblePosterior(
                 [(self._Direct_to_MCMC(p) if isinstance(p, DirectPosterior)
                   else p)
                  for p in posteriors],
@@ -256,7 +258,7 @@ class VISampler(ABC):
                  dist: str = 'maf', **train_kwargs) -> None:
         if isinstance(posterior, DirectPosterior):
             posterior = self._Direct_to_VI(posterior)
-        elif isinstance(posterior, NeuralPosteriorEnsemble):
+        elif isinstance(posterior, EnsemblePosterior):
             posterior = VIPosterior(
                 potential_fn=posterior.potential_fn,
                 prior=posterior.prior,
