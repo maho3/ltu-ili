@@ -14,17 +14,25 @@ class FCN(nn.Module):
     Args:
         n_hidden (List[int]): number of hidden units per layer
         act_fn (str):  activation function to use
+        n_input (int): dimensionality of the input (optional)
     """
 
     def __init__(
-        self, n_hidden: List[int], act_fn: str = "SiLU"
+        self, n_hidden: List[int], act_fn: str = "SiLU", n_input=None
     ):
-        super().__init__()
+        super(FCN, self).__init__()
         self.act_fn = getattr(nn, act_fn)()
         self.n_layers = len(n_hidden)
         self.n_hidden = n_hidden
 
-    def initalize_model(self, n_input: int):
+        # allows to have non empty Parameters for check_net_device in sbi
+        self.dummy = nn.Parameter(torch.Tensor([0]), requires_grad=False)
+
+        # Allows to specify n_input
+        if n_input is not None:
+            self.initialize_model(n_input)
+
+    def initialize_model(self, n_input: int):
         """Initialize network once the input dimensionality is known.
 
         Args:
