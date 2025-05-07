@@ -163,7 +163,7 @@ class K_EvidenceNetwork():
         """Train a single epoch of a neural network model."""
         model.train()
 
-        loss_train, count = 0, 0
+        loss_train, count = [], 0
         for x, theta in train_loader:
             x, theta = x.to(self.device), theta.to(self.device)
             optimizer.zero_grad()
@@ -177,18 +177,20 @@ class K_EvidenceNetwork():
             if norm.isfinite():
                 optimizer.step()
             # Record
-            loss_train += loss.item() * len(theta)
+            loss_train.append(loss.item())
             count += len(theta)
-        loss_train = loss_train/count
+        loss_train = torch.logsumexp(torch.Tensor(
+            loss_train), dim=0).item() - np.log(count)
 
         model.eval()
         with torch.no_grad():
-            loss_val, count = 0, 0
+            loss_val, count = [], 0
             for x, theta in val_loader:
                 x, theta = x.to(self.device), theta.to(self.device)
-                loss_val += self._loss(model, theta, x).item() * len(theta)
+                loss_val.append(self._loss(model, theta, x).item())
                 count += len(theta)
-            loss_val = loss_val/count
+            loss_val = torch.logsumexp(torch.Tensor(
+                loss_val), dim=0).item() - np.log(count)
         return loss_train, loss_val
 
     def train(self, loader1, loader2, show_progress_bars=True):
@@ -248,8 +250,8 @@ class K_EvidenceNetwork():
                     optimizer=optimizer
                 )
                 tq.set_postfix(
-                    loss1=loss_train-1,
-                    loss_val1=loss_val-1,
+                    loss_train=loss_train,
+                    loss_val=loss_val,
                 )
                 summary['training_loss'].append(loss_train)
                 summary['validation_loss'].append(loss_val)

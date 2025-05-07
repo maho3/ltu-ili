@@ -36,9 +36,9 @@ class POPExpLoss(nn.Module):
 
 class ExpLoss(nn.Module):
     def forward(self, model_pred, model_label):
-        model_pred = torch.clamp(model_pred, -50, 50)
-        loss_val = torch.exp((0.5 - model_label) * model_pred)
-        return torch.mean(loss_val)
+        loss_val = (0.5 - model_label) * model_pred
+        out = torch.logsumexp(loss_val, dim=0)
+        return out
 
 
 class EvidenceNetworkSimple(nn.Module):
