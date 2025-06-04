@@ -35,6 +35,7 @@ jobs:
           pyenv global 3.6
       - name: Check Python version
         run: python --version
+        
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
         with:
