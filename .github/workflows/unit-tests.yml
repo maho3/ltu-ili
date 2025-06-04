@@ -81,6 +81,10 @@ jobs:
       - name: Test with pytest
         run: |
           echo "Running pydelfi tests"
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
+          python3 --version
           COVERAGE_FILE=coverage_file_pydelfi python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
         shell: bash
       - name: Archive pydelfi code coverage results
