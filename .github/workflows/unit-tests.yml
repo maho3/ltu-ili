@@ -70,6 +70,9 @@ jobs:
           mpi: 'openmpi'
       - name: Install dependencies
         run: |
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
           python --version
           python3 --version
           python -m pip install --upgrade pip
