@@ -74,7 +74,6 @@ jobs:
           export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
           eval "$(pyenv init -)"
           python --version
-          python3 --version
           python -m pip install --upgrade pip
           python -m pip install flake8 pytest
           python -m pip install -e .[dev]
