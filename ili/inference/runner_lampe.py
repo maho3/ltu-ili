@@ -230,7 +230,8 @@ class LampeRunner():
         return loss_train, loss_val
 
     def _train_round(self, models: List[Callable],
-                     train_loader: DataLoader, val_loader: DataLoader):
+                     train_loader: DataLoader, val_loader: DataLoader,
+                     verbose: bool = True):
         """Train a single round of inference for an ensemble of models."""
 
         # initialize models
@@ -242,7 +243,8 @@ class LampeRunner():
 
         posteriors, summaries = [], []
         for i, model in enumerate(models_rnd):
-            logging.info(f"Training model {i+1} / {len(models_rnd)}.")
+            if verbose:
+                logging.info(f"Training model {i+1} / {len(models_rnd)}.")
 
             # define optimizer
             optimizer = torch.optim.Adam(
@@ -261,7 +263,7 @@ class LampeRunner():
             wait = 0
             summary = {'training_log_probs': [], 'validation_log_probs': []}
             with tqdm(iter(range(self.train_args["max_epochs"])),
-                      unit=' epochs') as tq:
+                      unit=' epochs', disable=not verbose) as tq:
                 for epoch in tq:
                     loss_train, loss_val = self._train_epoch(
                         model=model,
@@ -328,7 +330,8 @@ class LampeRunner():
         with open(self.out_dir / str_s, "w") as handle:
             json.dump(summaries, handle)
 
-    def __call__(self, loader: _BaseLoader, seed: int = None):
+    def __call__(self, loader: _BaseLoader, seed: int = None,
+                 verbose: bool = True):
         """Train your posterior and save it to file
 
         Args:
@@ -341,7 +344,8 @@ class LampeRunner():
             torch.manual_seed(seed)
 
         # setup training engines for each model in the ensemble
-        logging.info("MODEL INFERENCE CLASS: NPE")
+        if verbose:
+            logging.info("MODEL INFERENCE CLASS: NPE")
 
         # load single-round data
         train_loader, val_loader = self._prepare_loader(loader)
@@ -352,8 +356,11 @@ class LampeRunner():
             models=self.nets,
             train_loader=train_loader,
             val_loader=val_loader,
+            verbose=verbose
         )
-        logging.info(f"It took {time.time() - t0} seconds to train models.")
+        if verbose:
+            logging.info(
+                f"It took {time.time() - t0} seconds to train models.")
 
         # save if output path is specified
         if self.out_dir is not None:
