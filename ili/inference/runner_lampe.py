@@ -247,7 +247,7 @@ class LampeRunner():
                 logging.info(f"Training model {i+1} / {len(models_rnd)}.")
 
             # define optimizer
-            optimizer = torch.optim.Adam(
+            optimizer = torch.optim.AdamW(
                 model.parameters(),
                 lr=self.train_args["learning_rate"],
                 weight_decay=self.train_args["weight_decay"]
