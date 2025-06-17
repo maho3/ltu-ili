@@ -237,7 +237,7 @@ class LampeRunner():
         # initialize models
         x_, y_ = next(iter(train_loader))
         models_rnd = [
-            model(x_, y_, self.prior).to(self.device)
+            model(train_loader, self.prior).to(self.device)
             for model in models
         ]
 
