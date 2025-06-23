@@ -4,14 +4,10 @@ the tutorial model in:
 https://github.com/NiallJeffrey/EvidenceNetworksDemo/blob/main/network_architecture.py
 
 All usage of this model should cite Jeffrey & Wandelt (2024) - arxiv:2305.11241
-
-TODO:
-  *  Add embedding network to the model.
 """
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 
 # def smooth_sign(x, k=100.):
@@ -41,10 +37,37 @@ class ExpLoss(nn.Module):
         return out
 
 
-class EvidenceNetworkSimple(nn.Module):
+class EvidenceNetwork(nn.Module):
+    """
+    A deep neural network designed to approximate the log-Bayes factor (log-evidence
+    ratio) between two competing models.
+
+    The architecture consists of an optional embedding network, followed by an
+    initial fully-connected layer, a series of residual blocks, and a final
+    output layer. This structure allows the network to learn complex features from
+    the input data.
+
+    Args:
+        input_size (int): The dimension of the input features that are fed into the
+            first fully-connected layer. This should match the output dimension
+            of the `embedding_net`.
+        embedding_net (nn.Module, optional): A PyTorch module to preprocess or
+            embed the raw input data before it enters the main network. Defaults
+            to nn.Identity().
+        layer_width (int, optional): The number of neurons in the hidden layers.
+            Defaults to 16.
+        added_layers (int, optional): The number of residual blocks to include in
+            the network. Defaults to 3.
+        batch_norm_flag (int, optional): A flag to enable (1) or disable (0)
+            batch normalization. Defaults to 1.
+        alpha (int, optional): The exponent for the `leaky_parity_odd_power`
+            activation function applied to the output. Defaults to 2.
+    """
+
     def __init__(
         self,
         input_size,
+        embedding_net=nn.Identity(),
         layer_width=16,
         added_layers=3,
         batch_norm_flag=1,
@@ -52,6 +75,7 @@ class EvidenceNetworkSimple(nn.Module):
     ):
         super().__init__()
         self.input_size = input_size
+        self.embedding_net = embedding_net
         self.layer_width = layer_width
         self.added_layers = added_layers
         self.bn = batch_norm_flag
@@ -89,6 +113,10 @@ class EvidenceNetworkSimple(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
+        # Embedding Network
+        x = self.embedding_net(x)
+
+        # Initial layer (resizing input to layer width)
         x = self.initial_layer(x)
 
         # Hidden layers
@@ -104,32 +132,4 @@ class EvidenceNetworkSimple(nn.Module):
         x = self.output_layer(x)
         x = 0.1 * x + 0.001
         x = leaky_parity_odd_power(x, alpha=self.alpha)
-        return x
-
-
-class EvidenceNetworkSimpler(nn.Module):
-    def __init__(
-        self,
-        input_size,
-        layer_width=16,
-        added_layers=3,
-        batch_norm_flag=1,
-        alpha=2
-    ):
-        super().__init__()
-        self.input_size = input_size
-        self.layer_width = layer_width
-        self.added_layers = added_layers
-        self.bn = batch_norm_flag
-        self.alpha = alpha
-
-        self.fc1 = nn.Linear(input_size, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 1)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        x = leaky_parity_odd_power(x, alpha=2)
         return x

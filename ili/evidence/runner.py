@@ -2,7 +2,6 @@
 Module to contain evidence estimators.
 
 TODO:
-  * Add embedding networks
   * Add ensembling
 """
 import logging
@@ -14,7 +13,7 @@ import torch
 from torch import nn
 from torch.utils.data import TensorDataset
 from torch.utils.data import DataLoader
-from .utils import POPExpLoss, ExpLoss, EvidenceNetworkSimple
+from .utils import ExpLoss, EvidenceNetwork
 
 logging.basicConfig(level=logging.INFO)
 
@@ -126,10 +125,40 @@ class HarmonicEvidence():
 
 
 class K_EvidenceNetwork():
-    """Trains an evidence network to estimate the Bayes Factor K for two models."""
+    """
+    A runner class to train an EvidenceNetwork for approximating the Bayes Factor (K)
+    between two competing models.
+
+    This class handles data preparation, training loops, validation, early stopping,
+    and model saving. It can optionally use a custom embedding network to process
+    complex data modalities before the main fully-connected layers.
+
+    Args:
+        embedding_net (nn.Module, optional): A PyTorch module to preprocess input
+            data. If None, an identity mapping is used. Defaults to None.
+        layer_width (int, optional): The number of neurons in the hidden layers of
+            the EvidenceNetwork. Defaults to 16.
+        added_layers (int, optional): The number of residual blocks in the
+            EvidenceNetwork. Defaults to 3.
+        batch_norm_flag (int, optional): A flag to enable (1) or disable (0)
+            batch normalization. Defaults to 1.
+        alpha (int, optional): The exponent for the leaky_parity_odd_power
+            activation function. Defaults to 2.
+        train_args (dict, optional): A dictionary of training hyperparameters to
+            override the defaults. Defaults to {}.
+        device (str, optional): The device to run training on (e.g., 'cpu' or
+            'cuda'). Defaults to 'cpu'.
+
+    Attributes:
+        model (EvidenceNetwork): The trained PyTorch model. This is None until
+            the `train` method is successfully called.
+        best_val (float): The best validation loss achieved during training.
+        loss_fn (nn.Module): The loss function instance used for training.
+    """
 
     def __init__(
         self,
+        embedding_net=None,
         layer_width=16,
         added_layers=3,
         batch_norm_flag=1,
@@ -137,20 +166,22 @@ class K_EvidenceNetwork():
         train_args={},
         device='cpu'
     ):
+        self.embedding_net = embedding_net or nn.Identity()
         self.layer_width = layer_width
         self.added_layers = added_layers
         self.batch_norm_flag = batch_norm_flag
         self.alpha = alpha
         self.train_args = dict(
-            training_batch_size=32, learning_rate=5e-4,
+            training_batch_size=32, learning_rate=1e-5,
             stop_after_epochs=30, clip_max_norm=5,
-            max_epochs=int(1e10),
+            max_epochs=int(1e4),
             validation_fraction=0.1)
         self.train_args.update(train_args)
         self.device = device
 
-        self.loss_fn = ExpLoss()
+        self.embedding_net.to(self.device)
 
+        self.loss_fn = ExpLoss()
         self.best_val = float('inf')
         self.model = None
 
@@ -162,51 +193,57 @@ class K_EvidenceNetwork():
     def _train_epoch(self, model, train_loader, val_loader, optimizer):
         """Train a single epoch of a neural network model."""
         model.train()
-
-        loss_train, count = [], 0
+        loss_train, count_train = [], 0
         for x, theta in train_loader:
             x, theta = x.to(self.device), theta.to(self.device)
             optimizer.zero_grad()
             loss = self._loss(model, theta, x)
             loss.backward()
 
-            # Clip gradients
             norm = nn.utils.clip_grad_norm_(
                 model.parameters(), self.train_args['clip_max_norm'])
-            # Step
-            if norm.isfinite():
+
+            if torch.isfinite(norm):
                 optimizer.step()
             # Record
-            loss_train.append(loss.item())
-            count += len(theta)
-        loss_train = torch.logsumexp(torch.Tensor(
-            loss_train), dim=0).item() - np.log(count)
+            loss_train.append(loss.item() * len(theta))
+            count_train += len(theta)
+        loss_train = sum(loss_train) / count_train
 
         model.eval()
         with torch.no_grad():
-            loss_val, count = [], 0
+            loss_val, count_val = [], 0
             for x, theta in val_loader:
                 x, theta = x.to(self.device), theta.to(self.device)
-                loss_val.append(self._loss(model, theta, x).item())
-                count += len(theta)
-            loss_val = torch.logsumexp(torch.Tensor(
-                loss_val), dim=0).item() - np.log(count)
+                loss_val.append(self._loss(
+                    model, theta, x).item() * len(theta))
+                count_val += len(theta)
+        loss_val = sum(loss_val) / count_val
         return loss_train, loss_val
 
     def train(self, loader1, loader2, show_progress_bars=True):
+        """
+        Trains the evidence network.
+
+        Args:
+            loader1: A data loader object for the first model. Must have a
+                     `get_all_data()` method.
+            loader2: A data loader object for the second model.
+            show_progress_bars (bool): Whether to display tqdm progress bars.
+        """
         # Aggregate data from different models, and label them
+        # Assumes loaders have a 'get_all_data' method returning numpy arrays
         x1 = loader1.get_all_data().astype(np.float32)
         x2 = loader2.get_all_data().astype(np.float32)
         x = np.concatenate([x1, x2], axis=0)
         labels = np.concatenate([np.zeros(len(x1)), np.ones(len(x2))], axis=0)
 
         # Train/Validation split
-        train_mask = (
-            np.random.rand(len(x)) > self.train_args['validation_fraction'])
-        x_train = x[train_mask]
-        labels_train = labels[train_mask]
-        x_val = x[~train_mask]
-        labels_val = labels[~train_mask]
+        indices = np.random.permutation(len(x))
+        val_size = int(len(x) * self.train_args['validation_fraction'])
+        val_indices, train_indices = indices[:val_size], indices[val_size:]
+        x_train, labels_train = x[train_indices], labels[train_indices]
+        x_val, labels_val = x[val_indices], labels[val_indices]
 
         # Create data loaders
         train_data = TensorDataset(torch.tensor(
@@ -223,14 +260,25 @@ class K_EvidenceNetwork():
             shuffle=False, drop_last=True
         )
 
-        # Create model
-        ndim = x1.shape[-1]
-        model = EvidenceNetworkSimple(
-            ndim,
-            self.layer_width,
-            self.added_layers,
-            self.batch_norm_flag,
-            self.alpha
+        # Determine the input dimension for the dense network
+        if not isinstance(self.embedding_net, nn.Identity):
+            with torch.no_grad():
+                # Use a single-item batch to find the output dimension
+                sample_input = next(iter(train_loader))[0].to(self.device)
+                embedded_output = self.embedding_net(sample_input)
+                ndim = embedded_output.shape[-1]
+        else:
+            # If no embedding net, the input dim is from the data itself
+            ndim = x_train.shape[-1]
+
+        # Create model, passing the embedding net
+        model = EvidenceNetwork(
+            input_size=ndim,
+            embedding_net=self.embedding_net,
+            layer_width=self.layer_width,
+            added_layers=self.added_layers,
+            batch_norm_flag=self.batch_norm_flag,
+            alpha=self.alpha
         )
         model.to(self.device)
         optimizer = torch.optim.Adam(
@@ -239,9 +287,10 @@ class K_EvidenceNetwork():
         # Train model
         wait = 0
         summary = {'training_loss': [], 'validation_loss': []}
-        best_model = model.state_dict()
-        with tqdm(iter(range(self.train_args["max_epochs"])),
-                  unit=' epochs') as tq:
+        best_model_state = deepcopy(model.state_dict())
+
+        with tqdm(iter(range(self.train_args["max_epochs"])), unit=' epochs',
+                  disable=not show_progress_bars) as tq:
             for epoch in tq:
                 loss_train, loss_val = self._train_epoch(
                     model=model,
@@ -249,36 +298,40 @@ class K_EvidenceNetwork():
                     val_loader=val_loader,
                     optimizer=optimizer
                 )
-                tq.set_postfix(
-                    loss_train=loss_train,
-                    loss_val=loss_val,
-                )
+                if show_progress_bars:
+                    tq.set_postfix(
+                        loss_train=f"{loss_train:.4f}",
+                        loss_val=f"{loss_val:.4f}")
+
                 summary['training_loss'].append(loss_train)
                 summary['validation_loss'].append(loss_val)
 
-                # check for convergence
                 if loss_val < self.best_val:
                     self.best_val = loss_val
-                    best_model = deepcopy(model.state_dict())
+                    best_model_state = deepcopy(model.state_dict())
                     wait = 0
-                elif wait > self.train_args["stop_after_epochs"]:
+                elif wait >= self.train_args["stop_after_epochs"]:
+                    logging.info(f"Stopping early after {epoch} epochs.")
                     break
                 else:
                     wait += 1
             else:
                 logging.warning(
-                    "Training did not converge in "
-                    f"{self.train_args['max_epochs']} epochs.")
-            summary['best_validation_loss'] = self.best_val
-            summary['epochs_trained'] = epoch
+                    f"Training did not converge in {self.train_args['max_epochs']} epochs.")
+
+        summary['best_validation_loss'] = self.best_val
+        summary['epochs_trained'] = epoch + 1
         self.model = model
-        self.model.load_state_dict(best_model)
+        self.model.load_state_dict(best_model_state)
         return summary
 
     def predict(self, x):
         """Predict the log-Bayes Ratio for a given input."""
         if self.model is None:
-            raise ValueError("Model has not been trained.")
-        x = np.atleast_2d(x)
-        x = torch.tensor(x.astype(np.float32)).to(self.device)
-        return self.model(x)
+            raise ValueError(
+                "Model has not been trained yet. Please call .train() first.")
+        self.model.eval()
+        with torch.no_grad():
+            x_tensor = torch.from_numpy(np.atleast_2d(
+                x).astype(np.float32)).to(self.device)
+            return self.model(x_tensor).cpu().numpy()
