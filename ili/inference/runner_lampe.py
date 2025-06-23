@@ -54,7 +54,14 @@ class LampeRunner():
         signatures: Optional[List[str]] = None,
     ):
         self.prior = prior
-        self.nets = nets
+        nets_list = []
+        for net_el in nets:
+            if isinstance(net_el, List):  # for repeat nets
+                for net in net_el:
+                    nets_list.append(net)
+            else:
+                nets_list.append(net_el)
+        self.nets = nets_list
         if engine != 'NPE':
             logging.warning(
                 'lampe only supports NPE engine. Engine set to NPE.')
@@ -70,6 +77,8 @@ class LampeRunner():
             self.out_dir = Path(self.out_dir)
             self.out_dir.mkdir(parents=True, exist_ok=True)
         self.device = device
+        for n in self.nets:  # ensure all nets are on the same device
+            n.device = self.device
         if proposal is None:
             self.proposal = prior
         else:
@@ -125,10 +134,21 @@ class LampeRunner():
             signatures.append(type_nn.pop("signature", ""))
 
         # load inference class and neural nets
-        nets = [load_nde_lampe(embedding_net=embedding_net,
-                               device=config["device"],
-                               **model_args)
-                for model_args in config['model']['nets']]
+        nets = []
+
+        # For every different nets architecture
+        for model_args in config['model']['nets']:
+            if "repeats" in model_args:
+                n_size = model_args["repeats"]
+                model_args.pop("repeats")
+            else:
+                n_size = 1
+
+            # Repeat to have an ensemble of n_size >=1 of the same nets architecture
+            for n in range(n_size):
+                nets.append(load_nde_lampe(embedding_net=embedding_net,
+                                           device=config["device"],
+                                           **model_args))
 
         # initialize
         return cls(

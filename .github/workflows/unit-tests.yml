@@ -30,43 +30,67 @@ jobs:
       - name: Test with pytest
         run: |
           echo "Running sbi tests"
-          COVERAGE_FILE=.coverage_sbi python3 -m coverage run --source=ili -m pytest tests/test_sbi.py
+          COVERAGE_FILE=coverage_file_sbi python3 -m coverage run --source=ili -m pytest tests/test_sbi.py
         shell: bash
       - name: Archive sbi code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage_sbi
-          path: .coverage_sbi
+          path: coverage_file_sbi
         
   pydelfi_build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.6
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.6"
+      - name: Install pyenv and Python 3.6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make build-essential libssl-dev zlib1g-dev \
+                                  libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+                                  libncurses5-dev libncursesw5-dev xz-utils tk-dev
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PATH"
+          curl https://pyenv.run | bash
+          export PATH="$PYENV_ROOT/bin:$PATH"
+          eval "$(pyenv init -)"
+          eval "$(pyenv virtualenv-init -)"
+          pyenv install 3.6
+          pyenv global 3.6
+      - name: Check Python version
+        run: |
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
+          python --version
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: 'openmpi'
       - name: Install dependencies
         run: |
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
+          python --version
           python -m pip install --upgrade pip
-          pip install flake8 pytest
-          pip install -e .[dev]
+          python -m pip install flake8 pytest
+          python -m pip install -e .[dev]
       - name: Test with pytest
         run: |
           echo "Running pydelfi tests"
-          COVERAGE_FILE=.coverage_pydelfi python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
+          python3 --version
+          COVERAGE_FILE=coverage_file_pydelfi python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
         shell: bash
       - name: Archive pydelfi code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage_pydelfi
-          path: .coverage_pydelfi
+          path: coverage_file_pydelfi
 
   lampe_build:
 
@@ -87,13 +111,13 @@ jobs:
       - name: Test with pytest
         run: |
           echo "Running lampe tests"
-          COVERAGE_FILE=.coverage_lampe python3 -m coverage run --source=ili -m pytest tests/test_lampe.py
+          COVERAGE_FILE=coverage_file_lampe python3 -m coverage run --source=ili -m pytest tests/test_lampe.py
         shell: bash
       - name: Archive lampe code coverage results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage_lampe
-          path: .coverage_lampe
+          path: coverage_file_lampe
 
   combine_tests:
     needs: [sbi_build, pydelfi_build, lampe_build]
@@ -106,14 +130,14 @@ jobs:
         with:
           python-version: "3.10"
       - name: Download all workflow run artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
       - name: Display structure of downloaded files
         run: ls -aR
       - name: Combine results of unit tests
         run: |
           python -m pip install --upgrade pip
           pip install coverage pytest
-          coverage combine coverage_sbi/.coverage_sbi coverage_pydelfi/.coverage_pydelfi coverage_lampe/.coverage_lampe
+          coverage combine coverage_sbi/coverage_file_sbi coverage_pydelfi/coverage_file_pydelfi coverage_lampe/coverage_file_lampe
           coverage xml -o coverage.xml
           coverage report -m
         shell: bash

@@ -9,12 +9,17 @@ import logging
 import pickle
 import torch
 import torch.nn as nn
+import numpy as np
 from pathlib import Path
 from typing import Dict, List, Callable, Optional, Union
 from torch.distributions import Distribution
 from sbi.inference import NeuralInference
-from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble
 from .base import _BaseRunner
+try:  # sbi > 0.22.0
+    from sbi.inference.posteriors import EnsemblePosterior
+except ImportError:  # sbi < 0.22.0
+    from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
+
 from ili.dataloaders import _BaseLoader
 from ili.utils import load_class, load_from_config, load_nde_sbi, update
 
@@ -34,8 +39,6 @@ class SBIRunner(_BaseRunner):
             any sbi inference engine; see _setup_engine)
         nets (List[Callable]): list of neural nets for amortized posteriors,
             likelihood models, or ratio classifiers
-        embedding_net (nn.Module): neural network to compress high
-            dimensional data into lower dimensionality
         train_args (Dict): dictionary of hyperparameters for training
         out_dir (str, Path): directory where to store outputs
         proposal (Distribution): proposal distribution from which existing
@@ -53,7 +56,6 @@ class SBIRunner(_BaseRunner):
         train_args: Dict = {},
         out_dir: Union[str, Path] = None,
         device: str = 'cpu',
-        embedding_net: nn.Module = None,
         proposal: Distribution = None,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = None,
@@ -70,8 +72,16 @@ class SBIRunner(_BaseRunner):
         else:
             self.proposal = proposal
         self.engine = engine
-        self.nets = nets
-        self.embedding_net = embedding_net
+        # Below, to handle the repeats
+        nets_list = []
+        for net_el in nets:
+            if isinstance(net_el, List):
+                for net in net_el:
+                    nets_list.append(net)
+            else:
+                nets_list.append(net_el)
+        self.nets = nets_list
+
         self.num_rounds = self.train_args.pop("num_round", 1)
 
         train_default = dict(
@@ -135,10 +145,21 @@ class SBIRunner(_BaseRunner):
 
         # load inference class and neural nets
         engine = config["model"]["engine"]
-        nets = [load_nde_sbi(config['model']['engine'],
-                             embedding_net=embedding_net,
-                             **model_args)
-                for model_args in config['model']['nets']]
+        nets = []
+
+        # For every different nets architecture
+        for model_args in config['model']['nets']:
+            if "repeats" in model_args:
+                n_size = model_args["repeats"]
+                model_args.pop("repeats")
+            else:
+                n_size = 1
+
+            # Repeat to have an ensemble of n_size >=1 of the same nets architecture
+            for n in range(n_size):
+                nets.append(load_nde_sbi(config['model']['engine'],
+                                         embedding_net=embedding_net,
+                                         **model_args))
 
         # initialize
         return cls(
@@ -147,7 +168,6 @@ class SBIRunner(_BaseRunner):
             engine=engine,
             nets=nets,
             device=config["device"],
-            embedding_net=embedding_net,
             train_args=train_args,
             out_dir=out_dir,
             signatures=signatures,
@@ -236,19 +256,36 @@ class SBIRunner(_BaseRunner):
                 model.epoch, model._val_log_prob = 0, float("-Inf")
                 model.train(**self.train_args,  resume_training=True)
 
+            # duplicate loss record (for backwards compatibility)
+            # this is a mess, sorry
+            # TODO: deprecate in future versions
+            if "training_log_probs" in model.summary:
+                model.summary["training_loss"] = \
+                    [-1.*x for x in model.summary["training_log_probs"]]
+                model.summary["validation_loss"] = \
+                    [-1.*x for x in model.summary["validation_log_probs"]]
+                model.summary["best_validation_loss"] = \
+                    [-1.*x for x in model.summary["best_validation_log_prob"]]
+            else:
+                model.summary["training_log_probs"] = \
+                    [-1.*x for x in model.summary["training_loss"]]
+                model.summary["validation_log_probs"] = \
+                    [-1.*x for x in model.summary["validation_loss"]]
+                model.summary["best_validation_log_prob"] = \
+                    [-1.*x for x in model.summary["best_validation_loss"]]
+
             # save model
             posteriors.append(model.build_posterior())
             summaries.append(model.summary)
 
         # ensemble all trained models, weighted by validation loss
         val_logprob = torch.tensor(
-            [float(x["best_validation_log_prob"][-1]) for x in summaries]
-        ).to(self.device)
+            [-1.*float(x["best_validation_loss"][-1]) for x in summaries]).to(self.device)
+
         # Exponentiate with numerical stability
         weights = torch.exp(val_logprob - val_logprob.max())
         weights /= weights.sum()
-
-        posterior_ensemble = NeuralPosteriorEnsemble(
+        posterior_ensemble = EnsemblePosterior(
             posteriors=posteriors,
             weights=weights,
             theta_transform=posteriors[0].theta_transform
@@ -260,7 +297,7 @@ class SBIRunner(_BaseRunner):
 
         return posterior_ensemble, summaries
 
-    def _save_models(self, posterior_ensemble: NeuralPosteriorEnsemble,
+    def _save_models(self, posterior_ensemble: EnsemblePosterior,
                      summaries: List[Dict]):
         """Save models to file."""
 
@@ -291,10 +328,6 @@ class SBIRunner(_BaseRunner):
         # load single-round data
         x = torch.Tensor(loader.get_all_data()).to(self.device)
         theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
-
-        # instantiate embedding_net architecture, if necessary
-        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
 
         # train a single round of inference
         t0 = time.time()
@@ -370,10 +403,6 @@ class SBIRunnerSequential(SBIRunner):
             theta, x = loader.simulate(self.proposal)
             x = torch.Tensor(x).to(self.device)
             theta = torch.Tensor(theta).to(self.device)
-
-        # instantiate embedding_net architecture, if necessary
-        if self.embedding_net and hasattr(self.embedding_net, 'initalize_model'):
-            self.embedding_net.initalize_model(n_input=x.shape[-1])
 
         # train multiple rounds of inference
         t0 = time.time()
