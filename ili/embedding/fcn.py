@@ -61,6 +61,6 @@ class FCN(nn.Module):
         if len(x.shape) > 2:
             x = x.view(x.shape[0], -1)
         if not hasattr(self, "mlp"):
-            self.initalize_model(x.shape[-1])
+            self.initialize_model(x.shape[-1])
 
         return self.mlp(x)

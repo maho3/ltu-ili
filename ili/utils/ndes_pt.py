@@ -254,7 +254,7 @@ class LampeEnsemble(nn.Module):
 
         # determine number of samples per model
         num_samples = np.prod(shape)
-        per_model = torch.round(
+        per_model = torch.ceil(
             num_samples * self.weights/self.weights.sum())
         if show_progress_bars:
             logging.info(

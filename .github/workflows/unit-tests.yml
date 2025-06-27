@@ -40,26 +40,50 @@ jobs:
         
   pydelfi_build:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python 3.6
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.6"
+      - name: Install pyenv and Python 3.6
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y make build-essential libssl-dev zlib1g-dev \
+                                  libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm \
+                                  libncurses5-dev libncursesw5-dev xz-utils tk-dev
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PATH"
+          curl https://pyenv.run | bash
+          export PATH="$PYENV_ROOT/bin:$PATH"
+          eval "$(pyenv init -)"
+          eval "$(pyenv virtualenv-init -)"
+          pyenv install 3.6
+          pyenv global 3.6
+      - name: Check Python version
+        run: |
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
+          python --version
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: 'openmpi'
       - name: Install dependencies
         run: |
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
+          python --version
           python -m pip install --upgrade pip
-          pip install flake8 pytest
-          pip install -e .[dev]
+          python -m pip install flake8 pytest
+          python -m pip install -e .[dev]
       - name: Test with pytest
         run: |
           echo "Running pydelfi tests"
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
+          python3 --version
           COVERAGE_FILE=coverage_file_pydelfi python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
         shell: bash
       - name: Archive pydelfi code coverage results
