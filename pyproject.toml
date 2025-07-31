@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ltu-ili"
+version = "0.1.5"
+description = "implicit likelihood inference in astrophysics and cosmology"
+requires-python = ">=3.6"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "pandas",
+    "pathlib",
+    "pyaml",
+    "seaborn",
+    "emcee",
+    "tqdm",
+    "xarray",
+    "tarp @ git+https://github.com/maho3/tarp.git",
+]
+
+[project.optional-dependencies]
+pytorch = [
+    "torch;python_version>='3.7'",
+    "sbi;python_version>='3.7'",
+    "lampe;python_version>='3.7'",
+    "dask-ml;python_version>='3.7'",
+]
+tensorflow = [
+    "tensorflow==1.15;python_version<'3.7'",
+    "dask-ml<2.0;python_version<'3.7'",
+    "pydelfi @ git+https://github.com/maho3/pydelfi.git ;python_version<'3.7'",
+]
+dev = [
+    "pytest",
+    "coverage",
+]
+docs = [
+    "sphinx>=5.0",
+    "sphinx-rtd-theme",
+    "sphinx_mdinclude",
+    "myst-parser",
+    "babel",
+    "pyzmq>=17.1",
+    "jinja2>=2.4",
+    "urllib3<2.0",
+]
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+# This is equivalent to packages = find: in setup.cfg
