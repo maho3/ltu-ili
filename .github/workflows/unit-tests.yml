@@ -74,8 +74,9 @@ jobs:
           export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
           eval "$(pyenv init -)"
           python --version
-          python -m pip install --upgrade pip
-          pip install flake8 pytest coverage
+          # python -m pip install --upgrade pip
+          pip install flake8 pytest
+          pip install .[pytorch,dev]
       - name: Test with pytest
         run: |
           echo "Running pydelfi tests"
@@ -106,7 +107,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 pytest
           pip install .[pytorch,dev]
-          pip install coverage pytest
       - name: Test with pytest
         run: |
           echo "Running lampe tests"
