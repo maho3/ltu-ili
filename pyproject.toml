@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=59.6.0", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
 
 [project]
 name = "ltu-ili"
@@ -20,6 +20,9 @@ dependencies = [
     "xarray",
     "tarp @ git+https://github.com/maho3/tarp.git",
 ]
+
+[tool.flit.module]
+name = "ili"
 
 [project.optional-dependencies]
 pytorch = [
