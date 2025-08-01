@@ -4,7 +4,7 @@ name: unit-tests
 
 on:
   push:
-    branches: [  ]
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
@@ -76,7 +76,7 @@ jobs:
           python --version
           # python -m pip install --upgrade pip
           pip install flake8 pytest
-          pip install .[pytorch,dev]
+          pip install .[tensorflow,dev]
       - name: Test with pytest
         run: |
           echo "Running pydelfi tests"
