@@ -70,6 +70,10 @@ jobs:
           mpi: 'openmpi'
       - name: Install dependencies
         run: |
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
+          python --version
           python -m pip install --upgrade pip
           pip install .[tensorflow,dev]
           pip install flake8 pytest coverage
