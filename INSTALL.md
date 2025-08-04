@@ -17,7 +17,7 @@ conda activate ili-torch
 pip install --upgrade pip
 git clone https://github.com/maho3/ltu-ili.git
 cd ltu-ili
-pip install .[pytorch]
+pip install ".[pytorch]"
 ```
 OR
 ```bash
@@ -27,7 +27,7 @@ conda activate ili-tf
 pip install --upgrade pip
 git clone https://github.com/maho3/ltu-ili.git
 cd ltu-ili
-pip install .[tensorflow]
+pip install ".[tensorflow]"
 ```
 
 ### Install from PyPI
@@ -36,9 +36,9 @@ pip install .[tensorflow]
 pip install ltu-ili
 
 # Then install your preferred backend
-pip install ltu-ili[pytorch]  # for sbi/lampe
+pip install "ltu-ili[pytorch]"  # for sbi/lampe
 # OR
-pip install ltu-ili[tensorflow]  # for pydelfi
+pip install "ltu-ili[tensorflow]"  # for pydelfi
 ```
 
 ### Legacy installation (deprecated)
