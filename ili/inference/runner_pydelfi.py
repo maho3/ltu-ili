@@ -9,11 +9,21 @@ import time
 import logging
 import numpy as np
 import tensorflow as tf
+import warnings
 from pathlib import Path
 from typing import Dict, Any, List, Union, Optional
 from ili.utils import load_from_config, update
 from .pydelfi_wrappers import DelfiWrapper
 from .base import _BaseRunner
+
+
+# Deprecation warning for the entire module
+warnings.warn(
+    "The 'runner_pydelfi' module and the 'pydelfi' backend are deprecated and "
+    "will be removed in a future version. Please use an alternative runner.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 
 class DelfiRunner(_BaseRunner):
