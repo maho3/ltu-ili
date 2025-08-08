@@ -1,34 +1,13 @@
 Installation
 ============
 
-There are two distinct installations of ltu-ili which provide access to different inference engines, namely the pytorch ([sbi](https://github.com/mackelab/sbi) and [lampe](https://lampe.readthedocs.io/en/stable/index.html)) and the tensorflow ([pydelfi](https://github.com/justinalsing/pydelfi)) installations. This codebase provides simultaneous support for both of these backends, but they cannot (yet!) be installed at the same time due to dependency issues. As a result, we recommend you install them separately in two distinct virtual environments.
+There are two distinct installations of ltu-ili which provide access to different inference engines, namely the pytorch ([sbi](https://github.com/mackelab/sbi) and [lampe](https://lampe.readthedocs.io/en/stable/index.html)) installations.
 
-**Note**: The pydelfi backend requires tensorflow==1.15, which fails on Mac OS with M1/M2 chips.
+[!Caution]
+The previously supported `pydelfi` backend is no longer maintained and requires tensorflow==1.15, which fails on Mac OS with M1/M2 chips and requires Python3.6 which is well past end-of-life.
+We have retained a `pydelfi` branch, see the INSTALLTION.md on that branch.
 
 ## Basic installation
-
-First, create a virtual environment with an appropriate Python version for your choice of backend (i.e. Python>=3.7 for sbi/lampe or Python==3.6 for pydelfi). Then, install `ltu-ili` from source or PyPI.
-
-### Install from source (recommended)
-```bash
-# Clone and install with pytorch backend (sbi/lampe)
-conda create -n ili-torch python=3.10 
-conda activate ili-torch
-pip install --upgrade pip
-git clone https://github.com/maho3/ltu-ili.git
-cd ltu-ili
-pip install ".[pytorch]"
-```
-OR
-```bash
-# Clone and install with tensorflow backend (pydelfi)
-conda create -n ili-tf python=3.6
-conda activate ili-tf
-pip install --upgrade pip
-git clone https://github.com/maho3/ltu-ili.git
-cd ltu-ili
-pip install ".[tensorflow]"
-```
 
 ### Install from PyPI
 ```bash
@@ -37,14 +16,27 @@ pip install ltu-ili
 
 # Then install your preferred backend
 pip install "ltu-ili[pytorch]"  # for sbi/lampe
-# OR
-pip install "ltu-ili[tensorflow]"  # for pydelfi
+
+### Install from source
+
+#### [`uv`](https://docs.astral.sh/uv/) (recommended for development)
+
+```bash
+git clone https://github.com/maho3/ltu-ili.git
+cd ltu-ili
+uv sync --all-extras --dev --python 3.10
+source .venv/bin/activate
 ```
 
-### Legacy installation (deprecated)
-The old installation method using pip from git will continue to work but is deprecated:
+#### `conda`
 ```bash
-pip install -e git+https://github.com/maho3/ltu-ili#egg=ltu-ili
+# Clone and install with pytorch backend (sbi/lampe)
+conda create -n ili-torch python=3.10 
+conda activate ili-torch
+pip install --upgrade pip
+git clone https://github.com/maho3/ltu-ili.git
+cd ltu-ili
+pip install ".[pytorch]" --group dev
 ```
 
 ## Verify installation
@@ -56,9 +48,6 @@ You can verify that the installation is working by running the toy example
    
    # sbi backend
    python toy_sbi.py
-   
-   # pydelfi backend 
-   python toy_pydelfi.py
 ```
 After the script completes, you should be able to find some metric summaries and plots in the **examples/toy** folder.
 
