@@ -3,9 +3,9 @@ Installation
 
 There are two distinct installations of ltu-ili which provide access to different inference engines, namely the pytorch ([sbi](https://github.com/mackelab/sbi) and [lampe](https://lampe.readthedocs.io/en/stable/index.html)) installations.
 
-[!Caution]
-The previously supported `pydelfi` backend is no longer maintained and requires tensorflow==1.15, which fails on Mac OS with M1/M2 chips and requires Python3.6 which is well past end-of-life.
-We have retained a `pydelfi` branch, see the INSTALLTION.md on that branch.
+> [!CAUTION]
+> The previously supported `pydelfi` backend is no longer maintained and requires tensorflow==1.15, which fails on Mac OS with M1/M2 chips and requires Python3.6 which is well past end-of-life.
+> We have retained a `pydelfi` branch, see the INSTALLTION.md on that branch.
 
 ## Basic installation
 
