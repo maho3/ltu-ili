@@ -59,6 +59,9 @@ class SBIRunner(_BaseRunner):
         proposal: Distribution = None,
         name: Optional[str] = "",
         signatures: Optional[List[str]] = None,
+        # TODO: should these go in train_args ?
+        train_indices: Optional[torch.Tensor] = None,
+        val_indices: Optional[torch.Tensor] = None
     ):
         super().__init__(
             prior=prior,
@@ -83,6 +86,8 @@ class SBIRunner(_BaseRunner):
         self.nets = nets_list
 
         self.num_rounds = self.train_args.pop("num_round", 1)
+        self.train_indices = train_indices
+        self.val_indices = val_indices
 
         train_default = dict(
             training_batch_size=50,
@@ -221,16 +226,22 @@ class SBIRunner(_BaseRunner):
         starting_round = 0  # NOTE: won't work for SNPE_A, but we don't use it
         x, _, _ = model.get_simulations(starting_round)
 
-        # split into training and validation randomly
-        num_examples = x.shape[0]
-        permuted_indices = torch.randperm(num_examples)
-        num_training_examples = int(
-            (1 - self.train_args['validation_fraction']) * num_examples)
-        train_indices, val_indices = (
-            permuted_indices[:num_training_examples],
-            permuted_indices[num_training_examples:],
-        )
-
+        if self.train_indices is None:     
+            # split into training and validation randomly
+            num_examples = x.shape[0]
+            permuted_indices = torch.randperm(num_examples)
+            num_training_examples = int(
+                (1 - self.train_args['validation_fraction']) * num_examples)
+            train_indices, val_indices = (
+                permuted_indices[:num_training_examples],
+                permuted_indices[num_training_examples:],
+            )
+        else:
+            print('using specified train and val indices')
+            num_training_examples = self.train_indices.shape[0]
+            train_indices = self.train_indices
+            val_indices = self.val_indices
+                         
         posteriors, summaries = [], []
         for i, model in enumerate(models):
             logging.info(f"Training model {i+1} / {len(models)}.")
