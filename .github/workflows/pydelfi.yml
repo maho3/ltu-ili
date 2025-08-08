@@ -1,19 +1,18 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
+# This workflow will install Python dependencies and run tests with a single version of Python
 
-name: build-pydelfi
+name: pydelfi-archived
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "pydelfi" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "pydelfi" ]
 
 permissions:
   contents: read
 
 jobs:
-  build:
+  pydelfi_build:
 
     runs-on: ubuntu-latest
 
@@ -33,23 +32,42 @@ jobs:
           eval "$(pyenv virtualenv-init -)"
           pyenv install 3.6
           pyenv global 3.6
+
       - name: Check Python version
         run: |
           export PYENV_ROOT="$HOME/.pyenv"
           export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
           eval "$(pyenv init -)"
           python --version
-        
       - name: Setup MPI
         uses: mpi4py/setup-mpi@v1
         with:
           mpi: 'openmpi'
       - name: Install dependencies
         run: |
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
+          python --version
           python -m pip install --upgrade pip
           pip install .[tensorflow,dev]
+          pip install flake8 pytest coverage
       - name: Lint with Ruff
         run: |
           pip install ruff
           ruff check .
         continue-on-error: true
+      - name: Test with pytest
+        run: |
+          echo "Running pydelfi tests"
+          export PYENV_ROOT="$HOME/.pyenv"
+          export PATH="$PYENV_ROOT/bin:$PYENV_ROOT/shims:$PATH"
+          eval "$(pyenv init -)"
+          python3 --version
+          COVERAGE_FILE=coverage_file_pydelfi python3 -m coverage run --source=ili -m pytest tests/test_pydelfi.py
+        shell: bash
+#      - name: Archive pydelfi code coverage results
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: coverage_pydelfi
+#          path: coverage_file_pydelfi

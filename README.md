@@ -8,6 +8,12 @@ LtU-ILI
 [![codecov](https://codecov.io/gh/maho3/ltu-ili/graph/badge.svg?token=8QNMK453GE)](https://codecov.io/gh/maho3/ltu-ili)
 [![docs](https://readthedocs.org/projects/ltu-ili/badge/?version=latest)](https://ltu-ili.readthedocs.io/en/latest/?badge=latest)
 
+> [!IMPORTANT]
+> This branch is an archived version of `ltu-ili` which includes the
+> [pydelfi](https://github.com/justinalsing/pydelfi) backend. `pydelfi`
+> requires Python 3.6 which `ltu-ili` no longer supports.
+
+
 The **Learning the Universe Implicit Likelihood Inference (LtU-ILI)** pipeline is an all-in-one framework for performing machine learning parameter inference in astrophysics and cosmology. Given labeled training data ${(x_i,\theta_i)}_{i=1}^N$ or a stochastic simulator $x(\theta)$, LtU-ILI is designed to automatically train state-of-the-art neural networks to learn the data-parameter relationship and produce robust, well-calibrated posterior inference.
 
 The pipeline is quick and easy to set up; here's an example of training a [Masked Autoregressive Flow (MAF)](https://arxiv.org/abs/1705.07057) network to predict a posterior over parameters $y$, given input data $x$:
