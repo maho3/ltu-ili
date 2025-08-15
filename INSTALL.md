@@ -16,16 +16,71 @@ pip install ltu-ili
 
 # Then install your preferred backend
 pip install "ltu-ili[pytorch]"  # for sbi/lampe
+```
 
 ### Install from source
 
 #### [`uv`](https://docs.astral.sh/uv/) (recommended for development)
 
+Install `uv` using the instructions at [https://docs.astral.sh/uv/getting-started/installation/]
+
+Check which versions of python you have available:
+```
+uv python list
+```
+
+Install a specific python version if you need to:
+```
+uv python install 3.12
+```
+
+Select which version of python you want to develop with:
+```
+uv python pin 3.12
+```
+
+Clone this repo:
 ```bash
 git clone https://github.com/maho3/ltu-ili.git
 cd ltu-ili
-uv sync --all-extras --dev --python 3.10
+```
+
+Create venv and install dependencies (with pytorch backend and dev dependencies):
+```
+uv sync --extra pytorch --dev
+```
+
+Now you can use `uv run` to run scripts, tests, etc.
+```
+uv run pytest tests/test_sbi.py
+
+uv run python
+
+uv run jupyter lab
+
+# sbi backend toy example
+cd ltu-ili/examples
+uv run python toy_sbi.py
+```
+
+Alternatively, you can activate the venv and then you don't have to use `uv run`
+```
 source .venv/bin/activate
+```
+
+To add a new dependency:
+```
+uv add {new_package_name}
+```
+
+To update a specific dependency:
+```
+uv lock --upgrade-package {package_name}
+```
+
+Or to update all dependencies:
+```
+uv lock --upgrade
 ```
 
 #### `conda`
