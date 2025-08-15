@@ -38,6 +38,8 @@ packages = ["ili"]
 [dependency-groups]
 dev = [
     "coverage>=7.10.2",
+    "jupyter>=1.1.1",
+    "nbconvert>=7.16.6",
     "pytest>=8.4.1",
     "ruff>=0.12.8",
 ]
