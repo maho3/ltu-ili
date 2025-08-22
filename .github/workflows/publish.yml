@@ -1,6 +1,11 @@
 name: publish-ltu-ili
 
+# TODO: Not configured or tested.
 on: workflow_dispatch
+
+env:
+  UV_VERSION: 0.8.6
+  PYTHON_VERSION: 3.12
 
 jobs:
   build:
@@ -12,8 +17,8 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
-          version: "0.8.6"
-          python-version: "3.12"
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install
         run: uv sync --locked --all-extras
@@ -24,10 +29,10 @@ jobs:
           ls dist/
 
       - name: Store the distribution packages
-	uses: actions/upload-artifact@v4
-	with:
-	  name: python-package-distributions
-	  path: dist/
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
 
   publish:
     needs: build
@@ -42,10 +47,10 @@ jobs:
 
     steps:
       - name: Download all the dists
-	uses: actions/download-artifact@v4
-	with:
-	  name: python-package-distributions
-	  path: dist/
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
 
       - name: Publish
         uses: pypa/gh-action-pypi-publish@release/v1

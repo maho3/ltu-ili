@@ -1,15 +1,10 @@
 name: run-notebooks
 
-on:
-  push:
-    branches: [ "main", "uv" ]
-  pull_request:
-    branches: [ "main" ]
-
-
+# TODO: Decide when this should be run
+on: workflow_dispatch
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   test:
@@ -28,5 +23,14 @@ jobs:
 
       - name: Run Notebooks
         run: uv run jupyter nbconvert --config notebooks/mycfg.py
+
+      - name: Commit Notebooks
+        run: |
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git add notebooks/.
+          git commit -m "Automated Notebook Refresh"
+          git status
+          git push
 
 
