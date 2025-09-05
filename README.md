@@ -48,7 +48,7 @@ For more details on the motivation, design, and theoretical background of this p
 ## Getting Started 
 To install LtU-ILI, follow the instructions in [INSTALL.md](INSTALL.md).
 
-To get started, try out the tutorial for the Jupyter notebook interface in [notebooks/tutorial.ipynb](https://github.com/maho3/ltu-ili/blob/main/notebooks/tutorial.ipynb) or the command line interface in [examples/](https://github.com/maho3/ltu-ili/tree/main/examples).
+To get started, try out the tutorial for the Jupyter notebook interface in [notebooks/](https://github.com/maho3/ltu-ili/blob/main/notebooks/) or the command line interface in [examples/](https://github.com/maho3/ltu-ili/tree/main/examples).
 
 ## API Documentation
 The documentation for this project can be found [at this link](https://ltu-ili.readthedocs.io/en/latest/).
