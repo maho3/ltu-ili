@@ -266,3 +266,62 @@ class _UnivariateTruncatedNormal(_TruncatedStandardNormal):
 IndependentTruncatedNormal = \
     type('IndependentTruncatedNormal', (CustomIndependent,),
          {'Distribution': _UnivariateTruncatedNormal})
+
+
+class CustomJointIndependent(Distribution):
+    """A joint distribution over independent variables with user-provided distributions."""
+
+    def __init__(self, distributions, validate_args=False):
+        if not all(isinstance(d, Distribution) for d in distributions):
+            raise ValueError(
+                "All elements must be torch.distributions.Distribution instances.")
+
+        self.distributions = distributions
+        self._support = constraints.stack(
+            [d.support for d in distributions], dim=-1)
+
+        super().__init__(
+            batch_shape=torch.Size(),
+            event_shape=torch.Size([len(distributions)]),
+            validate_args=validate_args
+        )
+
+    @property
+    def support(self):
+        return self._support
+
+    def sample(self, sample_shape=torch.Size()):
+        return torch.concatenate(
+            [d.sample(sample_shape) for d in self.distributions], dim=-1)
+
+    def rsample(self, sample_shape=torch.Size()):
+        if not all(getattr(d, "has_rsample", False)
+                   for d in self.distributions):
+            raise NotImplementedError(
+                "At least one component does not support rsample().")
+        return torch.concatenate(
+            [d.rsample(sample_shape) for d in self.distributions], dim=-1)
+
+    def log_prob(self, value):
+        if value.shape[-1] != len(self.distributions):
+            raise ValueError(
+                f"Expected last dim size {len(self.distributions)},"
+                f" got {value.shape[-1]}")
+        if self._validate_args and not self.support.check(value).all():
+            raise ValueError("Value out of support.")
+        return torch.stack(
+            [d.log_prob(v)
+             for d, v in zip(self.distributions, value.unbind(-1))],
+            dim=-1
+        ).sum(-1)
+
+    @property
+    def mean(self):
+        return torch.stack([d.mean for d in self.distributions], dim=-1)
+
+    @property
+    def variance(self):
+        return torch.stack([d.variance for d in self.distributions], dim=-1)
+
+    def entropy(self):
+        return sum(d.entropy() for d in self.distributions)
