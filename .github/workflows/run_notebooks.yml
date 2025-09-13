@@ -1,0 +1,36 @@
+name: run-notebooks
+
+# TODO: Decide when this should be run
+on: workflow_dispatch
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.6"
+          python-version: "3.12"
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run Notebooks
+        run: uv run jupyter nbconvert --config notebooks/mycfg.py
+
+      - name: Commit Notebooks
+        run: |
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git add notebooks/.
+          git commit -m "Automated Notebook Refresh"
+          git status
+          git push
+
+
