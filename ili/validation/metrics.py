@@ -146,6 +146,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
         x_obs: Optional[np.array] = None,
         theta_fid: Optional[np.array] = None,
         signature: Optional[str] = "",
+        show_progress_bars: bool = True,
         lower: Optional[List[float]] = None,
         upper: Optional[List[float]] = None,
         plot_kws: Optional[dict] = {},
@@ -189,7 +190,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
         # sample from the posterior
         sampler = self._build_sampler(posterior)
-        samples = sampler.sample(self.num_samples, x=x_obs, progress=True)
+        samples = sampler.sample(
+            self.num_samples, x=x_obs, progress=show_progress_bars)
         ndim = samples.shape[-1]
 
         # set default plot parameters
