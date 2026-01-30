@@ -12,6 +12,7 @@ from tqdm import tqdm
 import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset, DataLoader
+from torch.optim.swa_utils import AveragedModel, update_bn
 import lampe
 from pathlib import Path
 from typing import Dict, List, Callable, Optional
@@ -71,7 +72,9 @@ class LampeRunner():
             stop_after_epochs=30, clip_max_norm=5, weight_decay=0,
             lr_decay_factor=1, lr_patience=10,
             max_epochs=int(1e10),
-            validation_fraction=0.1
+            validation_fraction=0.1,
+            validation_smoothing_method="none",  # options: "none", "ema", "swa"
+            ema_decay=0.9
         )
         self.train_args.update(train_args)
         self.out_dir = out_dir
@@ -206,6 +209,18 @@ class LampeRunner():
 
         negloss = torch.exp(log_prior - log_proposal) * log_posterior
         return -negloss.mean()
+    
+    def _evaluate_model(self, model, val_loader):
+        """Evaluate model on validation set."""
+        model.eval()
+        with torch.no_grad():
+            loss_val, count = [], 0
+            for x, theta in val_loader:
+                x, theta = x.to(self.device), theta.to(self.device)
+                loss_val.append(self._loss(model, theta, x) * len(theta))
+                count += len(theta)
+            loss_val = torch.stack(loss_val).sum().item()/count
+        return loss_val
 
     def _train_epoch(self, model, train_loader, val_loader, stepper):
         """Train a single epoch of a neural network model."""
@@ -261,7 +276,34 @@ class LampeRunner():
             # train model
             best_val = float('inf')
             wait = 0
+            smoothing_method = self.train_args.get("validation_smoothing_method", "none").lower()
+            print(f"Using validation smoothing method: {smoothing_method}")
+            
             summary = {'training_log_probs': [], 'validation_log_probs': []}
+            
+            # Initialize smoothing strategy
+            averaged_model = None
+            if smoothing_method == "ema":
+                # EMA: decay controls weight on old average (higher decay = more smoothing)
+                # Formula: new_avg = decay * old_avg + (1 - decay) * current
+                ema_decay = self.train_args["ema_decay"]
+                
+                def ema_avg_fn(averaged_model_param, current_param, num_averaged):
+                    return ema_decay * averaged_model_param + (1 - ema_decay) * current_param
+                
+                averaged_model = AveragedModel(model, avg_fn=ema_avg_fn, use_buffers=True)
+                summary['smoothed_validation_log_probs'] = []
+            elif smoothing_method == "swa":
+                # SWA: simple averaging
+                averaged_model = AveragedModel(model, use_buffers=True)
+                summary['smoothed_validation_log_probs'] = []
+            elif smoothing_method == "none":
+                pass
+            else:
+                raise ValueError(
+                    f"Unknown validation_smoothing_method: {smoothing_method}. "
+                    "Options are: 'none', 'ema', 'swa'")
+            
             with tqdm(iter(range(self.train_args["max_epochs"])),
                       unit=' epochs', disable=not verbose) as tq:
                 for epoch in tq:
@@ -271,19 +313,35 @@ class LampeRunner():
                         val_loader=val_loader,
                         stepper=stepper,
                     )
-                    tq.set_postfix(
-                        loss=loss_train,
-                        loss_val=loss_val,
-                        lr=scheduler.get_last_lr()[0]
-                    )
+                    
+                    # Update averaged model and compute smoothed loss
+                    if smoothing_method in ["ema", "swa"]:
+                        averaged_model.update_parameters(model)
+                        smoothed_loss = self._evaluate_model(averaged_model, val_loader)
+                    else:
+                        smoothed_loss = loss_val
+                    
+                    # Build progress bar dict
+                    postfix_dict = {
+                        "loss": loss_train,
+                        "loss_val": loss_val,
+                        "lr": scheduler.get_last_lr()[0]
+                    }
+                    if smoothing_method != "none":
+                        postfix_dict["smoothed_val"] = smoothed_loss
+                    tq.set_postfix(**postfix_dict)
+                    
                     if self.train_args["lr_decay_factor"] < 1:
-                        scheduler.step(loss_val)
+                        scheduler.step(smoothed_loss)
+                    
                     summary['training_log_probs'].append(-loss_train)
                     summary['validation_log_probs'].append(-loss_val)
+                    if smoothing_method != "none":
+                        summary['smoothed_validation_log_probs'].append(-smoothed_loss)
 
-                    # check for convergence
-                    if loss_val < best_val:
-                        best_val = loss_val
+                    # check for convergence using smoothed validation loss
+                    if smoothed_loss < best_val:
+                        best_val = smoothed_loss
                         best_model = deepcopy(model.state_dict())
                         wait = 0
                     elif wait > self.train_args["stop_after_epochs"]:
