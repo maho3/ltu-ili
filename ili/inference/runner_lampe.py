@@ -269,9 +269,13 @@ class LampeRunner():
             )
             stepper = lampe.utils.GDStep(
                 optimizer, clip=self.train_args["clip_max_norm"])
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, factor=self.train_args["lr_decay_factor"],
-                patience=self.train_args["lr_patience"])
+            if self.train_args["lr_decay_factor"] < 1:
+                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                    optimizer, factor=self.train_args["lr_decay_factor"],
+                    patience=self.train_args["lr_patience"])
+            else:
+                scheduler = torch.optim.lr_scheduler.LambdaLR(
+                    optimizer, lr_lambda=lambda epoch: 1.0)
 
             # train model
             best_val = float('inf')

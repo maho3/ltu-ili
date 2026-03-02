@@ -326,7 +326,8 @@ def load_nde_lampe(
 
     # check the model parameterizations
     if model == 'mdn':
-        model_defaults = dict(hidden_features=16, num_components=3)
+        model_defaults = dict(hidden_features=16, hidden_depth=3,
+                              num_components=3)
     else:
         model_defaults = dict(hidden_features=16, num_transforms=2)
     if not (set(model_args.keys()) <= set(model_defaults.keys())):
@@ -339,7 +340,8 @@ def load_nde_lampe(
 
     # setup models
     if model == 'mdn':  # for mixture density networks
-        model_args['hidden_features'] = [model_args['hidden_features']] * 3
+        model_args['hidden_features'] = [model_args['hidden_features']] * \
+            model_args.pop('hidden_depth', 3)
         model_args['components'] = model_args.pop('num_components', 2)
         flow_class = zuko.flows.mixture.GMM
     else:
