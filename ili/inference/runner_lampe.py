@@ -281,7 +281,6 @@ class LampeRunner():
             best_val = float('inf')
             wait = 0
             smoothing_method = self.train_args.get("validation_smoothing_method", "none").lower()
-            print(f"Using validation smoothing method: {smoothing_method}")
             
             summary = {'training_log_probs': [], 'validation_log_probs': []}
             
