@@ -23,6 +23,17 @@ from ili.utils import load_from_config, LampeEnsemble, load_nde_lampe
 logging.basicConfig(level=logging.INFO)
 
 
+class NoisyDataset(TensorDataset):
+    def __init__(self, *tensors, percentage=0.01):
+        super().__init__(*tensors)
+        self.percentage = percentage
+        self.stds = [torch.std(t, dim=0) * percentage for t in tensors]
+
+    def __getitem__(self, index):
+        tensors = super().__getitem__(index)
+        return tuple(t + torch.randn_like(t) * s for t, s in zip(tensors, self.stds))
+
+
 class LampeRunner():
     """Class to train NPE posterior inference models using the lampe package.
     Follows methodology of: https://arxiv.org/abs/1711.01861
@@ -74,7 +85,8 @@ class LampeRunner():
             max_epochs=int(1e10),
             validation_fraction=0.1,
             validation_smoothing_method="none",  # options: "none", "ema", "swa"
-            ema_decay=0.9
+            ema_decay=0.9,
+            noise_percent=0.,
         )
         self.train_args.update(train_args)
         self.out_dir = out_dir
@@ -186,7 +198,8 @@ class LampeRunner():
             x_train, x_val = x[~mask], x[mask]
             theta_train, theta_val = theta[~mask], theta[mask]
 
-            data_train = TensorDataset(x_train, theta_train)
+            data_train = NoisyDataset(x_train, theta_train, 
+                percentage=self.train_args["noise_percent"])
             data_val = TensorDataset(x_val, theta_val)
             train_loader = DataLoader(
                 data_train, shuffle=True,
