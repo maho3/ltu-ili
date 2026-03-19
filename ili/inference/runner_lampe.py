@@ -81,6 +81,7 @@ class LampeRunner():
         self.train_args = dict(
             training_batch_size=50, learning_rate=5e-4,
             stop_after_epochs=30, clip_max_norm=5, weight_decay=0,
+            early_stopping=True,
             lr_scheduler='ReduceLROnPlateau',
             lr_decay_factor=1, lr_patience=10,
             max_epochs=int(1e10),
@@ -374,23 +375,29 @@ class LampeRunner():
                         summary['smoothed_validation_log_probs'].append(-smoothed_loss)
 
                     # check for convergence using smoothed validation loss
-                    if smoothed_loss < best_val:
-                        best_val = smoothed_loss
-                        best_model = deepcopy(model.state_dict())
-                        wait = 0
-                    elif wait > self.train_args["stop_after_epochs"]:
-                        break
+                    if self.train_args.get("early_stopping", True):
+                        if smoothed_loss < best_val:
+                            best_val = smoothed_loss
+                            best_model = deepcopy(model.state_dict())
+                            wait = 0
+                        elif wait > self.train_args["stop_after_epochs"]:
+                            break
+                        else:
+                            wait += 1
                     else:
-                        wait += 1
+                        if smoothed_loss < best_val:
+                            best_val = smoothed_loss
                 else:
-                    logging.warning(
-                        "Training did not converge in "
-                        f"{self.train_args['max_epochs']} epochs.")
+                    if self.train_args.get("early_stopping", True):
+                        logging.warning(
+                            "Training did not converge in "
+                            f"{self.train_args['max_epochs']} epochs.")
                 summary['best_validation_log_prob'] = -best_val
                 summary['epochs_trained'] = epoch
 
             # save model
-            model.load_state_dict(best_model)
+            if self.train_args.get("early_stopping", True):
+                model.load_state_dict(best_model)
             posteriors.append(model)
             summaries.append(summary)
 
