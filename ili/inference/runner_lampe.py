@@ -81,6 +81,7 @@ class LampeRunner():
         self.train_args = dict(
             training_batch_size=50, learning_rate=5e-4,
             stop_after_epochs=30, clip_max_norm=5, weight_decay=0,
+            lr_scheduler='ReduceLROnPlateau',
             lr_decay_factor=1, lr_patience=10,
             max_epochs=int(1e10),
             validation_fraction=0.1,
@@ -242,8 +243,9 @@ class LampeRunner():
         loss_train, count = [], 0
         for x, theta in train_loader:
             x, theta = x.to(self.device), theta.to(self.device)
+            loss = self._loss(model, theta, x)
             loss_train.append(
-                stepper(self._loss(model, theta, x)) * len(theta))
+                stepper(loss) * len(theta))
             count += len(theta)
         loss_train = torch.stack(loss_train).sum().item()/count
 
@@ -282,13 +284,26 @@ class LampeRunner():
             )
             stepper = lampe.utils.GDStep(
                 optimizer, clip=self.train_args["clip_max_norm"])
-            if self.train_args["lr_decay_factor"] < 1:
-                scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    optimizer, factor=self.train_args["lr_decay_factor"],
-                    patience=self.train_args["lr_patience"])
+
+            # setup scheduler
+            scheduler_name = self.train_args.get(
+                'lr_scheduler', 'ReduceLROnPlateau')
+            if scheduler_name == 'ReduceLROnPlateau':
+                if self.train_args["lr_decay_factor"] < 1:
+                    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                        optimizer, factor=self.train_args["lr_decay_factor"],
+                        patience=self.train_args["lr_patience"])
+                else:
+                    scheduler = torch.optim.lr_scheduler.LambdaLR(
+                        optimizer, lr_lambda=lambda epoch: 1.0)
+            elif scheduler_name == 'CosineAnnealingLR':
+                scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                    optimizer,
+                    T_max=self.train_args['max_epochs'],
+                    eta_min=0,
+                )
             else:
-                scheduler = torch.optim.lr_scheduler.LambdaLR(
-                    optimizer, lr_lambda=lambda epoch: 1.0)
+                raise ValueError(f"Unknown lr_scheduler: {scheduler_name}")
 
             # train model
             best_val = float('inf')
@@ -347,8 +362,11 @@ class LampeRunner():
                         postfix_dict["smoothed_val"] = smoothed_loss
                     tq.set_postfix(**postfix_dict)
                     
-                    if self.train_args["lr_decay_factor"] < 1:
-                        scheduler.step(smoothed_loss)
+                    if scheduler_name == 'ReduceLROnPlateau':
+                        if self.train_args["lr_decay_factor"] < 1:
+                            scheduler.step(smoothed_loss)
+                    elif scheduler_name == 'CosineAnnealingLR':
+                        scheduler.step()
                     
                     summary['training_log_probs'].append(-loss_train)
                     summary['validation_log_probs'].append(-loss_val)
