@@ -261,6 +261,170 @@ class PlotSinglePosterior(_SampleBasedMetric):
         return fig
 
 
+class PlotSinglePosteriorEnsemble(_SampleBasedMetric):
+    """For a single held-out test example, draw num_samples // n_members
+    samples from each posterior in the ensemble and overplot them on one
+    corner figure. Each ensemble member gets a distinct color. Optionally
+    saves pooled samples.
+
+    Args:
+        num_samples (int): total number of posterior samples across all members
+        sample_method (str): sampling method (e.g. 'direct')
+        sample_params (dict): additional sampling parameters
+        save_samples (bool): whether to save pooled samples to disk
+        colors (list): optional list of colors, one per ensemble member
+        labels (List[str]): list of parameter names
+        out_dir (str, Path): directory where to store outputs
+    """
+
+    def __init__(
+        self,
+        save_samples: bool = False,
+        colors: list = None,
+        seed: int = None,
+        **kwargs
+    ):
+        self.save_samples = save_samples
+        self.colors = colors
+        self.seed = seed
+        super().__init__(**kwargs)
+
+    def __call__(
+        self,
+        posterior,
+        x: Optional[np.array] = None,
+        theta: Optional[np.array] = None,
+        x_obs: Optional[np.array] = None,
+        theta_fid: Optional[np.array] = None,
+        signature: Optional[str] = "",
+        lower: Optional[List[float]] = None,
+        upper: Optional[List[float]] = None,
+        plot_kws: Optional[dict] = {},
+        **kwargs
+    ):
+        """Given an ensemble posterior and test data, plot per-member
+        posteriors of a single test point overplotted on one corner figure.
+
+        Args:
+            posterior: trained ensemble posterior (must be LampeEnsemble)
+            x (np.array): tensor of test data
+            theta (np.array): tensor of test parameters
+            x_obs (np.array, optional): tensor of observed data
+            theta_fid (np.array, optional): tensor of fiducial parameters
+            signature (str, optional): signature for the output file name
+            lower (List[float], optional): lower bounds for the plot axes
+            upper (List[float], optional): upper bounds for the plot axes
+            plot_kws (dict, optional): keyword arguments for sns.kdeplot
+        """
+        if not isinstance(posterior, LampeEnsemble):
+            raise TypeError(
+                "PlotSinglePosteriorEnsemble requires a LampeEnsemble model. "
+                "Set ensemble_mode: True in your config and use a Lampe "
+                "ensemble posterior."
+            )
+
+        # choose a random test datapoint if not supplied
+        if x is None and x_obs is None:
+            raise ValueError("Either x or x_obs must be supplied.")
+        if x_obs is None:
+            x, theta = map(np.atleast_2d, (x, theta))
+            if self.seed:
+                np.random.seed(self.seed)
+            ind = np.random.choice(len(x))
+            x_obs = x[ind]
+            theta_fid = theta[ind]
+
+        # determine ensemble members
+        n_members = posterior.num_components
+        samples_per_member = max(1, self.num_samples // n_members)
+
+        # assign colors
+        if self.colors is not None:
+            colors = self.colors
+        else:
+            cmap = plt.cm.get_cmap('tab10', n_members)
+            colors = [cmap(i) for i in range(n_members)]
+
+        # sample from each member
+        member_samples = []
+        for i, member in enumerate(posterior.posteriors):
+            sampler = self._build_sampler(member)
+            samples = sampler.sample(
+                samples_per_member, x=x_obs, progress=True)
+            member_samples.append(samples)
+
+        ndim = member_samples[0].shape[-1]
+
+        # build combined DataFrame with member labels
+        all_data = []
+        for i, samples in enumerate(member_samples):
+            df = pd.DataFrame(samples, columns=self.labels)
+            df['Model'] = f'Model {i}'
+            all_data.append(df)
+        data = pd.concat(all_data, ignore_index=True)
+
+        # set default plot parameters
+        _kw = dict(levels=[0.05, 0.32, 1])
+        _kw.update(plot_kws)
+        plot_kws = _kw
+
+        # plot corner with per-member coloring
+        palette = {f'Model {i}': colors[i] for i in range(n_members)}
+        fig = sns.pairplot(
+            data,
+            kind=None,
+            diag_kind=None,
+            corner=True,
+            vars=self.labels,
+            hue='Model',
+            palette=palette,
+        )
+        fig.map_lower(sns.kdeplot, **plot_kws)
+        fig.map_diag(sns.kdeplot, **plot_kws)
+        sns.move_legend(fig, "center right", bbox_to_anchor=(0.9, .5))
+
+        # plot fiducial parameters and set axis limits
+        lower = [None] * ndim if lower is None else lower
+        upper = [None] * ndim if upper is None else upper
+        if theta_fid is not None:
+            for i in range(ndim):
+                for j in range(i + 1):
+                    if i == j:
+                        fig.axes[i, i].axvline(
+                            theta_fid[i], color="gray", ls="--")
+                        fig.axes[i, i].set_xlim(lower[i], upper[i])
+                    else:
+                        fig.axes[i, j].axhline(
+                            theta_fid[i], color="gray", ls="--")
+                        fig.axes[i, j].axvline(
+                            theta_fid[j], color="gray", ls="--")
+                        fig.axes[i, j].plot(
+                            theta_fid[j], theta_fid[i], "o",
+                            color="gray", ms=5)
+                        fig.axes[i, j].set_xlim(lower[j], upper[j])
+                        fig.axes[i, j].set_ylim(lower[i], upper[i])
+
+        # save
+        if self.out_dir is None:
+            return fig
+        filepath = self.out_dir / (
+            signature + "plot_single_posterior_ensemble.jpg")
+        logging.info(
+            f"Saving ensemble posterior plot to {filepath}...")
+        fig.savefig(filepath)
+
+        # save samples if asked
+        if self.save_samples:
+            stacked = np.stack(member_samples, axis=0)
+            filepath = self.out_dir / (
+                signature + "ensemble_samples.npy")
+            logging.info(
+                f"Saving ensemble posterior samples to {filepath}...")
+            np.save(filepath, stacked)
+
+        return fig
+
+
 # Metrics evaluated over a whole test set (use x and theta)
 
 class PosteriorSamples(_SampleBasedMetric):

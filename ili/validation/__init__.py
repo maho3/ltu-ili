@@ -1,4 +1,5 @@
 from .metrics import (
-    PlotSinglePosterior, PosteriorSamples, PosteriorCoverage
+    PlotSinglePosterior, PlotSinglePosteriorEnsemble,
+    PosteriorSamples, PosteriorCoverage
 )
 from .runner import ValidationRunner
