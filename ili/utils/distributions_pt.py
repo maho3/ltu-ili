@@ -41,6 +41,14 @@ class CustomIndependent(Independent):
         self.dist = self.Distribution(*args, **kwargs)
         return super().__init__(self.dist, 1)
 
+    def to(self, device):
+        self.device = device
+        for param_name in self.dist.arg_constraints.keys():
+            param = getattr(self.dist, param_name, None)
+            if isinstance(param, torch.Tensor):
+                setattr(self.dist, param_name, param.to(device))
+        return self
+
 
 # Load and wrap distributions
 dist_dict = {}

@@ -240,7 +240,7 @@ class SBIRunner(_BaseRunner):
             if model._neural_net is None:
                 model.train(learning_rate=self.train_args['learning_rate'],
                             resume_training=False,
-                            max_num_epochs=-1)
+                            max_num_epochs=2**31-1)
                 model._epochs_since_last_improvement = 0
                 first_round = True
 
