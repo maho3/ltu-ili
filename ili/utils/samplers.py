@@ -330,4 +330,4 @@ class VISampler(ABC):
             quality_control=False,
             **self.train_kwargs
         )
-        return self.posterior.sample((nsteps,)).detach().cpu().numpy()
+        return self.posterior.sample((nsteps,), **kwargs).detach().cpu().numpy()
