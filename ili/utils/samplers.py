@@ -79,12 +79,20 @@ class EmceeSampler(_MCMCSampler):
             x (np.ndarray): data to evaluate the posterior at
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
-            skip_initial_state_check (bool, optional): If True, a check that 
-                the initial_state can fully explore the space will be skipped. 
+            skip_initial_state_check (bool, optional): If True, a check that
+                the initial_state can fully explore the space will be skipped.
                 Defaults to False.
-            **kwargs: additional keyword arguments to pass to the
-            posterior's sample method (if applicable, not used for emcee sampling)
+            **kwargs: unexpected keyword arguments. Emcee sampling does not
+                support additional keyword arguments and will raise an error
+                if any are provided.
         """
+        if kwargs:
+            unexpected = ", ".join(sorted(kwargs))
+            raise TypeError(
+                f"EmceeSampler.sample() got unexpected keyword argument(s): "
+                f"{unexpected}"
+            )
+
         # calculate number of samples per chain
         per_chain = ceil(nsteps / self.num_chains)
 
