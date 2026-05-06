@@ -12,6 +12,7 @@ import xarray as xr
 import csv
 import json
 import unittest
+from unittest.mock import MagicMock, patch
 
 import ili
 from ili.dataloaders import (
@@ -1557,3 +1558,91 @@ def test_misc():
         runner,
         loader=loader
     )
+
+
+def test_sampler_kwargs():
+    """Test that **kwargs are forwarded (or rejected) correctly by each sampler.
+
+    Uses mocks so no full model training is required.
+    """
+    from ili.utils.samplers import EmceeSampler, DirectSampler, PyroSampler, VISampler
+
+    # ------------------------------------------------------------------
+    # EmceeSampler: unknown kwargs must raise TypeError immediately,
+    # before any sampling work is done.
+    # ------------------------------------------------------------------
+    mock_posterior = MagicMock()
+    emcee_sampler = EmceeSampler.__new__(EmceeSampler)
+    emcee_sampler.posterior = mock_posterior
+    emcee_sampler.num_chains = 2
+    emcee_sampler.thin = 1
+    emcee_sampler.burn_in = 0
+
+    unittest.TestCase().assertRaises(
+        TypeError,
+        emcee_sampler.sample,
+        2,
+        np.zeros(4),
+        unknown_kwarg=True,
+    )
+
+    # ------------------------------------------------------------------
+    # DirectSampler: extra kwargs must be forwarded to posterior.sample().
+    # ------------------------------------------------------------------
+    mock_posterior = MagicMock()
+    mock_posterior._device = 'cpu'
+    mock_posterior.sample.return_value = torch.zeros(2, 3)
+
+    direct_sampler = DirectSampler(mock_posterior)
+    direct_sampler.sample(2, x=np.zeros(4), extra_kwarg='sentinel')
+
+    call_kwargs = mock_posterior.sample.call_args[1]
+    unittest.TestCase().assertIn(
+        'extra_kwarg', call_kwargs,
+        "DirectSampler.sample() must forward **kwargs to posterior.sample()"
+    )
+    unittest.TestCase().assertEqual(call_kwargs['extra_kwarg'], 'sentinel')
+
+    # ------------------------------------------------------------------
+    # PyroSampler: extra kwargs must be forwarded to posterior.sample().
+    # ------------------------------------------------------------------
+    mock_posterior = MagicMock()
+    mock_posterior._device = 'cpu'
+    mock_posterior.sample.return_value = torch.zeros(2, 3)
+
+    pyro_sampler = PyroSampler.__new__(PyroSampler)
+    pyro_sampler.posterior = mock_posterior
+    pyro_sampler.method = 'slice_np_vectorized'
+    pyro_sampler.num_chains = 1
+    pyro_sampler.thin = 1
+    pyro_sampler.burn_in = 0
+
+    pyro_sampler.sample(2, x=np.zeros(4), extra_kwarg='sentinel')
+
+    call_kwargs = mock_posterior.sample.call_args[1]
+    unittest.TestCase().assertIn(
+        'extra_kwarg', call_kwargs,
+        "PyroSampler.sample() must forward **kwargs to posterior.sample()"
+    )
+    unittest.TestCase().assertEqual(call_kwargs['extra_kwarg'], 'sentinel')
+
+    # ------------------------------------------------------------------
+    # VISampler: extra kwargs must be forwarded to posterior.sample().
+    # ------------------------------------------------------------------
+    mock_posterior = MagicMock()
+    mock_posterior._device = 'cpu'
+    mock_posterior.sample.return_value = torch.zeros(2, 3)
+
+    vi_sampler = VISampler.__new__(VISampler)
+    vi_sampler.posterior = mock_posterior
+    vi_sampler.dist = 'maf'
+    vi_sampler.train_kwargs = {}
+
+    vi_sampler.sample(2, x=np.zeros(4), extra_kwarg='sentinel')
+
+    call_kwargs = mock_posterior.sample.call_args[1]
+    unittest.TestCase().assertIn(
+        'extra_kwarg', call_kwargs,
+        "VISampler.sample() must forward **kwargs to posterior.sample()"
+    )
+    unittest.TestCase().assertEqual(call_kwargs['extra_kwarg'], 'sentinel')

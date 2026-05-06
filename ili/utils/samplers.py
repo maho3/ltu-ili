@@ -70,7 +70,7 @@ class EmceeSampler(_MCMCSampler):
 
     def sample(self, nsteps: int, x: np.ndarray,
                progress: bool = False,
-               skip_initial_state_check: bool = False) -> np.ndarray:
+               skip_initial_state_check: bool = False, **kwargs) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -79,10 +79,20 @@ class EmceeSampler(_MCMCSampler):
             x (np.ndarray): data to evaluate the posterior at
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
-            skip_initial_state_check (bool, optional): If True, a check that 
-                the initial_state can fully explore the space will be skipped. 
+            skip_initial_state_check (bool, optional): If True, a check that
+                the initial_state can fully explore the space will be skipped.
                 Defaults to False.
+            **kwargs: unexpected keyword arguments. Emcee sampling does not
+                support additional keyword arguments and will raise an error
+                if any are provided.
         """
+        if kwargs:
+            unexpected = ", ".join(sorted(kwargs))
+            raise TypeError(
+                f"EmceeSampler.sample() got unexpected keyword argument(s): "
+                f"{unexpected}"
+            )
+
         # calculate number of samples per chain
         per_chain = ceil(nsteps / self.num_chains)
 
@@ -185,7 +195,7 @@ class PyroSampler(_MCMCSampler):
         )
 
     def sample(self, nsteps: int, x: np.ndarray,
-               progress: bool = False) -> np.ndarray:
+               progress: bool = False, **kwargs) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -194,6 +204,8 @@ class PyroSampler(_MCMCSampler):
             x (np.ndarray): data to evaluate the posterior at
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
+            **kwargs: additional keyword arguments to pass to the
+            posterior's sample method.
         """
         return self.posterior.sample(
             (nsteps,),
@@ -202,7 +214,8 @@ class PyroSampler(_MCMCSampler):
             num_chains=self.num_chains,
             thin=self.thin,
             warmup_steps=self.burn_in,
-            show_progress_bars=progress
+            show_progress_bars=progress,
+            **kwargs
         ).detach().cpu().numpy()
 
 
@@ -218,7 +231,7 @@ class DirectSampler(ABC):
     def __init__(self, posterior: ModelClass) -> None:
         self.posterior = posterior
 
-    def sample(self, nsteps: int, x: Any, progress: bool = False) -> np.ndarray:
+    def sample(self, nsteps: int, x: Any, progress: bool = False, **kwargs) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -227,6 +240,8 @@ class DirectSampler(ABC):
             x (np.ndarray): data to evaluate the posterior at
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
+            **kwargs: additional keyword arguments to pass to the 
+            posterior's sample method
         """
         try:
             x = torch.as_tensor(x)
@@ -236,7 +251,8 @@ class DirectSampler(ABC):
             pass
         return self.posterior.sample(
             (nsteps,), x=x,
-            show_progress_bars=progress
+            show_progress_bars=progress,
+            **kwargs
         ).detach().cpu().numpy()
 
 
@@ -294,7 +310,7 @@ class VISampler(ABC):
         )
 
     def sample(self, nsteps: int, x: np.ndarray,
-               progress: bool = False) -> np.ndarray:
+               progress: bool = False, **kwargs) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -303,6 +319,8 @@ class VISampler(ABC):
             x (np.ndarray): data to evaluate the posterior at
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
+            **kwargs: additional keyword arguments to pass to the
+            posterior's sample method.
         """
         x = torch.Tensor(x).to(self.posterior._device)
         self.posterior.set_default_x(x)
@@ -312,4 +330,4 @@ class VISampler(ABC):
             quality_control=False,
             **self.train_kwargs
         )
-        return self.posterior.sample((nsteps,)).detach().cpu().numpy()
+        return self.posterior.sample((nsteps,), **kwargs).detach().cpu().numpy()
