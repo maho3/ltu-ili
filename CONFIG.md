@@ -163,9 +163,21 @@ Only certain NDEs and training engines are compatible with either the sbi or pyd
 
 | Training Engine | sbi | pydelfi | lampe |
 |----------|----------|----------|----------|
-|  `NPE`,`SNPE`   |   mdn, maf, nsf, made   |      | maf, nsf, cnf, nice, gf, sospf, naf, unaf |
+|  `NPE`,`SNPE`   |   mdn, maf, nsf, made   |      | maf, nsf, cnf, nice, gf, sospf, naf, unaf, moment |
 |  `NLE`, `SNLE`   |   mdn, maf, nsf, made   |   mdn, maf   | |
 |  `NRE`, `SNRE`   |   linear, mlp, resnet   |      | | |
+
+The `moment` model is a lampe-only `NPE` option. Unlike the flows, it does not
+learn a full joint density: it is a Moment Network ([Jeffrey & Wandelt 2020](https://arxiv.org/abs/2011.05991))
+that approximates the posterior as a single full-covariance Gaussian
+`N(mu(x), Sigma(x))`. It trains via an internal two-stage procedure (a mean
+network fit with MSE against `theta`, then a covariance network fit against the
+frozen residual products), rather than the standard joint NPE loss, but is used
+identically from the config/API — just set `model: 'moment'`. It accepts
+`hidden_features`, `hidden_depth`, `activation`, and `embedding_net`; flow-only
+args like `num_transforms` are ignored with a warning. Because a standalone
+`moment` posterior is unimodal/Gaussian (not a flexible density), it is best
+used as one member of an ensemble alongside real flows.
 
 Lastly, the **train_args** are used to configure the training optimizer, the early stopping criterion, and the number of rounds of inference (for Sequential models). All engines use the Adam optimizer. Lastly, **device** specifies whether to use Pytorch's `cpu` or `cuda` backend, and **out_dir** specifies where to save your models after they are done training.
 

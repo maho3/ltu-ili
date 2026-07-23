@@ -300,6 +300,10 @@ def load_nde_lampe(
         - sospf: Sum-of-Squares Polynomial Flow (https://arxiv.org/abs/1905.02325)
         - naf: Neural Autoregressive Flow (https://arxiv.org/abs/1804.00779)
         - unaf: Unconstrained Neural Autoregressive Flow (https://arxiv.org/abs/1908.05164)
+        - moment: Moment Network (https://arxiv.org/abs/2011.05991). Not a flow;
+            approximates the posterior as a single full-covariance Gaussian via
+            an internal two-stage (mean, then covariance) training procedure.
+            Accepts hidden_features, hidden_depth, activation, embedding_net.
 
     For more info, see zuko at https://zuko.readthedocs.io/en/stable/index.html
 
@@ -323,6 +327,40 @@ def load_nde_lampe(
             'You probably meant to specify engine="NPE" or to use the NLE or NRE'
             ' engines in the sbi or pydelfi backends.')
     model = model.lower()
+
+    # Moment Networks (Jeffrey & Wandelt 2020) have a bespoke two-stage
+    # training path and are built by a separate constructor. They are lampe-only
+    # NPE models that approximate the posterior as a full-covariance Gaussian.
+    if model == 'moment':
+        from ili.inference.lampe_moment import _Lampe_Moment_Constructor
+        moment_defaults = dict(
+            hidden_features=64, hidden_depth=3, activation='relu')
+        extra = set(model_args.keys()) - set(moment_defaults.keys())
+        # warn (don't error) on flow-specific kwargs that don't apply here
+        for k in ('num_transforms', 'num_components'):
+            if k in extra:
+                logging.warning(
+                    f"Argument '{k}' does not apply to model 'moment' and "
+                    "will be ignored.")
+                extra.discard(k)
+                model_args.pop(k)
+        if extra:
+            raise ValueError(
+                f"Model moment arguments mispecified. Extra arguments found: "
+                f"{extra}.")
+        if 'activation' in model_args and \
+                model_args['activation'] not in (
+                    'relu', 'tanh', 'elu', 'gelu', 'silu', 'leaky_relu'):
+            raise ValueError(
+                f"Unknown activation '{model_args['activation']}' for model "
+                "'moment'.")
+        moment_args = {**moment_defaults, **model_args}
+        embedding_net = deepcopy(embedding_net)
+        return [
+            _Lampe_Moment_Constructor(
+                embedding_net, moment_args, device,
+                x_normalize, theta_normalize) for _ in range(repeats)
+        ]
 
     # check the model parameterizations
     if model == 'mdn':

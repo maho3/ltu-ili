@@ -277,6 +277,19 @@ class LampeRunner():
             if verbose:
                 logging.info(f"Training model {i+1} / {len(models_rnd)}.")
 
+            # Moment Networks use a bespoke two-stage (mean, then covariance)
+            # training procedure that does not fit the shared NPE optimizer
+            # loop below. Dispatch them to their standalone trainer; the
+            # returned estimator is a drop-in ensemble member.
+            if getattr(model, 'is_moment', False):
+                from ili.inference.lampe_moment import train_moment_network
+                summary = train_moment_network(
+                    model, train_loader, val_loader,
+                    self.train_args, self.device, verbose=verbose)
+                posteriors.append(model)
+                summaries.append(summary)
+                continue
+
             # define optimizer
             optimizer = torch.optim.AdamW(
                 model.parameters(),
