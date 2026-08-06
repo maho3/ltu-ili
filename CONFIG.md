@@ -170,10 +170,11 @@ Only certain NDEs and training engines are compatible with either the sbi or pyd
 The `moment` model is a lampe-only `NPE` option. Unlike the flows, it does not
 learn a full joint density: it is a Moment Network ([Jeffrey & Wandelt 2020](https://arxiv.org/abs/2011.05991))
 that approximates the posterior as a single full-covariance Gaussian
-`N(mu(x), Sigma(x))`. It trains via an internal two-stage procedure (a mean
-network fit with MSE against `theta`, then a covariance network fit against the
-frozen residual products), rather than the standard joint NPE loss, but is used
-identically from the config/API — just set `model: 'moment'`. It accepts
+`N(mu(x), Sigma(x))`. Its mean and covariance networks are optimized jointly
+in a single pass (the covariance loss uses a stop-gradient copy of the mean,
+so it doesn't pull on the mean network), rather than the standard joint NPE
+loss, but is used identically from the config/API — just set `model:
+'moment'`. It accepts
 `hidden_features`, `hidden_depth`, `activation`, and `embedding_net`; flow-only
 args like `num_transforms` are ignored with a warning. Because a standalone
 `moment` posterior is unimodal/Gaussian (not a flexible density), it is best
