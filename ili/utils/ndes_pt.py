@@ -48,9 +48,9 @@ def load_nde_sbi(
     """Load an nde from sbi.
 
     Args:
-        engine (str): engine to use. 
+        engine (str): engine to use.
             One of: NPE, NLE, NRE, SNPE, SNLE, or SNRE.
-        model (str): model to use. 
+        model (str): model to use.
             One of: mdn, maf, nsf, made, linear, mlp, resnet.
         embedding_net (nn.Module, optional): embedding network to use.
             Defaults to nn.Identity().
@@ -170,16 +170,13 @@ class LampeNPE(nn.Module):
         x: torch.Tensor,
         show_progress_bars: bool = True
     ) -> torch.Tensor:
-        """Accept-reject sampling"""
         if isinstance(shape, int):
             shape = (shape,)
 
-        # check inputs
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
         x = x.to(self._device)
 
-        # sample
         num_samples = np.prod(shape)
         if num_samples == 0:
             return torch.empty(shape)
@@ -193,23 +190,42 @@ class LampeNPE(nn.Module):
         num_remaining = num_samples
         accepted = []
         tries = 0
+        total_drawn = 0
+        total_accepted = 0
         while num_remaining > 0:
             candidates = self.theta_transform(
                 self.flow(x).sample((batch_size,)))
-            are_accepted = self.prior.support.check(candidates)
+
+            # Check if the dimensions have been reduced by the prior
+            raw_check = self.prior.support.check(candidates)
+            if raw_check.dim() == candidates.dim():
+                are_accepted = raw_check.all(dim=-1)
+            else:
+                are_accepted = raw_check
             samples = candidates[are_accepted]
             accepted.append(samples)
 
             num_remaining -= len(samples)
             pbar.update(len(samples))
             tries += 1
-            if tries > 10*len(samples)/batch_size:  # 10x the expected number of tries
+            drawn_this_loop = are_accepted.numel()
+            total_drawn += drawn_this_loop
+            total_accepted += len(samples)
+
+            rate = total_accepted / total_drawn
+            expected_tries = num_samples / max(rate * drawn_this_loop, 1e-12)
+            max_tries = max(1000, 10 * int(np.ceil(num_samples / batch_size)))
+
+            if tries > 10 * expected_tries or tries > max_tries:
                 warnings.warn(
                     "Direct sampling took too long. The posterior is poorly "
-                    "constrained within the prior support. Consider using "
-                    "emcee sampling or using a larger prior support. Returning"
-                    " prior samples.")
+                    "constrained within the prior support (measured "
+                    f"acceptance rate: {rate:.4%}, over {total_drawn} "
+                    "candidates drawn). Consider using emcee sampling or "
+                    "using a larger prior support. Returning prior samples."
+                )
                 return self.prior.sample(shape)
+
         pbar.close()
 
         samples = torch.cat(accepted, dim=0)[:num_samples]
@@ -302,8 +318,11 @@ def load_nde_lampe(
         - unaf: Unconstrained Neural Autoregressive Flow (https://arxiv.org/abs/1908.05164)
         - moment: Moment Network (https://arxiv.org/abs/2011.05991). Not a flow;
             approximates the posterior as a single full-covariance Gaussian via
-            an internal two-stage (mean, then covariance) training procedure.
-            Accepts hidden_features, hidden_depth, activation, embedding_net.
+            an internal joint (mean + covariance) training procedure.
+            Its own trunk is a constant-width MLP, configured like mdn:
+            hidden_features, hidden_depth, activation. Any funnel-shaped
+            compression belongs in embedding_net (e.g. embedding_net='fun'),
+            not in this model's own architecture args.
 
     For more info, see zuko at https://zuko.readthedocs.io/en/stable/index.html
 
@@ -328,8 +347,8 @@ def load_nde_lampe(
             ' engines in the sbi or pydelfi backends.')
     model = model.lower()
 
-    # Moment Networks (Jeffrey & Wandelt 2020) have a bespoke two-stage
-    # training path and are built by a separate constructor. They are lampe-only
+    # Moment Networks (Jeffrey & Wandelt 2020) have a bespoke joint training
+    # path and are built by a separate constructor. They are lampe-only
     # NPE models that approximate the posterior as a full-covariance Gaussian.
     if model == 'moment':
         from ili.inference.lampe_moment import _Lampe_Moment_Constructor
