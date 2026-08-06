@@ -11,7 +11,7 @@ try:
         IndependentLogNormal, IndependentPareto, IndependentStudentT,
         IndependentVonMises, IndependentWeibull,
         MultivariateNormal, LowRankMultivariateNormal,
-        IndependentTruncatedNormal
+        IndependentTruncatedNormal, CustomJointIndependent
     )
     from .ndes_pt import load_nde_sbi, load_nde_lampe, LampeNPE, LampeEnsemble
     loaded = True

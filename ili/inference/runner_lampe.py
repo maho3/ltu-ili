@@ -181,11 +181,37 @@ class LampeRunner():
             signatures=signatures,
         )
 
+    def _add_training_noise(self, train_loader: DataLoader) -> DataLoader:
+        """Wrap a pre-built training DataLoader's dataset with Gaussian noise
+        (a percentage of each tensor's per-feature std), per
+        ``train_args['noise_percent']``.
+
+        Loaders built directly from tensors (e.g. via ``TorchLoader``) skip
+        the ``NoisyDataset`` wrapping that ``_prepare_loader`` otherwise
+        applies for ``get_all_data``-style loaders, so without this
+        ``noise_percent`` would silently do nothing for them.
+        """
+        percentage = self.train_args["noise_percent"]
+        if not percentage:
+            return train_loader
+        if not isinstance(train_loader.dataset, TensorDataset):
+            logging.warning(
+                "noise_percent > 0 but the training DataLoader's dataset "
+                "isn't a TensorDataset; cannot apply noise augmentation.")
+            return train_loader
+        shuffle = isinstance(train_loader.sampler, torch.utils.data.RandomSampler)
+        noisy_dataset = NoisyDataset(
+            *train_loader.dataset.tensors, percentage=percentage)
+        return DataLoader(
+            noisy_dataset, batch_size=train_loader.batch_size,
+            shuffle=shuffle)
+
     def _prepare_loader(self, loader: _BaseLoader):
         """Prepare a loader for training."""
         if (hasattr(loader, "train_loader") and
                 hasattr(loader, "val_loader")):
             train_loader, val_loader = loader.train_loader, loader.val_loader
+            train_loader = self._add_training_noise(train_loader)
         elif (hasattr(loader, "get_all_data") and
                 hasattr(loader, "get_all_parameters")):
             x, theta = loader.get_all_data(), loader.get_all_parameters()
@@ -277,10 +303,10 @@ class LampeRunner():
             if verbose:
                 logging.info(f"Training model {i+1} / {len(models_rnd)}.")
 
-            # Moment Networks use a bespoke two-stage (mean, then covariance)
-            # training procedure that does not fit the shared NPE optimizer
-            # loop below. Dispatch them to their standalone trainer; the
-            # returned estimator is a drop-in ensemble member.
+            # Moment Networks use a bespoke joint (mean + covariance) training
+            # procedure that does not fit the shared NPE optimizer loop below.
+            # Dispatch them to their standalone trainer; the returned
+            # estimator is a drop-in ensemble member.
             if getattr(model, 'is_moment', False):
                 from ili.inference.lampe_moment import train_moment_network
                 summary = train_moment_network(
