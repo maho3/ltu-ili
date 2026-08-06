@@ -291,7 +291,7 @@ class CustomJointIndependent(Distribution):
         return self._support
 
     def sample(self, sample_shape=torch.Size()):
-        return torch.concatenate(
+        return torch.stack(
             [d.sample(sample_shape) for d in self.distributions], dim=-1)
 
     def rsample(self, sample_shape=torch.Size()):
@@ -299,7 +299,7 @@ class CustomJointIndependent(Distribution):
                    for d in self.distributions):
             raise NotImplementedError(
                 "At least one component does not support rsample().")
-        return torch.concatenate(
+        return torch.stack(
             [d.rsample(sample_shape) for d in self.distributions], dim=-1)
 
     def log_prob(self, value):
