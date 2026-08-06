@@ -1,27 +1,31 @@
 """
-Standalone two-stage trainer and estimator for Moment Networks
+Standalone trainer and estimator for Moment Networks
 (Jeffrey & Wandelt 2020, arXiv:2011.05991) in the lampe backend.
 
 A Moment Network does not learn a full joint density like the zuko flows that
 the lampe backend usually wraps. Instead it directly regresses the posterior
-mean and covariance:
+mean and covariance, with the mean network (f_mu) and covariance network
+(f_cov) optimized jointly in a single pass:
 
-    Stage 1 (mean network):
-        f_mu(x) -> mu, trained with plain MSE against the true parameters theta.
+    f_mu(x)  -> mu
+    f_cov(x) -> raw Cholesky entries -> L -> Sigma = L L^T
 
-    Stage 2 (covariance network), trained *after* Stage 1 is frozen:
-        resid    = theta - f_mu(x)              # frozen, no gradient
-        target   = vech(resid resid^T)          # residual products, i<=j
-        f_cov(x) -> raw Cholesky entries -> L -> Sigma = L L^T
-        loss     = MSE(vech(Sigma), target)     # plain MSE
+    resid  = theta - mu.detach()        # stop-gradient: cov term doesn't
+                                         # backprop into f_mu
+    target = vech(resid resid^T)        # residual products, i<=j
+    loss   = logsum_sq(theta - mu) + logsum_sq(vech(Sigma) - target)
 
-    Because E[resid resid^T | x] = Sigma(x), minimizing the MSE between
-    vech(Sigma) and the residual-product targets drives L L^T towards the true
-    conditional covariance, while the Cholesky parameterization (lower
-    triangular, softplus on the diagonal) guarantees Sigma is positive-definite
-    by construction. This reconciles the reference implementation's
-    "regress toward residual products" targets with the requirement to output a
-    valid covariance.
+where ``logsum_sq(err) = sum_j log(sum_batch(err_j^2) + floor)``: a per-output
+loss that sums squared error over the batch *before* taking a log, rather than
+averaging error directly (plain MSE). This keeps gradients comparably scaled
+across output dimensions (mean components and covariance entries alike) even
+though their natural magnitudes differ substantially, which is what makes the
+joint fit converge reliably in practice.
+
+Because E[resid resid^T | x] = Sigma(x), driving vech(Sigma) toward the
+residual-product targets pushes L L^T towards the true conditional covariance,
+while the Cholesky parameterization (lower triangular, softplus on the
+diagonal) guarantees Sigma is positive-definite by construction.
 
 The resulting posterior is a single (full-covariance) Gaussian approximation.
 It is *not* a flexible density -- it is unimodal and Gaussian -- so on its own
@@ -29,7 +33,7 @@ it can only capture Gaussian posteriors. It is most useful as one member of an
 ensemble alongside real flows (maf/nsf/...), where it is sampled and log_prob'd
 identically via a torch MultivariateNormal.
 
-This module is self-contained: the two-stage training lives entirely inside
+This module is self-contained: the joint training lives entirely inside
 ``train_moment_network``, and the trained ``MomentNetworkEstimator`` is a
 drop-in ensemble member (it subclasses ``LampeNPE`` to reuse its accept-reject
 sampling and device handling).
@@ -60,7 +64,10 @@ _ACTIVATIONS = {
 
 
 def _make_mlp(in_dim, out_dim, hidden_features, hidden_depth, activation):
-    """Build a simple MLP trunk with ``hidden_depth`` hidden layers."""
+    """Build a simple constant-width MLP trunk with ``hidden_depth`` hidden
+    layers of width ``hidden_features`` (mirrors the mdn model's own
+    architecture args). Any funnel-shaped compression belongs upstream, in
+    the embedding_net (e.g. embedding_net='fun'), not in this trunk."""
     act = _ACTIVATIONS[activation]
     layers, d = [], in_dim
     for _ in range(hidden_depth):
@@ -140,14 +147,12 @@ class MomentNetworkEstimator(LampeNPE):
         return L
 
     def predict_moments(self, x):
-        """Return (mu, L) in normalized theta space for input data x.
-
-        mu has shape (B, n_params); L is a (B, n_params, n_params) lower-
-        triangular Cholesky factor with Sigma = L @ L.T.
-        """
+        """Return (mu, L) in normalized theta space for input data x."""
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
         x = x.to(self._device)
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
         xin = self.x_transform.inv(x).float()
         mu = self.mu_net(self.emb_mu(xin))
         L = self._build_L(self.cov_net(self.emb_cov(xin)))
@@ -190,7 +195,7 @@ class _Lampe_Moment_Constructor():
 
     Constructed by ``load_nde_lampe(model='moment', ...)`` and called later as
     ``constructor(train_loader, prior)`` to build an (untrained)
-    ``MomentNetworkEstimator``. The actual two-stage fit is performed
+    ``MomentNetworkEstimator``. The actual joint fit is performed
     separately by ``train_moment_network``; the runner detects this net via the
     ``is_moment`` marker and routes it there.
     """
@@ -228,7 +233,8 @@ class _Lampe_Moment_Constructor():
             scaler = StandardScaler()
             for _, theta_batch in train_loader:
                 scaler.partial_fit(theta_batch.cpu().numpy())
-            theta_mean = torch.tensor(scaler.mean_, dtype=dtype).to(self.device)
+            theta_mean = torch.tensor(
+                scaler.mean_, dtype=dtype).to(self.device)
             theta_std = torch.clamp(
                 torch.tensor(scaler.scale_, dtype=dtype).to(self.device),
                 min=1e-16)
@@ -269,7 +275,8 @@ class _Lampe_Moment_Constructor():
             z_dim, n_cov, hidden_features, hidden_depth, activation
         ).to(self.device)
 
-        x_transform, theta_transform = self._fit_transforms(train_loader, dtype)
+        x_transform, theta_transform = self._fit_transforms(
+            train_loader, dtype)
 
         estimator = MomentNetworkEstimator(
             emb_mu=emb_mu, mu_net=mu_net,
@@ -285,8 +292,9 @@ def _fit_stage(modules, loss_fn, train_loader, val_loader,
     """Train a set of modules to convergence via MSE with early stopping.
 
     Generic single-stage optimizer loop, following the same early-stopping /
-    patience / lr conventions as the shared lampe trainer. Returns
-    (train_trace, val_trace, best_val_loss) and restores the best weights.
+    patience / lr / scheduler conventions as the shared lampe trainer.
+    Returns (train_trace, val_trace, best_val_loss) and restores the best
+    weights.
     """
     from tqdm import tqdm
 
@@ -297,6 +305,21 @@ def _fit_stage(modules, loss_fn, train_loader, val_loader,
     clip = train_args["clip_max_norm"]
     early_stopping = train_args.get("early_stopping", True)
     max_epochs = int(train_args["max_epochs"])
+
+    scheduler_name = train_args.get('lr_scheduler', 'ReduceLROnPlateau')
+    if scheduler_name == 'ReduceLROnPlateau':
+        if train_args["lr_decay_factor"] < 1:
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, factor=train_args["lr_decay_factor"],
+                patience=train_args["lr_patience"])
+        else:
+            scheduler = torch.optim.lr_scheduler.LambdaLR(
+                optimizer, lr_lambda=lambda epoch: 1.0)
+    elif scheduler_name == 'CosineAnnealingLR':
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=max_epochs, eta_min=0)
+    else:
+        raise ValueError(f"Unknown lr_scheduler: {scheduler_name}")
 
     best_val = float('inf')
     best_state = [deepcopy(m.state_dict()) for m in modules]
@@ -331,6 +354,11 @@ def _fit_stage(modules, loss_fn, train_loader, val_loader,
                     cnt += len(theta)
                 val_loss = tot / cnt
 
+            if scheduler_name == 'ReduceLROnPlateau':
+                scheduler.step(val_loss)
+            else:
+                scheduler.step()
+
             train_trace.append(train_loss)
             val_trace.append(val_loss)
             tq.set_postfix(mse=train_loss, mse_val=val_loss)
@@ -354,61 +382,57 @@ def _fit_stage(modules, loss_fn, train_loader, val_loader,
     return train_trace, val_trace, best_val
 
 
+_VAR_FLOOR = 1e-6  # matches the softplus floor used in MomentNetworkEstimator._build_L
+
+
+def _logsum_sq(err):
+    """sum_j log(sum_batch(err_j^2) + floor): keeps gradients comparably
+    scaled across output dimensions of differing natural magnitude, unlike
+    plain per-sample MSE."""
+    return torch.log((err ** 2).sum(0) + _VAR_FLOOR).sum()
+
+
 def train_moment_network(estimator: MomentNetworkEstimator,
                          train_loader, val_loader,
                          train_args, device, verbose=True):
-    """Run the two-stage Moment Network fit in place on ``estimator``.
+    """Jointly fit the mean and covariance networks of a Moment Network.
 
-    Stage 1 fits the mean network with MSE against theta. Stage 2 freezes it,
-    derives residual-product targets, and fits the covariance network so that
-    vech(L L^T) matches those targets. Returns a summary dict shaped like the
-    shared lampe trainer's summaries (so ensembling/plotting code is unchanged).
+    Both networks are optimized together in a single pass: the mean loss
+    backpropagates into ``emb_mu``/``mu_net``, while the covariance loss
+    backpropagates into ``emb_cov``/``cov_net`` only (the residuals it
+    targets use a stop-gradient copy of mu, so the mean net isn't pulled by
+    the covariance term). Returns a summary dict shaped like the shared lampe
+    trainer's summaries (so ensembling/plotting code is unchanged).
     """
     tt = estimator.theta_transform
     xt = estimator.x_transform
     rows = estimator._tril_rows
     cols = estimator._tril_cols
 
-    # ----- Stage 1: mean network (plain MSE against true theta) -----
-    def loss_mu(x, theta):
-        z = estimator.emb_mu(xt.inv(x).float())
-        mu = estimator.mu_net(z)
-        return F.mse_loss(mu, tt.inv(theta))
-
-    if verbose:
-        logging.info("Moment network: training Stage 1 (mean network).")
-    s1_train, s1_val, _ = _fit_stage(
-        [estimator.emb_mu, estimator.mu_net], loss_mu,
-        train_loader, val_loader, train_args, device,
-        desc='moment-mean', verbose=verbose)
-
-    # freeze Stage 1
-    for p in estimator.emb_mu.parameters():
-        p.requires_grad_(False)
-    for p in estimator.mu_net.parameters():
-        p.requires_grad_(False)
-    estimator.emb_mu.eval()
-    estimator.mu_net.eval()
-
-    # ----- Stage 2: covariance network (MSE toward residual products) -----
-    def loss_cov(x, theta):
+    def loss_fn(x, theta):
         xin = xt.inv(x).float()
-        with torch.no_grad():
-            mu = estimator.mu_net(estimator.emb_mu(xin))
-        resid = tt.inv(theta) - mu                       # frozen residuals
+        theta_n = tt.inv(theta)
+
+        mu = estimator.mu_net(estimator.emb_mu(xin))
+        term_mean = _logsum_sq(theta_n - mu)
+
+        resid = theta_n - mu.detach()                     # stop-gradient
         L = estimator._build_L(estimator.cov_net(estimator.emb_cov(xin)))
         Sigma = L @ L.transpose(-1, -2)
-        pred = Sigma[:, rows, cols]                      # vech(Sigma)
-        outer = resid.unsqueeze(-1) * resid.unsqueeze(-2)
-        target = outer[:, rows, cols]                    # vech(resid resid^T)
-        return F.mse_loss(pred, target)
+        pred = Sigma[:, rows, cols]                        # vech(Sigma)
+        target = (resid.unsqueeze(-1) * resid.unsqueeze(-2))[:, rows, cols]
+        term_cov = _logsum_sq(pred - target)
+
+        return term_mean + term_cov
 
     if verbose:
-        logging.info("Moment network: training Stage 2 (covariance network).")
-    s2_train, s2_val, _ = _fit_stage(
-        [estimator.emb_cov, estimator.cov_net], loss_cov,
-        train_loader, val_loader, train_args, device,
-        desc='moment-cov', verbose=verbose)
+        logging.info(
+            "Moment network: joint training of mean + covariance nets.")
+    train_trace, val_trace, _ = _fit_stage(
+        [estimator.emb_mu, estimator.mu_net,
+         estimator.emb_cov, estimator.cov_net],
+        loss_fn, train_loader, val_loader, train_args, device,
+        desc='moment', verbose=verbose)
 
     # ----- final validation log-prob (comparable to flow members) -----
     estimator.eval()
@@ -421,15 +445,9 @@ def train_moment_network(estimator: MomentNetworkEstimator,
         best_val_logprob = tot / cnt
 
     summary = {
-        # generic keys expected by ensembling / plotting code
-        'training_log_probs': [-v for v in (s1_train + s2_train)],
-        'validation_log_probs': [-v for v in (s1_val + s2_val)],
+        'training_log_probs': [-v for v in train_trace],
+        'validation_log_probs': [-v for v in val_trace],
         'best_validation_log_prob': best_val_logprob,
-        'epochs_trained': len(s1_val) + len(s2_val),
-        # moment-network specific diagnostics
-        'stage1_train_mse': s1_train,
-        'stage1_val_mse': s1_val,
-        'stage2_train_mse': s2_train,
-        'stage2_val_mse': s2_val,
+        'epochs_trained': len(val_trace),
     }
     return summary
