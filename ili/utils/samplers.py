@@ -228,13 +228,47 @@ class DirectSampler(ABC):
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
         """
+        x = self._to_tensor(x)
+        return self.posterior.sample(
+            (nsteps,), x=x,
+            show_progress_bars=progress
+        ).detach().cpu().numpy()
+
+    def _to_tensor(self, x: Any):
         try:
             x = torch.as_tensor(x)
+            # networks are single precision throughout; sbi casts inside
+            # sample() but not inside sample_batched(), so do it here
+            if torch.is_floating_point(x):
+                x = x.float()
             if hasattr(self.posterior, '_device'):
                 x = x.to(self.posterior._device)
         except ValueError:
             pass
-        return self.posterior.sample(
+        return x
+
+    @property
+    def supports_batched(self) -> bool:
+        """Whether the underlying posterior can sample many observations at
+        once, which is far cheaper than looping over them."""
+        return hasattr(self.posterior, 'sample_batched')
+
+    def sample_batched(self, nsteps: int, x: Any,
+                       progress: bool = False) -> np.ndarray:
+        """
+        Sample nsteps samples for each of a batch of observations x.
+
+        Args:
+            nsteps (int): number of samples to draw per observation
+            x (np.ndarray): batch of observations, of shape (nobs, *x.shape)
+            progress (bool, optional): whether to show progress bar.
+                Defaults to False.
+
+        Returns:
+            np.ndarray: samples of shape (nsteps, nobs, npars)
+        """
+        x = self._to_tensor(x)
+        return self.posterior.sample_batched(
             (nsteps,), x=x,
             show_progress_bars=progress
         ).detach().cpu().numpy()
