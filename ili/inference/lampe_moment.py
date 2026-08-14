@@ -163,6 +163,19 @@ class MomentNetworkEstimator(LampeNPE):
         mu, L = self.predict_moments(x)
         return MultivariateNormal(mu, scale_tril=L)
 
+    def _embed(self, x):
+        """Cache the predicted moments for a batch of observations.
+
+        Counterpart of ``LampeNPE._embed``: the conditional distribution here
+        is parameterized by (mu, L) rather than a single embedding vector.
+        """
+        return self.predict_moments(x)
+
+    def _flow_from_embedding(self, embedding, index):
+        """Conditional posterior for the subset ``index`` of cached moments."""
+        mu, L = embedding
+        return MultivariateNormal(mu[index], scale_tril=L[index])
+
     def forward(self, theta: torch.Tensor, x) -> torch.Tensor:
         """Log-probability of theta under the Gaussian posterior given x.
 

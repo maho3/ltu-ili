@@ -246,6 +246,20 @@ There are two available sampler backends in [`ili.utils.samplers`](ili/utils/sam
 - `sbi`'s `NLE` or `NRE` models can use either the `emcee` or `pyro` samplers. The `pyro` samplers include several MCMC methods like slice sampling (`'slice_np'`, `'slice_np_vectorized'`), Hamiltonian Monte Carlo (`'hmc'`), and the NUTS sampler (`'nuts'`). From my experience, `slice_np_vectorized` works the fastest on CPU architectures for simple posteriors.
 - `sbi`'s and `lampe`'s `NPE` models can use any of the `emcee` or `pyro` samplers. However, as they are amortized posterior estimators, they can also do fast direct estimation of the `log_prob` of samples, thus allowing for super fast Rejection Sampling. It is recommended to use this with the `'direct'` sample method for `NPE` models.
 
+### Direct sampling over a test set
+With `sample_method: 'direct'`, metrics that sample the whole test set (`PosteriorSamples`, `PosteriorCoverage`) condition on many test points simultaneously. This is automatic; no configuration is needed.
+
+Cost is set by the *acceptance rate*: the fraction of draws from the flow landing inside the prior support. Posteriors that are poorly constrained relative to their prior — or that have many parameters, since leakage compounds per dimension — have low acceptance rates and need proportionally more draws. If a test point exhausts its sampling budget, `ltu-ili` warns and returns *prior* samples for that point, which appears as degenerate coverage in the diagnostic plots. Treat that warning as a signal to widen the prior support or switch to `emcee`, not as a result.
+
+Sampling parallelizes well across CPU cores, saturating around 16 threads (Delta CPU nodes, 200 test points, 1000 samples each):
+
+| threads | 1 | 4 | 8 | 16 | 32 |
+|---|---|---|---|---|---|
+| well-constrained, 5 params | 7.5 s | 5.6 s | — | 3.0 s | 2.9 s |
+| poorly-constrained, 8 params | — | 272 s | 227 s | 137 s | 135 s |
+
+Under SLURM, `#SBATCH --cpus-per-task=16` is sufficient — `torch` picks the allocation up automatically, with no need to export `OMP_NUM_THREADS`.
+
 The `ensemble_mode` parameter allows you to specify whether you want to sample jointly from the ensemble of neural networks trained in your inference stage (`True`) or from each one individually (`False`). This can be useful for analyzing multiple trained architectures individually or for debugging for issues in training.
 
 The `sampler_params` interface for specifying the number, length, and thinning of MCMC chains has been made identical for all implemented samplers.

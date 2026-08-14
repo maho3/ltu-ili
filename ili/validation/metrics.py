@@ -433,6 +433,11 @@ class PosteriorSamples(_SampleBasedMetric):
     tasks (e.g. nested sampling) or making custom plots.
     """
 
+    # Number of test points conditioned on simultaneously in the batched path.
+    # Larger values amortize better; peak memory is bounded separately, by the
+    # posterior's own per-iteration candidate cap.
+    test_batch_size = 256
+
     def _sample_dataset(self, posterior, x, **kwargs):
         """Sample from posterior for all datapoints within a
         test dataset.
@@ -454,6 +459,16 @@ class PosteriorSamples(_SampleBasedMetric):
         Nsamps = self.num_samples
 
         posterior_samples = np.zeros((Nsamps, Ntest, Nparams))
+
+        # Amortized posteriors can condition on many test points at once,
+        # which is much cheaper than looping over them one at a time.
+        if getattr(sampler, 'supports_batched', False) and not kwargs:
+            for ii in tqdm.tqdm(range(0, Ntest, self.test_batch_size)):
+                jj = min(ii + self.test_batch_size, Ntest)
+                posterior_samples[:, ii:jj] = sampler.sample_batched(
+                    self.num_samples, x=x[ii:jj], progress=False)
+            return posterior_samples
+
         for ii in tqdm.tqdm(range(Ntest)):
             try:
                 # Sample posterior P(theta | x[ii])

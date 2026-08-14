@@ -190,6 +190,35 @@ def test_npe(monkeypatch):
     unittest.TestCase().assertIsInstance(samples, np.ndarray)
     unittest.TestCase().assertListEqual(list(samples.shape), [nsamp, ntest, 3])
 
+    # ~~~ Test batched accept/reject sampling ~~~
+    nobs, nbatch = 4, 7
+    xb = torch.Tensor(x[:nobs]).to(device)
+
+    # a single ensemble member, and the ensemble as a whole
+    for model in [posterior.posteriors[0], posterior]:
+        batched = model.sample_batched((nbatch,), xb, show_progress_bars=False)
+        unittest.TestCase().assertListEqual(
+            list(batched.shape), [nbatch, nobs, 3])
+        # every sample must lie within the prior support
+        check = model.prior.support.check(batched)
+        if check.dim() == batched.dim():
+            check = check.all(dim=-1)
+        unittest.TestCase().assertTrue(bool(check.all()))
+
+        # single-observation sampling keeps its (*shape, npars) contract
+        single = model.sample((nbatch,), xb[0], show_progress_bars=False)
+        unittest.TestCase().assertListEqual(list(single.shape), [nbatch, 3])
+
+    # an exhausted budget falls back to prior samples, with a warning
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter('always')
+        gaveup = posterior.posteriors[0].sample_batched(
+            (nbatch,), xb, show_progress_bars=False, max_oversample=0)
+    unittest.TestCase().assertListEqual(
+        list(gaveup.shape), [nbatch, nobs, 3])
+    unittest.TestCase().assertTrue(
+        any('poorly constrained' in str(w.message) for w in caught))
+
     # ~~~ Test other configurations ~~~
     # separate proposal and prior
     proposal = prior

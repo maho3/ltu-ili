@@ -164,72 +164,230 @@ class LampeNPE(nn.Module):
         return self.nde.flow(
             self.embedding_net(self.x_transform.inv(x)).float())
 
+    def _embed(self, x: torch.Tensor):
+        """Precompute the per-observation context of the conditional flow.
+
+        Split out of ``flow`` so that batched sampling runs the embedding
+        network once for the whole batch, rather than once per accept/reject
+        iteration. Subclasses whose conditional distribution is not built from
+        a single embedding vector (e.g. moment networks) override this
+        together with ``_flow_from_embedding``.
+        """
+        if hasattr(x, 'float'):
+            x = x.float()
+        return self.embedding_net(self.x_transform.inv(x)).float()
+
+    def _flow_from_embedding(self, embedding, index: torch.Tensor):
+        """Conditional flow for the subset ``index`` of a precomputed context."""
+        return self.nde.flow(embedding[index])
+
     def sample(
         self,
         shape: tuple,
         x: torch.Tensor,
-        show_progress_bars: bool = True
+        show_progress_bars: bool = True,
+        **kwargs
     ) -> torch.Tensor:
+        """Accept-reject sampling of the posterior for a single observation.
+
+        Args:
+            shape (tuple): shape of the sample to draw
+            x (torch.Tensor): single observation to condition on
+            show_progress_bars (bool, optional): whether to show a progress
+                bar. Defaults to True.
+            **kwargs: forwarded to ``sample_batched``.
+
+        Returns:
+            torch.Tensor: samples of shape (*shape, npars)
+        """
+        if isinstance(shape, int):
+            shape = (shape,)
+        if np.prod(shape) == 0:
+            return torch.empty(shape)
+
+        if isinstance(x, (list, np.ndarray)):
+            x = torch.Tensor(x)
+        x = x.to(self._device)
+
+        # a single observation is promoted to a batch of one
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
+        samples = self.sample_batched(
+            shape, x, show_progress_bars=show_progress_bars, **kwargs)
+        if samples.shape[-2] == 1:
+            samples = samples.squeeze(-2)
+        return samples
+
+    def sample_batched(
+        self,
+        shape: tuple,
+        x: torch.Tensor,
+        show_progress_bars: bool = True,
+        max_candidate_batch: int = 250_000,
+        max_oversample: int = 1000,
+    ) -> torch.Tensor:
+        """Accept-reject sampling of the posterior for a batch of observations.
+
+        All observations are drawn from simultaneously: each iteration
+        conditions the flow on every observation that still needs samples and
+        rejects candidates outside the prior support in one vectorized pass.
+        Observations drop out of the batch as they fill up, and the number of
+        candidates drawn per iteration adapts to the measured acceptance rate,
+        so a poorly-constrained posterior costs extra candidates rather than
+        extra sequential iterations.
+
+        Args:
+            shape (tuple): shape of the sample to draw per observation
+            x (torch.Tensor): batch of observations, of shape (nobs, *x.shape)
+            show_progress_bars (bool, optional): whether to show a progress
+                bar. Defaults to True.
+            max_candidate_batch (int, optional): cap on the total number of
+                candidate parameter vectors drawn per iteration, summed over
+                the observations still being sampled. Bounds peak memory.
+                Defaults to 250,000.
+            max_oversample (int, optional): give up on an observation once it
+                has drawn this many times more candidates than the number of
+                samples requested. Defaults to 1000.
+
+        Returns:
+            torch.Tensor: samples of shape (*shape, nobs, npars)
+        """
         if isinstance(shape, int):
             shape = (shape,)
 
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
         x = x.to(self._device)
+        if x.dim() == 1:
+            x = x.unsqueeze(0)
+        nobs = x.shape[0]
 
-        num_samples = np.prod(shape)
-        if num_samples == 0:
-            return torch.empty(shape)
-        pbar = tqdm(
-            disable=not show_progress_bars,
-            total=num_samples,
-            desc=f"Drawing {num_samples} posterior samples",
-        )
+        num_samples = int(np.prod(shape))
+        if num_samples == 0 or nobs == 0:
+            return torch.empty((*shape, nobs, 0))
 
-        batch_size = min(self.max_sample_size, num_samples)
-        num_remaining = num_samples
-        accepted = []
-        tries = 0
-        total_drawn = 0
-        total_accepted = 0
-        while num_remaining > 0:
-            candidates = self.theta_transform(
-                self.flow(x).sample((batch_size,)))
+        device = self._device
+        was_training = self.training
+        self.eval()
+        try:
+            with torch.no_grad():
+                embedding = self._embed(x)
 
-            # Check if the dimensions have been reduced by the prior
-            raw_check = self.prior.support.check(candidates)
-            if raw_check.dim() == candidates.dim():
-                are_accepted = raw_check.all(dim=-1)
-            else:
-                are_accepted = raw_check
-            samples = candidates[are_accepted]
-            accepted.append(samples)
+                # per-observation bookkeeping
+                filled = torch.zeros(nobs, dtype=torch.long, device=device)
+                drawn = torch.zeros(nobs, dtype=torch.long, device=device)
+                naccept = torch.zeros(nobs, dtype=torch.long, device=device)
+                failed = torch.zeros(nobs, dtype=torch.bool, device=device)
+                active = torch.arange(nobs, device=device)
+                samples = None  # allocated once the parameter dim is known
 
-            num_remaining -= len(samples)
-            pbar.update(len(samples))
-            tries += 1
-            drawn_this_loop = are_accepted.numel()
-            total_drawn += drawn_this_loop
-            total_accepted += len(samples)
-
-            rate = total_accepted / total_drawn
-            expected_tries = num_samples / max(rate * drawn_this_loop, 1e-12)
-            max_tries = max(1000, 10 * int(np.ceil(num_samples / batch_size)))
-
-            if tries > 10 * expected_tries or tries > max_tries:
-                warnings.warn(
-                    "Direct sampling took too long. The posterior is poorly "
-                    "constrained within the prior support (measured "
-                    f"acceptance rate: {rate:.4%}, over {total_drawn} "
-                    "candidates drawn). Consider using emcee sampling or "
-                    "using a larger prior support. Returning prior samples."
+                pbar = tqdm(
+                    disable=not show_progress_bars,
+                    total=num_samples * nobs,
+                    desc=f"Drawing {num_samples} posterior samples for "
+                         f"{nobs} observation(s)",
                 )
-                return self.prior.sample(shape)
 
-        pbar.close()
+                flow = self._flow_from_embedding(embedding, active)
+                # first iteration has no acceptance estimate yet, so ask for
+                # exactly what is needed and let the estimate refine it
+                batch_size = max(
+                    1, min(num_samples, max_candidate_batch // nobs))
 
-        samples = torch.cat(accepted, dim=0)[:num_samples]
-        return samples.reshape(*shape, -1)
+                while len(active) > 0:
+                    candidates = self.theta_transform(
+                        flow.sample((batch_size,)))  # (batch, nactive, npars)
+
+                    # check if the dimensions have been reduced by the prior
+                    raw_check = self.prior.support.check(candidates)
+                    if raw_check.dim() == candidates.dim():
+                        are_accepted = raw_check.all(dim=-1)
+                    else:
+                        are_accepted = raw_check
+
+                    if samples is None:
+                        samples = torch.empty(
+                            (num_samples, nobs, candidates.shape[-1]),
+                            dtype=candidates.dtype, device=candidates.device)
+
+                    # scatter each observation's accepted draws into its slot,
+                    # continuing from however many it had already accepted
+                    offset = filled[active]
+                    slot = are_accepted.long().cumsum(dim=0) - 1 + offset
+                    keep = are_accepted & (slot < num_samples)
+                    isamp, iact = keep.nonzero(as_tuple=True)
+                    samples[slot[isamp, iact], active[iact]] = \
+                        candidates[isamp, iact]
+
+                    nnew = are_accepted.sum(dim=0)
+                    filled[active] = torch.clamp(
+                        offset + nnew, max=num_samples)
+                    naccept[active] += nnew
+                    drawn[active] += batch_size
+                    pbar.update(int((filled[active] - offset).sum()))
+
+                    # give up on observations whose posterior barely overlaps
+                    # the prior support: 10x the draws the measured acceptance
+                    # rate says are needed, and a hard cap for rates too low
+                    # to estimate at all
+                    rate = naccept[active].double() / drawn[active].double()
+                    budget = torch.where(
+                        rate > 0, 10 * num_samples / rate.clamp(min=1e-12),
+                        torch.full_like(rate, float('inf')))
+                    budget = budget.clamp(
+                        max=float(max_oversample * num_samples))
+                    give_up = ((filled[active] < num_samples) &
+                               (drawn[active].double() > budget))
+
+                    if give_up.any():
+                        idx = active[give_up]
+                        # match the single-observation behaviour: discard the
+                        # partial draws and fall back to the prior
+                        prior_samples = self.prior.sample(
+                            (num_samples * len(idx),))
+                        samples[:, idx] = prior_samples.reshape(
+                            num_samples, len(idx), -1).to(
+                                device=samples.device, dtype=samples.dtype)
+                        failed[idx] = True
+                        pbar.update(
+                            int((num_samples - filled[idx]).sum()))
+
+                    done = (filled[active] >= num_samples) | give_up
+                    if done.any():
+                        active = active[~done]
+                        if len(active) == 0:
+                            break
+                        flow = self._flow_from_embedding(embedding, active)
+
+                    # size the next draw from the measured acceptance rate.
+                    # the median keeps well-behaved observations from
+                    # over-drawing on behalf of the worst one; they finish and
+                    # leave the batch, and the estimate rises for those left
+                    rate = (naccept[active].double() /
+                            drawn[active].double()).clamp(min=1e-12)
+                    needed = (num_samples - filled[active]).double() / rate
+                    target = int(1.2 * torch.median(needed).item()) + 1
+                    cap = max(1, max_candidate_batch // len(active))
+                    batch_size = int(min(max(target, min(cap, 32)), cap))
+
+                pbar.close()
+
+                if failed.any():
+                    nfail = int(failed.sum())
+                    rates = (naccept[failed].double() /
+                             drawn[failed].double().clamp(min=1))
+                    warnings.warn(
+                        f"Direct sampling took too long for {nfail} of {nobs} "
+                        "observation(s). The posterior is poorly constrained "
+                        "within the prior support there (median acceptance "
+                        f"rate: {rates.median():.4%}). Consider using emcee "
+                        "sampling or using a larger prior support. Returning "
+                        "prior samples for those observations."
+                    )
+
+                return samples.reshape(*shape, nobs, samples.shape[-1])
+        finally:
+            self.train(was_training)
 
     def to(self, device):
         self._device = device
@@ -260,31 +418,68 @@ class LampeEnsemble(nn.Module):
 
     potential = forward
 
-    def sample(
-        self,
-        shape: tuple,
-        x: Any,
-        show_progress_bars: bool = True
-    ):
-        if isinstance(shape, int):
-            shape = (shape,)
-
-        # determine number of samples per model
-        num_samples = np.prod(shape)
+    def _per_model_samples(self, num_samples: int, show_progress_bars: bool):
+        """Number of samples to draw from each ensemble member."""
         per_model = torch.ceil(
-            num_samples * self.weights/self.weights.sum())
+            num_samples * self.weights / self.weights.sum())
         if show_progress_bars:
             logging.info(
                 f"Sampling models with {per_model.int().tolist()} "
                 "samples each.")
+        return per_model
+
+    def sample(
+        self,
+        shape: tuple,
+        x: Any,
+        show_progress_bars: bool = True,
+        **kwargs
+    ):
+        if isinstance(shape, int):
+            shape = (shape,)
+
+        num_samples = np.prod(shape)
+        per_model = self._per_model_samples(num_samples, show_progress_bars)
 
         # sample
         samples = torch.cat([
-            nde.sample((int(N),), x, show_progress_bars=show_progress_bars)
+            nde.sample((int(N),), x, show_progress_bars=show_progress_bars,
+                       **kwargs)
             for nde, N in zip(self.posteriors, per_model)
         ], dim=0)
         samples = samples[:num_samples]
         return samples.reshape(*shape, -1)
+
+    def sample_batched(
+        self,
+        shape: tuple,
+        x: Any,
+        show_progress_bars: bool = True,
+        **kwargs
+    ):
+        """Sample the ensemble for a batch of observations simultaneously.
+
+        Args:
+            shape (tuple): shape of the sample to draw per observation
+            x (Any): batch of observations, of shape (nobs, *x.shape)
+
+        Returns:
+            torch.Tensor: samples of shape (*shape, nobs, npars)
+        """
+        if isinstance(shape, int):
+            shape = (shape,)
+
+        num_samples = np.prod(shape)
+        per_model = self._per_model_samples(num_samples, show_progress_bars)
+
+        # concatenate members along the sample axis, as in sample()
+        samples = torch.cat([
+            nde.sample_batched(
+                (int(N),), x, show_progress_bars=show_progress_bars, **kwargs)
+            for nde, N in zip(self.posteriors, per_model)
+        ], dim=0)
+        samples = samples[:num_samples]
+        return samples.reshape(*shape, samples.shape[-2], samples.shape[-1])
 
     def log_prob(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         return self.forward(theta, x).sum(dim=-1).detach()
