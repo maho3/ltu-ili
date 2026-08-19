@@ -224,7 +224,7 @@ class LampeNPE(nn.Module):
         x: torch.Tensor,
         show_progress_bars: bool = True,
         max_candidate_batch: int = 250_000,
-        max_oversample: int = 1000,
+        max_oversample: int = 30,
     ) -> torch.Tensor:
         """Accept-reject sampling of the posterior for a batch of observations.
 
@@ -247,7 +247,12 @@ class LampeNPE(nn.Module):
                 Defaults to 250,000.
             max_oversample (int, optional): give up on an observation once it
                 has drawn this many times more candidates than the number of
-                samples requested. Defaults to 1000.
+                samples requested. Since an observation with acceptance rate
+                ``r`` needs about ``num_samples / r`` candidates, this gives up
+                on any posterior whose overlap with the prior support is below
+                roughly ``1 / max_oversample``. The default of 30 completes
+                observations down to ~5% acceptance with margin for the
+                negative-binomial spread in the number of draws required.
 
         Returns:
             torch.Tensor: samples of shape (*shape, nobs, npars)
@@ -294,6 +299,12 @@ class LampeNPE(nn.Module):
                 batch_size = max(
                     1, min(num_samples, max_candidate_batch // nobs))
 
+                # give up on observations whose posterior barely overlaps the
+                # prior support. Filling the quota takes about
+                # num_samples / rate candidates, so this budget abandons any
+                # observation whose acceptance rate is below 1 / max_oversample
+                budget = max_oversample * num_samples
+
                 while len(active) > 0:
                     candidates = self.theta_transform(
                         flow.sample((batch_size,)))  # (batch, nactive, npars)
@@ -326,18 +337,8 @@ class LampeNPE(nn.Module):
                     drawn[active] += batch_size
                     pbar.update(int((filled[active] - offset).sum()))
 
-                    # give up on observations whose posterior barely overlaps
-                    # the prior support: 10x the draws the measured acceptance
-                    # rate says are needed, and a hard cap for rates too low
-                    # to estimate at all
-                    rate = naccept[active].double() / drawn[active].double()
-                    budget = torch.where(
-                        rate > 0, 10 * num_samples / rate.clamp(min=1e-12),
-                        torch.full_like(rate, float('inf')))
-                    budget = budget.clamp(
-                        max=float(max_oversample * num_samples))
                     give_up = ((filled[active] < num_samples) &
-                               (drawn[active].double() > budget))
+                               (drawn[active] >= budget))
 
                     if give_up.any():
                         idx = active[give_up]
@@ -368,7 +369,15 @@ class LampeNPE(nn.Module):
                     needed = (num_samples - filled[active]).double() / rate
                     target = int(1.2 * torch.median(needed).item()) + 1
                     cap = max(1, max_candidate_batch // len(active))
-                    batch_size = int(min(max(target, min(cap, 32)), cap))
+                    # never draw past the give-up budget. Every active
+                    # observation has drawn the same number of candidates, so
+                    # the remaining allowance is a scalar. Without this, the
+                    # last stragglers -- which get the whole per-iteration cap
+                    # to themselves -- overshoot by up to a full batch before
+                    # the budget is next checked.
+                    remaining = budget - int(drawn[active[0]])
+                    batch_size = int(
+                        min(max(target, min(cap, 32)), cap, max(1, remaining)))
 
                 pbar.close()
 

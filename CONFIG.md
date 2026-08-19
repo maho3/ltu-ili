@@ -251,6 +251,8 @@ With `sample_method: 'direct'`, metrics that sample the whole test set (`Posteri
 
 Cost is set by the *acceptance rate*: the fraction of draws from the flow landing inside the prior support. Posteriors that are poorly constrained relative to their prior — or that have many parameters, since leakage compounds per dimension — have low acceptance rates and need proportionally more draws. If a test point exhausts its sampling budget, `ltu-ili` warns and returns *prior* samples for that point, which appears as degenerate coverage in the diagnostic plots. Treat that warning as a signal to widen the prior support or switch to `emcee`, not as a result.
 
+The budget is `max_oversample` times `num_samples` candidates per test point. The default of 30 completes points down to roughly 5% acceptance and abandons anything below that, which keeps a handful of out-of-distribution points from dominating the runtime. The warning reports how many points fell back and their median measured acceptance rate; compare that against the ~1/30 threshold to judge whether a fallback was a genuinely hopeless posterior or one worth keeping.
+
 Sampling parallelizes well across CPU cores, saturating around 16 threads (Delta CPU nodes, 200 test points, 1000 samples each):
 
 | threads | 1 | 4 | 8 | 16 | 32 |
