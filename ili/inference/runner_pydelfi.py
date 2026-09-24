@@ -7,7 +7,7 @@ import logging
 import time
 import warnings
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 import tensorflow as tf
@@ -44,13 +44,13 @@ class DelfiRunner(_BaseRunner):
     def __init__(
         self,
         prior: Any,
-        config_ndes: list[dict],
+        config_ndes: List[dict],
         engine: str = "NLE",
-        engine_kwargs: dict | None = None,
-        train_args: dict | None = None,
-        out_dir: str | Path | None = None,
+        engine_kwargs: Optional[dict] = None,
+        train_args: Optional[dict] = None,
+        out_dir: Optional[Union[str, Path]] = None,
         device: str = "cpu",
-        name: str | None = "",
+        name: Optional[str] = None,
     ):
         super().__init__(
             prior=prior,
@@ -116,7 +116,7 @@ class DelfiRunner(_BaseRunner):
             name=name,
         )
 
-    def _save_models(self, posterior: DelfiWrapper, summary: dict[str, Any]):
+    def _save_models(self, posterior: DelfiWrapper, summary: Dict[str, Any]):
         """Save the trained models to file"""
         logger.info(f"Saving models to {self.out_dir}")
         str_p = self.name + "posterior.pkl"

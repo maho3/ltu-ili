@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
@@ -17,10 +17,10 @@ class _BaseRunner:
     def __init__(
         self,
         prior: Any,
-        train_args: dict | None = None,
-        out_dir: str | Path | None = None,
+        train_args: Optional[dict] = None,
+        out_dir: Optional[Union[str, Path]] = None,
         device: str = "cpu",
-        name: str | None = "",
+        name: Optional[str] = None,
     ):
         self.prior = prior
         if train_args is None:

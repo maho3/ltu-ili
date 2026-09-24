@@ -5,6 +5,7 @@ Module to run validation metrics on posterior inference models
 import logging
 import pickle
 import time
+from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
 
 import matplotlib as mpl
@@ -55,11 +56,11 @@ class ValidationRunner:
     def __init__(
         self,
         posterior: ModelClass,  # see imports
-        metrics: dict[str, _BaseMetric],
-        out_dir: str | Path,
-        ensemble_mode: bool | None = True,
-        name: str | None = "",
-        signatures: list[str] | None = None,
+        metrics: Dict[str, _BaseMetric],
+        out_dir: Union[str, Path],
+        ensemble_mode: Optional[bool] = True,
+        name: Optional[str] = "",
+        signatures: Optional[List[str]] = None,
     ):
         self.posterior = posterior
         self.metrics = metrics
@@ -75,7 +76,7 @@ class ValidationRunner:
             self.signatures = signatures
 
     @classmethod
-    def from_config(cls, config_path: str | Path, **kwargs) -> "ValidationRunner":
+    def from_config(cls, config_path: Union[str, Path], **kwargs) -> "ValidationRunner":
         """Create a validation runner from a yaml config file
 
         Args:
@@ -139,7 +140,7 @@ class ValidationRunner:
         )
 
     @classmethod
-    def load_posterior_sbi(cls, path: str | Path):
+    def load_posterior_sbi(cls, path: Union[str, Path]):
         """Load a pretrained sbi posterior from file
 
         Args:

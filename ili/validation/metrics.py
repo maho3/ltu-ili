@@ -5,6 +5,7 @@ Metrics for evaluating the performance of inference engines.
 import logging
 from abc import ABC
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -49,8 +50,8 @@ class _BaseMetric(ABC):
 
     def __init__(
         self,
-        labels: list[str] | None = None,
-        out_dir: str | Path | None = None,
+        labels: Optional[List[str]] = None,
+        out_dir: Optional[Union[str, Path]] = None,
     ):
         """Construct the base metric."""
         self.out_dir = out_dir
@@ -74,9 +75,9 @@ class _SampleBasedMetric(_BaseMetric):
         self,
         num_samples: int,
         sample_method: str = "emcee",
-        sample_params: dict | None = None,
-        labels: list[str] | None = None,
-        out_dir: Path | None = None,
+        sample_params: Optional[Dict[str, Any]] = None,
+        labels: Optional[List[str]] = None,
+        out_dir: Optional[Union[str, Path]] = None,
     ):
         super().__init__(labels, out_dir)
         self.num_samples = num_samples
@@ -137,7 +138,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
         out_dir (str, Path): directory where to store outputs.
     """
 
-    def __init__(self, save_samples: bool = False, seed: int | None = None, **kwargs):
+    def __init__(self, save_samples: bool = False, seed: Optional[int] = None, **kwargs):
         self.save_samples = save_samples
         self.seed = seed
         super().__init__(**kwargs)
@@ -145,16 +146,16 @@ class PlotSinglePosterior(_SampleBasedMetric):
     def __call__(
         self,
         posterior: ModelClass,
-        x: np.ndarray | None = None,
-        theta: np.ndarray | None = None,
-        x_obs: np.ndarray | None = None,
-        theta_fid: np.ndarray | None = None,
-        signature: str | None = "",
-        lower: list[float] | None = None,
-        upper: list[float] | None = None,
-        plot_kws: dict | None = None,
-        grid: sns.PairGrid | None = None,
-        name: str | None = None,
+        x: Optional[np.ndarray] = None,
+        theta: Optional[np.ndarray] = None,
+        x_obs: Optional[np.ndarray] = None,
+        theta_fid: Optional[np.ndarray] = None,
+        signature: Optional[str] = None,
+        lower: Optional[List[float]] = None,
+        upper: Optional[List[float]] = None,
+        plot_kws: Optional[Dict[str, Any]] = None,
+        grid: Optional[sns.PairGrid] = None,
+        name: Optional[str] = None,
         **grid_kws,
     ):
         """Given a posterior and test data, plot the inferred posterior of a
@@ -310,11 +311,11 @@ class PosteriorSamples(_SampleBasedMetric):
         self,
         posterior: ModelClass,
         x: np.ndarray,
-        theta: np.ndarray | None = None,
-        signature: str | None = "",
+        theta: Optional[np.ndarray] = None,
+        signature: Optional[str] = None,
         # here for debugging purpose, otherwise error in runner.py line 123
-        x_obs: np.ndarray | None = None,
-        theta_fid: np.ndarray | None = None,
+        x_obs: Optional[np.ndarray] = None,
+        theta_fid: Optional[np.ndarray] = None,
         **kwargs,
     ):
         """Given a posterior and test data, infer posterior samples of a
@@ -355,15 +356,15 @@ class PosteriorCoverage(PosteriorSamples):
         save_samples (bool): whether to save posterior samples
     """
 
-    def __init__(self, plot_list: list[str], save_samples: bool = False, **kwargs):
+    def __init__(self, plot_list: List[str], save_samples: bool = False, **kwargs):
         self.plot_list = plot_list
         self.save_samples = save_samples
         super().__init__(**kwargs)
 
     def _get_ranks(
         self,
-        samples: np.array,
-        trues: np.array,
+        samples: np.ndarray,
+        trues: np.ndarray,
     ) -> np.array:
         """Get the marginal ranks of the true parameters in the posterior samples.
 
@@ -529,23 +530,23 @@ class PosteriorCoverage(PosteriorSamples):
 
     def _plot_TARP(
         self,
-        posterior_samples: np.array,
-        theta: np.array,
+        posterior_samples: np.ndarray,
+        theta: np.ndarray,
         signature: str,
         references: str = "random",
         metric: str = "euclidean",
-        bootstrap: bool | None = True,
-        norm: bool | None = True,
-        num_alpha_bins: int | None = None,
-        num_bootstrap: int | None = 100,
+        bootstrap: Optional[bool] = True,
+        norm: Optional[bool] = True,
+        num_alpha_bins: Optional[int] = None,
+        num_bootstrap: Optional[int] = 100,
     ) -> plt.Figure:
         """
         Plots the TARP credibility metric for the given posterior samples
         and theta values. See https://arxiv.org/abs/2302.03026 for details.
 
         Args:
-            posterior_samples (np.array): Array of posterior samples.
-            theta (np.array): Array of theta values.
+            posterior_samples (np.ndarray): Array of posterior samples.
+            theta (np.ndarray): Array of theta values.
             signature (str): Signature for the plot.
             references (str, optional): TARP reference type for TARP calculation.
                 Defaults to "random".
@@ -667,12 +668,12 @@ class PosteriorCoverage(PosteriorSamples):
         posterior: ModelClass,
         x: np.ndarray,
         theta: np.ndarray,
-        x_obs: np.ndarray | None = None,
-        theta_fid: np.ndarray | None = None,
-        signature: str | None = "",
+        x_obs: Optional[np.ndarray] = None,
+        theta_fid: Optional[np.ndarray] = None,
+        signature: Optional[str] = None,
         references: str = "random",
         metric: str = "euclidean",
-        num_alpha_bins: int | None = None,
+        num_alpha_bins: Optional[int] = None,
         num_bootstrap: int = 100,
         norm: bool = True,
         bootstrap: bool = True,

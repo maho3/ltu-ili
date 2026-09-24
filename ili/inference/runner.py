@@ -3,7 +3,7 @@ Module to contain a universal inference engine configuration for all backends.
 """
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional, Union
 
 import yaml
 
@@ -37,9 +37,9 @@ class InferenceRunner:
         backend: str,
         engine: str,
         prior: Any,
-        out_dir: str | Path | None = None,
+        out_dir: Optional[Union[str, Path]] = None,
         device: str = "cpu",
-        name: str = "",
+        name: Optional[str] = None,
         **kwargs,
     ):
         """Create an inference runner from inline arguments
