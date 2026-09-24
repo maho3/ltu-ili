@@ -1,10 +1,10 @@
-from os.path import join
 import argparse
+from os.path import join
+
 import numpy as np
 import torch
 from sbibm.metrics.c2st import c2st
 from sbibm.metrics.mmd import mmd
-
 
 if __name__ == '__main__':
     # parse arguments

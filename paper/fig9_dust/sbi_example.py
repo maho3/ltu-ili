@@ -1,6 +1,6 @@
 import corner
-import numpy as np
 import h5py
+import numpy as np
 import torch
 
 import ili
@@ -135,8 +135,8 @@ with np.errstate(divide='ignore'):
 ax.set_ylim(-4.5, -0.5)
 ax.set_xlim(10, 14.4)
 ax.grid(alpha=0.1)
-ax.set_xlabel('$M_{\mathrm{halo}} \,/\, \mathrm{M_{\odot}}$')
-ax.set_ylabel('$\phi \,/\, \mathrm{Mpc^{-3} \; dex^{-1}}$')
+ax.set_xlabel(r'$M_{\mathrm{halo}} \,/\, \mathrm{M_{\odot}}$')
+ax.set_ylabel(r'$\phi \,/\, \mathrm{Mpc^{-3} \; dex^{-1}}$')
 ax.legend()
 
 plt.savefig(f'plots/sbi_halo_example_{idx}.png', dpi=250)

@@ -1,12 +1,13 @@
 
 # Let's build a model similar to your previous one
 
+
 import torch
-from typing import List, Optional
-from torch_geometric.nn import MessagePassing, global_mean_pool
 from torch import Tensor
+from torch_geometric.nn import MessagePassing, global_mean_pool
 
 from ili.embedding.fcn import FCN
+
 
 def get_mlp(in_channels, hidden_layers,):
     fcn = FCN(
@@ -20,7 +21,7 @@ class EdgeUpdate(torch.nn.Module):
         self,
         edge_in_channels: int,
         edge_out_channels: int,
-        hidden_layers: List[int],
+        hidden_layers: list[int],
     ):
         """Update edge attributes
 
@@ -65,7 +66,7 @@ class NodeUpdate(MessagePassing):
         self,
         in_channels: int,
         out_channels: int,
-        hidden_layers: List[int],
+        hidden_layers: list[int],
         aggr: str = "add",
     ):
         """Update nodes
@@ -131,7 +132,7 @@ class GraphLayer(torch.nn.Module):
         node_in_channels: int=2,
         node_out_channels: int=1,
         edge_in_channels: int=2,
-        hidden_layers: List[int]=[128,128,128],
+        hidden_layers: list[int]=[128,128,128],
         edge_out_channels: int=16,
         global_in_channels: int=0,
     ):
@@ -162,13 +163,13 @@ class GraphLayer(torch.nn.Module):
 class GraphNetwork(torch.nn.Module):
     def __init__(
             self,
-            node_features_dim: Optional[int] = None,
-            edge_features_dim: Optional[int] = 3,
+            node_features_dim: int | None = None,
+            edge_features_dim: int | None = 3,
             node_features_hidden_dim: int = 32,
             edge_features_hidden_dim: int = 32,
             global_output_dim: int = 16,
             message_passing_steps: int = 3,
-            hidden_layers: Optional[List[int]] = [128, 128, 128],
+            hidden_layers: list[int] | None = [128, 128, 128],
     ):
         super().__init__()
         self.graph_layers = torch.nn.ModuleList() 

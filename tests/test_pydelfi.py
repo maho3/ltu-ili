@@ -1,20 +1,22 @@
 import warnings  # noqa
-warnings.filterwarnings('ignore')  # noqa
+warnings.filterwarnings('ignore')
 
-import tensorflow as tf
-from pathlib import Path
-import yaml
-import ili
-from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
-from ili.inference.pydelfi_wrappers import DelfiWrapper
-from ili.validation.runner import ValidationRunner
-from ili.inference import DelfiRunner, InferenceRunner
-from ili.dataloaders import StaticNumpyLoader, NumpyLoader
-from ili.utils import load_nde_pydelfi
 import os
-import numpy as np
-from numpy import testing
 import unittest
+from pathlib import Path
+
+import numpy as np
+import tensorflow as tf
+import yaml
+from numpy import testing
+
+import ili
+from ili.dataloaders import NumpyLoader, StaticNumpyLoader
+from ili.inference import DelfiRunner, InferenceRunner
+from ili.inference.pydelfi_wrappers import DelfiWrapper
+from ili.utils import load_nde_pydelfi
+from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
+from ili.validation.runner import ValidationRunner
 
 
 def test_toy():
@@ -136,7 +138,6 @@ def test_toy():
         theta=theta0
     )
 
-    return
 
 
 def test_prior():
@@ -212,12 +213,16 @@ def test_prior():
         assert samples.shape[1] == len(theta0)
         tf.reset_default_graph()
 
-    return
 
 
 def test_custom_priors():
-    from ili.utils import IndependentNormal, MultivariateTruncatedNormal, IndependentTruncatedNormal
-    from scipy.stats import norm, multivariate_normal
+    from scipy.stats import norm
+
+    from ili.utils import (
+        IndependentNormal,
+        IndependentTruncatedNormal,
+        MultivariateTruncatedNormal,
+    )
 
     tf.keras.backend.clear_session()
     # IndependentNormal
@@ -333,7 +338,6 @@ def test_yaml():
     runner(loader=all_loader)
     ValidationRunner.from_config("./toy_pydelfi/val.yml")
 
-    return
 
 
 def test_universal():

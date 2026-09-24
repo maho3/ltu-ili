@@ -1,7 +1,7 @@
-from typing import List
+from collections import OrderedDict
+
 import torch
-import torch.nn as nn
-from typing import OrderedDict
+from torch import nn
 
 
 class CNN1DEmbedding(nn.Module):
@@ -17,9 +17,9 @@ class CNN1DEmbedding(nn.Module):
     """
 
     def __init__(
-        self, n_filters: List[int], kernel_sizes: List[int],
-        strides: List[int], pool_sizes: List[int],
-        fc_hidden: List[int], act_fn: str = "SiLU"
+        self, n_filters: list[int], kernel_sizes: list[int],
+        strides: list[int], pool_sizes: list[int],
+        fc_hidden: list[int], act_fn: str = "SiLU"
     ):
         super().__init__()
         self.act_fn = getattr(nn, act_fn)()
@@ -42,7 +42,6 @@ class CNN1DEmbedding(nn.Module):
         layer, iconv, ipool = 0, 0, 0
         while layer < self.n_layers:
             if layer % 3 == 2:
-                pass
                 conv_model.append((f"pool{ipool}", nn.MaxPool1d(
                     kernel_size=self.pool_sizes[ipool],
                     stride=self.pool_sizes[ipool]

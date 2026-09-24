@@ -1,8 +1,8 @@
 from os.path import join
+
 from ili.dataloaders import StaticNumpyLoader
 from ili.inference.runner_sbi import SBIRunner as Runner
 from ili.validation.runner import ValidationRunner
-
 
 if __name__ == '__main__':
     model = 'npe'

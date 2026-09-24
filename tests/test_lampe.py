@@ -1,25 +1,26 @@
 import warnings  # noqa
-warnings.filterwarnings('ignore')  # noqa
+warnings.filterwarnings('ignore')
 
-import numpy as np
-from numpy import testing
-import matplotlib.pyplot as plt
-import torch
 import os
-from pathlib import Path
 import unittest
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 import yaml
+from torch.utils.data import DataLoader, TensorDataset
 
 import ili
-from ili.dataloaders import (NumpyLoader, StaticNumpyLoader)
-from ili.inference import LampeRunner, InferenceRunner
-from ili.validation.metrics import (
-    PlotSinglePosterior, PosteriorCoverage, PosteriorSamples)
-from ili.validation.runner import ValidationRunner
+from ili.dataloaders import NumpyLoader, StaticNumpyLoader
 from ili.embedding import FCN
-
-from torch.utils.data import TensorDataset
-from torch.utils.data import DataLoader
+from ili.inference import InferenceRunner, LampeRunner
+from ili.validation.metrics import (
+    PlotSinglePosterior,
+    PosteriorCoverage,
+    PosteriorSamples,
+)
+from ili.validation.runner import ValidationRunner
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Device:', device)
@@ -259,7 +260,6 @@ def test_npe(monkeypatch):
     # train the model
     _ = runner(loader=loaderND)
 
-    return
 
 
 def test_zuko(monkeypatch):
@@ -380,7 +380,6 @@ def test_yaml():
     runner(loader=all_loader)
     ValidationRunner.from_config("./toy_lampe/val.yml")
 
-    return
 
 
 def test_universal(monkeypatch):

@@ -1,25 +1,20 @@
-import numpy as np
-import h5py
 import pickle
-import torch
 from functools import partial
 
+import corner
+import h5py
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import numpy as np
+import torch
 
-import corner
 # from schwimmbad import MultiPool
-
 from sbi.inference import prepare_for_sbi, simulate_for_sbi
-import ili
-
-from synthesizer.sed import Sed
-from synthesizer.filters import FilterCollection
-from synthesizer.conversions import lnu_to_absolute_mag
-from synthesizer.load_data.load_simba import load_Simba
-
 from sbi_dust_methods import get_colour_and_lf
+from synthesizer.filters import FilterCollection
+from synthesizer.sed import Sed
 
+import ili
 
 directory = '/cosma7/data/dp004/dc-love2/codes/synthesizer-pipeline/Simba'
 
@@ -158,8 +153,8 @@ for ax, low, high in zip([ax1, ax2, ax3], [0.01, 0.3, 0.5], [0.5, 1.5, 2.0]):
     ax.set_xlim(low, high)
     ax.set_ylim(low, high)
 
-ax1.text(0.05, 0.9, '$\\tau_{\mathrm{ISM}}$', transform=ax1.transAxes)
-ax2.text(0.05, 0.9, '$\\tau_{\mathrm{BC}}$', transform=ax2.transAxes)
+ax1.text(0.05, 0.9, '$\\tau_{\\mathrm{ISM}}$', transform=ax1.transAxes)
+ax2.text(0.05, 0.9, '$\\tau_{\\mathrm{BC}}$', transform=ax2.transAxes)
 ax3.text(0.05, 0.9, '$\\alpha$', transform=ax3.transAxes)
 
 plt.savefig('sbi_multi.png', dpi=250)
@@ -262,5 +257,5 @@ plt.legend(
 # ax_lf.legend()
 
 # plt.show()
-plt.savefig(f'example.png', dpi=250)
+plt.savefig('example.png', dpi=250)
 plt.close()

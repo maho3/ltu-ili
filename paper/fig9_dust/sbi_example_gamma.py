@@ -1,22 +1,17 @@
-import numpy as np
-import h5py
-import torch
 from functools import partial
-import matplotlib.pyplot as plt
 
 import corner
-
+import h5py
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 from sbi.inference import prepare_for_sbi, simulate_for_sbi
-import ili
-
-from synthesizer.sed import Sed
-from synthesizer.filters import FilterCollection
 from synthesizer.conversions import lnu_to_absolute_mag
-from synthesizer.dust.attenuation import PowerLaw, Calzetti2000
-from synthesizer.load_data.load_simba import load_Simba
+from synthesizer.dust.attenuation import PowerLaw
+from synthesizer.filters import FilterCollection
+from synthesizer.sed import Sed
 
-from schwimmbad import MultiPool
-
+import ili
 
 directory = '/cosma7/data/dp004/dc-love2/codes/synthesizer-pipeline/Simba'
 
@@ -207,7 +202,7 @@ ax.plot(bins, x_o, label='True', zorder=3)
 # ax.set_xlim(10, 14.4)
 ax.grid(alpha=0.1)
 # ax.set_xlabel('$M_{\mathrm{halo}} \,/\, \mathrm{M_{\odot}}$')
-ax.set_ylabel('$\phi \,/\, \mathrm{Mpc^{-3} \; dex^{-1}}$')
+ax.set_ylabel(r'$\phi \,/\, \mathrm{Mpc^{-3} \; dex^{-1}}$')
 ax.legend()
 
 plt.show()

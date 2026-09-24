@@ -1,11 +1,14 @@
-import sys
-import os
-from os.path import join
 import argparse
+import os
+import sys
+import warnings
+from os.path import join
+
 import numpy as np
+
 from ili.inference import InferenceRunner
 from ili.validation.runner import ValidationRunner
-import warnings
+
 warnings.filterwarnings("ignore")
 
 if __name__ == '__main__':
@@ -27,8 +30,9 @@ if __name__ == '__main__':
 
     # DATA
     if seq:
-        from ili.dataloaders import SBISimulator
         import sbibm
+
+        from ili.dataloaders import SBISimulator
         task = sbibm.get_task("slcp")
         simulator = task.get_simulator()
         loader = SBISimulator.from_config(

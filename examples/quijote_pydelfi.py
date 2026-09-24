@@ -1,10 +1,12 @@
 import argparse
+
+# pydelfi produces a lot of DivideByZero errors on TPCF data, but still works
+import warnings
+
 from ili.dataloaders import SummarizerDatasetLoader
 from ili.inference import InferenceRunner
 from ili.validation import ValidationRunner
 
-# pydelfi produces a lot of DivideByZero errors on TPCF data, but still works
-import warnings
 warnings.filterwarnings("ignore")
 
 if __name__ == '__main__':

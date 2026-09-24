@@ -1,5 +1,7 @@
 import os
+
 import numpy as np
+
 from ili.dataloaders import SBISimulator
 from ili.inference import InferenceRunner
 from ili.validation import ValidationRunner

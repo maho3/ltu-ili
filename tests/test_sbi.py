@@ -1,30 +1,37 @@
 import warnings  # noqa
-warnings.filterwarnings('ignore')  # noqa
+warnings.filterwarnings('ignore')
 
-import numpy as np
-from numpy import testing
-import matplotlib.pyplot as plt
-import torch
-import os
-import yaml
-from pathlib import Path
-import xarray as xr
 import csv
 import json
+import os
 import unittest
-from unittest.mock import MagicMock, patch
+from pathlib import Path
+from unittest.mock import MagicMock
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+import xarray as xr
+import yaml
+from numpy import testing
 
 import ili
 from ili.dataloaders import (
-    NumpyLoader, SBISimulator, StaticNumpyLoader, SummarizerDatasetLoader,
-    TorchLoader)
-from ili.inference import (
-    SBIRunner, SBIRunnerSequential, ABCRunner, InferenceRunner)
-from ili.validation.metrics import (
-    PlotSinglePosterior, PosteriorCoverage, PosteriorSamples)
-from ili.validation.runner import ValidationRunner
+    NumpyLoader,
+    SBISimulator,
+    StaticNumpyLoader,
+    SummarizerDatasetLoader,
+    TorchLoader,
+)
 from ili.embedding import FCN
+from ili.inference import ABCRunner, InferenceRunner, SBIRunner, SBIRunnerSequential
 from ili.utils import load_nde_sbi
+from ili.validation.metrics import (
+    PlotSinglePosterior,
+    PosteriorCoverage,
+    PosteriorSamples,
+)
+from ili.validation.runner import ValidationRunner
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print('Device:', device)
@@ -33,7 +40,6 @@ print('Device:', device)
 def test_dummy(monkeypatch):
     monkeypatch.setattr(plt, 'show', lambda: None)
     print("HELLO")
-    return
 
 
 def test_snpe(monkeypatch):
@@ -222,7 +228,6 @@ def test_snpe(monkeypatch):
     unittest.TestCase().assertIsInstance(samples, np.ndarray)
     unittest.TestCase().assertListEqual(list(samples.shape), [nsamp, ntest, 3])
 
-    return
 
 
 def test_snle(monkeypatch):
@@ -369,7 +374,6 @@ def test_snle(monkeypatch):
                 x=x[:2], theta=theta[:2]
             )
 
-    return
 
 
 def test_snre():
@@ -418,7 +422,6 @@ def test_snre():
     # train the model. this outputs a posterior model and training logs
     posterior, summaries = runner(loader=loader)
 
-    return
 
 
 def test_multiround():
@@ -545,7 +548,6 @@ def test_multiround():
     )
     runner(loader=all_loader[0])
 
-    return
 
 
 def test_prior():
@@ -619,12 +621,13 @@ def test_prior():
         # calculate the log_prob for each sample
         log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
 
-    return
 
 
 def test_custom_priors():
     from ili.utils.distributions_pt import (
-        _UnivariateTruncatedNormal, _TruncatedStandardNormal)
+        _TruncatedStandardNormal,
+        _UnivariateTruncatedNormal,
+    )
 
     loc, scale, low, high, value = 0.0, 1.0, -1.0, 1.0, 0.5
     dist = _UnivariateTruncatedNormal(loc, scale, low, high)
@@ -664,14 +667,14 @@ def test_custom_priors():
     try:
         _TruncatedStandardNormal(high, low)  # bounds in wrong order
         success = False
-    except Exception as e:
+    except Exception:
         success = True
     unittest.TestCase().assertTrue(success)
     try:
         _TruncatedStandardNormal(
             low.float(), high.double())  # bounds wrong type
         success = False
-    except Exception as e:
+    except Exception:
         success = True
     unittest.TestCase().assertTrue(success)
     _TruncatedStandardNormal(0.0, 1.0)  # bounds are numbers
@@ -1035,13 +1038,11 @@ def test_yaml():
     val_runner = ValidationRunner.from_config("./toy/val_slice_np.yml")
     val_runner(loader=loader)
 
-    return
 
 
 def test_loaders():
     """Additional tests for data loaders."""
 
-    from typing import Dict, Optional
 
     # -------
     # NumpyLoader
@@ -1142,11 +1143,11 @@ def test_loaders():
             vel: np.array,
             redshift: float,
             boxsize: float,
-            cosmo_dict: Dict[str, float],
+            cosmo_dict: dict[str, float],
             name: str,
-            mass: Optional[np.array] = None,
+            mass: np.array | None = None,
             mesh: bool = True,
-            n_mesh: Optional[int] = 360,
+            n_mesh: int | None = 360,
         ):
             self.pos = pos % boxsize
             self.vel = vel
@@ -1173,7 +1174,7 @@ def test_loaders():
     ) for i in range(theta.shape[0])]
 
     # define the summary
-    class SimpleSummary():
+    class SimpleSummary:
 
         def __init__(self, bins):
             self.bins = bins
@@ -1221,12 +1222,12 @@ def test_loaders():
 
     # make and save summaries
     summary = SimpleSummary(np.arange(10))
-    if not os.path.isdir(Path('./toy') / f"{str(summary)}"):
-        os.mkdir(Path('./toy') / f"{str(summary)}")
+    if not os.path.isdir(Path('./toy') / f"{summary!s}"):
+        os.mkdir(Path('./toy') / f"{summary!s}")
     for cat in all_cat:
         s = summary(cat)
         summary.store_summary(
-            Path('./toy') / f"{str(summary)}/{str(cat)}.nc", s
+            Path('./toy') / f"{summary!s}/{cat!s}.nc", s
         )
 
     # save the parameters
@@ -1253,7 +1254,7 @@ def test_loaders():
                 return float(obj)
             if isinstance(obj, np.ndarray):
                 return obj.tolist()
-            return super(NpEncoder, self).default(obj)
+            return super().default(obj)
     with open('./toy/summarizer_train_test_split.json', 'w') as f:
         json.dump(split, f, cls=NpEncoder)
     # check calling the dataloader
@@ -1262,7 +1263,7 @@ def test_loaders():
         SummarizerDatasetLoader(
             stage='train',
             in_dir='./toy',
-            x_root=f'{str(summary)}/cat',
+            x_root=f'{summary!s}/cat',
             theta_file='summarizer_params.txt',
             train_test_split_file='summarizer_train_test_split.json',
             param_names=['t0', 't1', 't2'],
@@ -1274,7 +1275,7 @@ def test_loaders():
         SummarizerDatasetLoader(
             stage='train',
             in_dir='./toy',
-            x_root=f'{str(summary)}/cat',
+            x_root=f'{summary!s}/cat',
             theta_file='summarizer_params.txt',
             train_test_split_file='summarizer_train_test_split.json',
             param_names=['t0', 't1', 't2'],
@@ -1286,7 +1287,7 @@ def test_loaders():
     # Use a config file
     data = dict(
         in_dir='./toy',
-        x_root=f'{str(summary)}/cat',
+        x_root=f'{summary!s}/cat',
         theta_file='summarizer_params.txt',
         train_test_split_file='summarizer_train_test_split.json',
         param_names=['t0', 't1', 't2'],
@@ -1332,7 +1333,6 @@ def test_loaders():
         unittest.TestCase().assertIsInstance(p, np.ndarray)
         np.testing.assert_almost_equal(theta[i1:, :], p, decimal=5)
 
-    return
 
 
 def test_universal():
@@ -1565,7 +1565,7 @@ def test_sampler_kwargs():
 
     Uses mocks so no full model training is required.
     """
-    from ili.utils.samplers import EmceeSampler, DirectSampler, PyroSampler, VISampler
+    from ili.utils.samplers import DirectSampler, EmceeSampler, PyroSampler, VISampler
 
     # ------------------------------------------------------------------
     # EmceeSampler: unknown kwargs must raise TypeError immediately,
