@@ -50,7 +50,7 @@ class DelfiRunner(_BaseRunner):
         train_args: Optional[dict] = None,
         out_dir: Optional[Union[str, Path]] = None,
         device: str = "cpu",
-        name: Optional[str] = None,
+        name: Optional[str] = "",
     ):
         super().__init__(
             prior=prior,
@@ -60,6 +60,8 @@ class DelfiRunner(_BaseRunner):
             name=name,
         )
         self.config_ndes = config_ndes
+        if engine_kwargs is None:
+            engine_kwargs = {}
         self.engine_kwargs = engine_kwargs
         self.inference_class = DelfiWrapper
         if engine != "NLE":
