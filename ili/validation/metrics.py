@@ -138,7 +138,9 @@ class PlotSinglePosterior(_SampleBasedMetric):
         out_dir (str, Path): directory where to store outputs.
     """
 
-    def __init__(self, save_samples: bool = False, seed: Optional[int] = None, **kwargs):
+    def __init__(
+        self, save_samples: bool = False, seed: Optional[int] = None, **kwargs
+    ):
         self.save_samples = save_samples
         self.seed = seed
         super().__init__(**kwargs)
