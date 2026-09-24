@@ -17,9 +17,9 @@ class Dataset:
         nodes: list[int],
         path_to_data: Path,
         root_file: str,
-        islice_filters: dict | None = None,
-        slice_filters: dict | None = None,
-        select_filters: dict | None = None,
+        islice_filters: dict = None,
+        slice_filters: dict = None,
+        select_filters: dict = None,
     ):
         """Read dataset of summaries
 
@@ -27,9 +27,9 @@ class Dataset:
             nodes (List[int]): list of nodes to read
             path_to_data (Path): path to where summaries are stored
             root_file (str): root file for summaries to be read
-            islice_filters (Dict): dictionary of filters to slice on the summaries' coordinates indices
-            slice_filters (Dict): dictionary of filters to slice on the summaries' coordinates
-            select_filters (Dict): dictionary of filters to select on the summaries' coordinates
+            islice_filters (dict): dictionary of filters to slice on the summaries' coordinates indices
+            slice_filters (dict): dictionary of filters to slice on the summaries' coordinates
+            select_filters (dict): dictionary of filters to select on the summaries' coordinates
         """
         self.nodes = nodes
         self.path_to_data = path_to_data
