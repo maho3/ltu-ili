@@ -2,13 +2,15 @@
 Module for loading data into the ltu-ili pipeline.
 """
 
-import yaml
-from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Optional, Union
-from pathlib import Path
-import numpy as np
 import json
+from abc import ABC, abstractmethod
+from pathlib import Path
+from typing import Any
+
+import numpy as np
 import pandas as pd
+import yaml
+
 from ili.utils import Dataset, update
 
 try:
@@ -23,7 +25,7 @@ class _BaseLoader(ABC):
     @classmethod
     def from_config(
         cls,
-        config_path: Union[str, Path],
+        config_path: str | Path,
         **kwargs
     ) -> "_BaseLoader":
         """Create a data loader from a yaml config file
@@ -137,7 +139,7 @@ class _BaseLoader(ABC):
 
 
 class NumpyLoader(_BaseLoader):
-    """A class for loading in-memory data using numpy arrays.
+    r"""A class for loading in-memory data using numpy arrays.
 
     Args:
         x (np.array): Array of training data of
@@ -154,8 +156,8 @@ class NumpyLoader(_BaseLoader):
         self,
         x: np.array,
         theta: np.array,
-        xobs: Optional[np.array] = None,
-        thetafid: Optional[np.array] = None
+        xobs: np.array | None = None,
+        thetafid: np.array | None = None
     ) -> None:
         self.x = x
         self.theta = theta
@@ -225,8 +227,8 @@ class StaticNumpyLoader(NumpyLoader):
         in_dir: str,
         x_file: str,
         theta_file: str,
-        xobs_file: Optional[str] = None,
-        thetafid_file: Optional[str] = None
+        xobs_file: str | None = None,
+        thetafid_file: str | None = None
     ) -> None:
         self.in_dir = Path(in_dir)
         self.x_path = self.in_dir / x_file
@@ -277,11 +279,11 @@ class SBISimulator(NumpyLoader):
         in_dir: str,
         xobs_file: str,
         num_simulations: int,
-        simulator: Optional[callable] = None,
-        save_simulated: Optional[bool] = False,
-        x_file: Optional[str] = None,
-        theta_file: Optional[str] = None,
-        thetafid_file: Optional[str] = None,
+        simulator: callable | None = None,
+        save_simulated: bool | None = False,
+        x_file: str | None = None,
+        theta_file: str | None = None,
+        thetafid_file: str | None = None,
     ):
         self.in_dir = Path(in_dir)
         self.xobs_path = self.in_dir / xobs_file
@@ -330,7 +332,7 @@ class SBISimulator(NumpyLoader):
         """
         self.simulator = simulator
 
-    def simulate(self, proposal: Any) -> Tuple[np.array, np.array]:
+    def simulate(self, proposal: Any) -> tuple[np.array, np.array]:
         """Run simulations give a proposal and returns ($\theta, x$) pairs
         obtained from sampling the proposal and simulating.
 
@@ -390,9 +392,9 @@ class SummarizerDatasetLoader(NumpyLoader):
         x_root: str,
         theta_file: str,
         train_test_split_file: str,
-        param_names: List[str],
-        xobs_file: Optional[str] = None,
-        thetafid_file: Optional[str] = None
+        param_names: list[str],
+        xobs_file: str | None = None,
+        thetafid_file: str | None = None
     ):
         self.in_dir = Path(in_dir)
         self.nodes = self.get_nodes_for_stage(
@@ -443,7 +445,7 @@ class SummarizerDatasetLoader(NumpyLoader):
 
     def get_nodes_for_stage(
             self, stage: str,
-            train_test_split_file: str) -> List[int]:
+            train_test_split_file: str) -> list[int]:
         """Get nodes for a given stage (train, test or val)
 
         Args:
@@ -459,7 +461,7 @@ class SummarizerDatasetLoader(NumpyLoader):
         return train_test_split[stage]
 
     def load_parameters(
-        self, param_file: str, nodes: List[int], param_names: List[str]
+        self, param_file: str, nodes: list[int], param_names: list[str]
     ) -> np.array:
         """Get parameters for nodes
 
@@ -493,8 +495,8 @@ class TorchLoader(_BaseLoader):
         self,
         train_loader: DataLoader,
         val_loader: DataLoader = None,
-        xobs: Optional[Tensor] = None,
-        thetafid: Optional[Tensor] = None
+        xobs: Tensor | None = None,
+        thetafid: Tensor | None = None
     ) -> None:
         self.train_loader = train_loader
         self.val_loader = val_loader

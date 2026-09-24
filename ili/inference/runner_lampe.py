@@ -3,26 +3,28 @@ Module to train posterior inference models using the lampe package
 """
 
 import json
-import yaml
-import time
 import logging
 import pickle
+import time
+from collections.abc import Callable
 from copy import deepcopy
-from tqdm import tqdm
-import torch
-import torch.nn as nn
-from torch.utils.data import TensorDataset, DataLoader
-import lampe
 from pathlib import Path
-from typing import Dict, List, Callable, Optional
+
+import lampe
+import torch
+import yaml
+from torch import nn
 from torch.distributions import Distribution
+from torch.utils.data import DataLoader, TensorDataset
+from tqdm import tqdm
+
 from ili.dataloaders import _BaseLoader
-from ili.utils import load_from_config, LampeEnsemble, load_nde_lampe
+from ili.utils import LampeEnsemble, load_from_config, load_nde_lampe
 
 logging.basicConfig(level=logging.INFO)
 
 
-class LampeRunner():
+class LampeRunner:
     """Class to train NPE posterior inference models using the lampe package.
     Follows methodology of: https://arxiv.org/abs/1711.01861
 
@@ -44,19 +46,19 @@ class LampeRunner():
     def __init__(
         self,
         prior: Distribution,
-        nets: List[Callable],
+        nets: list[Callable],
         engine: str = 'NPE',
-        train_args: Dict = {},
+        train_args: dict = {},
         out_dir: Path = None,
         device: str = 'cpu',
         proposal: Distribution = None,
-        name: Optional[str] = "",
-        signatures: Optional[List[str]] = None,
+        name: str | None = "",
+        signatures: list[str] | None = None,
     ):
         self.prior = prior
         nets_list = []
         for net_el in nets:
-            if isinstance(net_el, List):  # for repeat nets
+            if isinstance(net_el, list):  # for repeat nets
                 for net in net_el:
                     nets_list.append(net)
             else:
@@ -227,7 +229,7 @@ class LampeRunner():
             loss_val = torch.stack(loss_val).sum().item()/count
         return loss_train, loss_val
 
-    def _train_round(self, models: List[Callable],
+    def _train_round(self, models: list[Callable],
                      train_loader: DataLoader, val_loader: DataLoader):
         """Train a single round of inference for an ensemble of models."""
 
@@ -308,7 +310,7 @@ class LampeRunner():
         return posterior_ensemble, summaries
 
     def _save_models(self, posterior_ensemble: LampeEnsemble,
-                     summaries: List[Dict]):
+                     summaries: list[dict]):
         """Save models to file."""
 
         logging.info(f"Saving model to {self.out_dir}")

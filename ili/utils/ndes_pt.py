@@ -16,24 +16,26 @@ MLP and ResNet classifiers (mlp, resnet) have the configuration:
 """
 
 import logging
-
-import numpy as np
-import sbi
-import torch
-from torch import nn
-import lampe
-import zuko
 import warnings
-from tqdm import tqdm
-from typing import List, Any, Optional
 from copy import deepcopy
+from typing import Any
+
+import lampe
+import numpy as np
+import torch
+import zuko
+from torch import nn
 from torch.distributions import Distribution
 from torch.distributions.transforms import (
-    identity_transform, AffineTransform, Transform)
+    AffineTransform,
+    Transform,
+    identity_transform,
+)
+from tqdm import tqdm
 
 try:  # sbi > 0.22.0
-    from sbi.neural_nets import posterior_nn
     from sbi import neural_nets
+    from sbi.neural_nets import posterior_nn
 except ImportError:  # sbi <= 0.22.0
     from sbi import utils as neural_nets
 
@@ -224,7 +226,7 @@ class LampeEnsemble(nn.Module):
 
     def __init__(
         self,
-        posteriors: List[LampeNPE],
+        posteriors: list[LampeNPE],
         weights: torch.Tensor
     ):
         super().__init__()
@@ -280,7 +282,7 @@ class LampeEnsemble(nn.Module):
 def load_nde_lampe(
     model: str,
     embedding_net: nn.Module = nn.Identity(),
-    device: Optional[str] = 'cpu',
+    device: str | None = 'cpu',
     x_normalize: bool = True,
     theta_normalize: bool = True,
     engine: str = 'NPE',
@@ -387,7 +389,7 @@ def load_nde_lampe(
     return net_constructor
 
 
-class _Lampe_Net_Constructor():
+class _Lampe_Net_Constructor:
     """
     Simple, functional wrapper to add an embedding network
     to a Lampe NPE model.

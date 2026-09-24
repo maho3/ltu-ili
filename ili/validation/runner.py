@@ -5,13 +5,14 @@ Module to run validation metrics on posterior inference models
 import logging
 import pickle
 import time
-import yaml
-import matplotlib as mpl
 from pathlib import Path
-from typing import List, Optional, Union, Dict
+
+import matplotlib as mpl
+import yaml
+
 from ili.dataloaders import _BaseLoader
-from ili.validation.metrics import _BaseMetric
 from ili.utils import load_from_config, update
+from ili.validation.metrics import _BaseMetric
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
@@ -19,7 +20,9 @@ try:
     try:  # sbi > 0.22.0
         from sbi.inference.posteriors import EnsemblePosterior
     except ImportError:  # sbi < 0.22.0
-        from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
+        from sbi.utils.posterior_ensemble import (
+            NeuralPosteriorEnsemble as EnsemblePosterior,
+        )
     interface = 'torch'
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
@@ -29,7 +32,7 @@ except ModuleNotFoundError:
 logging.basicConfig(level=logging.INFO)
 
 
-class ValidationRunner():
+class ValidationRunner:
     """Class to measure validation metrics of posterior inference models
 
     Args:
@@ -48,11 +51,11 @@ class ValidationRunner():
     def __init__(
         self,
         posterior: ModelClass,  # see imports
-        metrics: Dict[str, _BaseMetric],
-        out_dir: Union[str, Path],
-        ensemble_mode: Optional[bool] = True,
-        name: Optional[str] = "",
-        signatures: Optional[List[str]] = [],
+        metrics: dict[str, _BaseMetric],
+        out_dir: str | Path,
+        ensemble_mode: bool | None = True,
+        name: str | None = "",
+        signatures: list[str] | None = [],
     ):
         self.posterior = posterior
         self.metrics = metrics
@@ -67,7 +70,7 @@ class ValidationRunner():
     @classmethod
     def from_config(
         cls,
-        config_path: Union[str, Path],
+        config_path: str | Path,
         **kwargs
     ) -> "ValidationRunner":
         """Create a validation runner from a yaml config file
@@ -132,7 +135,7 @@ class ValidationRunner():
         )
 
     @classmethod
-    def load_posterior_sbi(cls, path: Union[str, Path]):
+    def load_posterior_sbi(cls, path: str | Path):
         """Load a pretrained sbi posterior from file
 
         Args:

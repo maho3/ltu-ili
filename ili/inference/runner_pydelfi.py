@@ -2,20 +2,21 @@
 Module to train posterior inference models using the pyDELFI package
 """
 
-import os
-import yaml
 import json
-import time
 import logging
-import numpy as np
-import tensorflow as tf
+import time
 import warnings
 from pathlib import Path
-from typing import Dict, Any, List, Union, Optional
-from ili.utils import load_from_config, update
-from .pydelfi_wrappers import DelfiWrapper
-from .base import _BaseRunner
+from typing import Any
 
+import numpy as np
+import tensorflow as tf
+import yaml
+
+from ili.utils import load_from_config, update
+
+from .base import _BaseRunner
+from .pydelfi_wrappers import DelfiWrapper
 
 # Deprecation warning for the entire module
 warnings.warn(
@@ -41,13 +42,13 @@ class DelfiRunner(_BaseRunner):
     def __init__(
         self,
         prior: Any,
-        config_ndes: List[Dict],
+        config_ndes: list[dict],
         engine: str = 'NLE',
-        engine_kwargs: Dict = {},
-        train_args: Dict = {},
-        out_dir: Union[str, Path] = None,
+        engine_kwargs: dict = {},
+        train_args: dict = {},
+        out_dir: str | Path = None,
         device: str = 'cpu',
-        name: Optional[str] = "",
+        name: str | None = "",
     ):
         super().__init__(
             prior=prior,
@@ -115,7 +116,7 @@ class DelfiRunner(_BaseRunner):
             name=name,
         )
 
-    def _save_models(self, posterior: DelfiWrapper, summary: Dict[str, Any]):
+    def _save_models(self, posterior: DelfiWrapper, summary: dict[str, Any]):
         """Save the trained models to file"""
         logging.info(f"Saving models to {self.out_dir}")
         str_p = self.name + "posterior.pkl"

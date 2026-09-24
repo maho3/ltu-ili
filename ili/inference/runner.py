@@ -2,20 +2,22 @@
 """
 Module to contain a universal inference engine configuration for all backends.
 """
-import yaml
-from typing import Any, Union
 from pathlib import Path
+from typing import Any
+
+import yaml
+
 from ili.utils import update
 
 try:
-    from ili.inference import SBIRunner, SBIRunnerSequential, LampeRunner
+    from ili.inference import LampeRunner, SBIRunner, SBIRunnerSequential
     interface = 'torch'
 except ImportError:
     from ili.inference import DelfiRunner
     interface = 'tensorflow'
 
 
-class InferenceRunner():
+class InferenceRunner:
     """ A universal class to train posterior inference models using either
         the sbi/pydelfi/lampe backends. Provides a univeral interface to configure
         either backend.
@@ -33,7 +35,7 @@ class InferenceRunner():
         backend: str,
         engine: str,
         prior: Any,
-        out_dir: Union[str, Path] = None,
+        out_dir: str | Path = None,
         device: str = 'cpu',
         name: str = '',
         **kwargs

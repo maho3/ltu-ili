@@ -11,9 +11,9 @@ All flow-based models (maf) have the configuration:
 
 """
 
+
 import pydelfi
 import tensorflow as tf
-import logging
 
 
 def load_nde_pydelfi(

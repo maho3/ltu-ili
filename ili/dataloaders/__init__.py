@@ -1,4 +1,8 @@
 from .loaders import (
-    _BaseLoader, NumpyLoader, StaticNumpyLoader,
-    SummarizerDatasetLoader, SBISimulator, TorchLoader
+    NumpyLoader,
+    SBISimulator,
+    StaticNumpyLoader,
+    SummarizerDatasetLoader,
+    TorchLoader,
+    _BaseLoader,
 )

@@ -1,6 +1,6 @@
 
-from typing import Dict, Optional, Any, Union
 from pathlib import Path
+from typing import Any
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
@@ -12,14 +12,14 @@ except ModuleNotFoundError:
     interface = 'tensorflow'
 
 
-class _BaseRunner():
+class _BaseRunner:
     def __init__(
         self,
         prior: Any,
-        train_args: Dict = {},
-        out_dir: Union[str, Path] = None,
+        train_args: dict = {},
+        out_dir: str | Path = None,
         device: str = 'cpu',
-        name: Optional[str] = "",
+        name: str | None = "",
     ):
         self.prior = prior
         self.train_args = train_args

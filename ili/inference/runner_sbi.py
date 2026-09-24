@@ -3,22 +3,26 @@ Module to train posterior inference models using the sbi package
 """
 
 import json
-import yaml
-import time
 import logging
 import pickle
-import torch
-import torch.nn as nn
-import numpy as np
+import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Dict, List, Callable, Optional, Union
-from torch.distributions import Distribution
+
+import torch
+import yaml
 from sbi.inference import NeuralInference
+from torch import nn
+from torch.distributions import Distribution
+
 from .base import _BaseRunner
+
 try:  # sbi > 0.22.0
     from sbi.inference.posteriors import EnsemblePosterior
 except ImportError:  # sbi < 0.22.0
-    from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
+    from sbi.utils.posterior_ensemble import (
+        NeuralPosteriorEnsemble as EnsemblePosterior,
+    )
 
 from ili.dataloaders import _BaseLoader
 from ili.utils import load_class, load_from_config, load_nde_sbi, update
@@ -52,13 +56,13 @@ class SBIRunner(_BaseRunner):
         self,
         prior: Distribution,
         engine: str,
-        nets: List[Callable],
-        train_args: Dict = {},
-        out_dir: Union[str, Path] = None,
+        nets: list[Callable],
+        train_args: dict = {},
+        out_dir: str | Path = None,
         device: str = 'cpu',
         proposal: Distribution = None,
-        name: Optional[str] = "",
-        signatures: Optional[List[str]] = None,
+        name: str | None = "",
+        signatures: list[str] | None = None,
     ):
         super().__init__(
             prior=prior,
@@ -75,7 +79,7 @@ class SBIRunner(_BaseRunner):
         # Below, to handle the repeats
         nets_list = []
         for net_el in nets:
-            if isinstance(net_el, List):
+            if isinstance(net_el, list):
                 for net in net_el:
                     nets_list.append(net)
             else:
@@ -205,9 +209,9 @@ class SBIRunner(_BaseRunner):
             raise ValueError(
                 f"Model class {self.engine} not supported with SBIRunner.")
 
-    def _train_round(self, models: List[NeuralInference],
+    def _train_round(self, models: list[NeuralInference],
                      x: torch.Tensor, theta: torch.Tensor,
-                     proposal: Optional[Distribution]):
+                     proposal: Distribution | None):
         """Train a single round of inference for an ensemble of models."""
 
         # append data to models
@@ -298,7 +302,7 @@ class SBIRunner(_BaseRunner):
         return posterior_ensemble, summaries
 
     def _save_models(self, posterior_ensemble: EnsemblePosterior,
-                     summaries: List[Dict]):
+                     summaries: list[dict]):
         """Save models to file."""
 
         logging.info(f"Saving model to {self.out_dir}")
@@ -441,10 +445,10 @@ class ABCRunner(_BaseRunner):
             self,
             prior: Distribution,
             engine: str,
-            train_args: Dict = {},
-            out_dir: Union[str, Path] = None,
+            train_args: dict = {},
+            out_dir: str | Path = None,
             device: str = 'cpu',
-            name: Optional[str] = "",
+            name: str | None = "",
     ):
         super().__init__(
             prior=prior,

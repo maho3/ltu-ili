@@ -5,24 +5,27 @@ and pydelfi backends, and pyro samplers only for the sbi backend.
 """
 
 import os
-import numpy as np
-import emcee
 from abc import ABC
-from typing import Any
 from math import ceil
+from typing import Any
+
+import emcee
+import numpy as np
 
 try:
     import torch
+    from sbi.inference.posteriors import DirectPosterior, MCMCPosterior, VIPosterior
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
-    from sbi.inference.posteriors import (
-        DirectPosterior, MCMCPosterior, VIPosterior)
     from sbi.inference.potentials.posterior_based_potential import (
-        posterior_estimator_based_potential)
+        posterior_estimator_based_potential,
+    )
     ModelClass = NeuralPosterior
     try:  # sbi > 0.22.0
         from sbi.inference.posteriors import EnsemblePosterior
     except ImportError:  # sbi < 0.22.0
-        from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
+        from sbi.utils.posterior_ensemble import (
+            NeuralPosteriorEnsemble as EnsemblePosterior,
+        )
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
     ModelClass = DelfiWrapper

@@ -1,27 +1,41 @@
-from .import_utils import load_class, load_from_config, update
 from .dataset import Dataset
+from .import_utils import load_class, load_from_config, update
 
 loaded = False
 try:
     from .distributions_pt import (
-        Uniform, IndependentNormal, IndependentBeta, IndependentCauchy,
-        IndependentChi2, IndependentExponential, IndependentFisherSnedecor,
-        IndependentGamma, IndependentGumbel, IndependentHalfCauchy,
-        IndependentHalfNormal, IndependentLaplace,
-        IndependentLogNormal, IndependentPareto, IndependentStudentT,
-        IndependentVonMises, IndependentWeibull,
-        MultivariateNormal, LowRankMultivariateNormal,
-        IndependentTruncatedNormal
+        IndependentBeta,
+        IndependentCauchy,
+        IndependentChi2,
+        IndependentExponential,
+        IndependentFisherSnedecor,
+        IndependentGamma,
+        IndependentGumbel,
+        IndependentHalfCauchy,
+        IndependentHalfNormal,
+        IndependentLaplace,
+        IndependentLogNormal,
+        IndependentNormal,
+        IndependentPareto,
+        IndependentStudentT,
+        IndependentTruncatedNormal,
+        IndependentVonMises,
+        IndependentWeibull,
+        LowRankMultivariateNormal,
+        MultivariateNormal,
+        Uniform,
     )
-    from .ndes_pt import load_nde_sbi, load_nde_lampe, LampeNPE, LampeEnsemble
+    from .ndes_pt import LampeEnsemble, LampeNPE, load_nde_lampe, load_nde_sbi
     loaded = True
 except ImportError:
     pass
 
 try:
     from .distributions_tf import (
-        Uniform, IndependentNormal,
-        MultivariateTruncatedNormal, IndependentTruncatedNormal
+        IndependentNormal,
+        IndependentTruncatedNormal,
+        MultivariateTruncatedNormal,
+        Uniform,
     )
     from .ndes_tf import load_nde_pydelfi
     loaded = True

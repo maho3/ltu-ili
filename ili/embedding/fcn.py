@@ -2,10 +2,10 @@
 Module providing compression networks for data.
 """
 
-from typing import List
+from collections import OrderedDict
+
 import torch
-import torch.nn as nn
-from typing import OrderedDict
+from torch import nn
 
 
 class FCN(nn.Module):
@@ -18,9 +18,9 @@ class FCN(nn.Module):
     """
 
     def __init__(
-        self, n_hidden: List[int], act_fn: str = "SiLU", n_input=None
+        self, n_hidden: list[int], act_fn: str = "SiLU", n_input=None
     ):
-        super(FCN, self).__init__()
+        super().__init__()
         self.act_fn = getattr(nn, act_fn)()
         self.n_layers = len(n_hidden)
         self.n_hidden = n_hidden

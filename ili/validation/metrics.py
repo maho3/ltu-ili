@@ -2,28 +2,30 @@
 Metrics for evaluating the performance of inference engines.
 """
 
+import logging
+from abc import ABC
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import tqdm
-from typing import List, Optional, Union
-from abc import ABC
-from pathlib import Path
-from scipy.stats import gaussian_kde
-import logging
 import tarp
-from ili.utils.samplers import (EmceeSampler, PyroSampler,
-                                DirectSampler, VISampler)
+import tqdm
+from scipy.stats import gaussian_kde
+
+from ili.utils.samplers import DirectSampler, EmceeSampler, PyroSampler, VISampler
 
 try:
-    from sbi.inference.posteriors.base_posterior import NeuralPosterior
     from sbi.inference.posteriors import DirectPosterior
+    from sbi.inference.posteriors.base_posterior import NeuralPosterior
     try:  # sbi > 0.22.0
         from sbi.inference.posteriors import EnsemblePosterior
     except ImportError:  # sbi < 0.22.0
-        from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
-    from ili.utils.ndes_pt import LampeNPE, LampeEnsemble
+        from sbi.utils.posterior_ensemble import (
+            NeuralPosteriorEnsemble as EnsemblePosterior,
+        )
+    from ili.utils.ndes_pt import LampeEnsemble, LampeNPE
     ModelClass = NeuralPosterior
     backend = 'torch'
 except ModuleNotFoundError:
@@ -42,8 +44,8 @@ class _BaseMetric(ABC):
 
     def __init__(
         self,
-        labels: Optional[List[str]] = None,
-        out_dir: Optional[Union[str, Path]] = None,
+        labels: list[str] | None = None,
+        out_dir: str | Path | None = None,
     ):
         """Construct the base metric."""
         self.out_dir = out_dir
@@ -68,8 +70,8 @@ class _SampleBasedMetric(_BaseMetric):
         num_samples: int,
         sample_method: str = 'emcee',
         sample_params: dict = {},
-        labels: Optional[List[str]] = None,
-        out_dir: Optional[Path] = None,
+        labels: list[str] | None = None,
+        out_dir: Path | None = None,
     ):
         super().__init__(labels, out_dir)
         self.num_samples = num_samples
@@ -102,13 +104,7 @@ class _SampleBasedMetric(_BaseMetric):
             # First case: we have a EnsemblePosterior instance
             # We only need to check the first element
             if (isinstance(posterior, EnsemblePosterior) and
-                    isinstance(posterior.posteriors[0], DirectPosterior)):
-                return DirectSampler(posterior)
-            # Second case (when ValidationRunner.ensemble_mode = False)
-            elif isinstance(posterior, DirectPosterior):
-                return DirectSampler(posterior)
-            # Third case: we have a Lampe NPE poterior
-            elif (isinstance(posterior, LampeNPE) or
+                    isinstance(posterior.posteriors[0], DirectPosterior)) or isinstance(posterior, DirectPosterior) or (isinstance(posterior, LampeNPE) or
                   isinstance(posterior, LampeEnsemble)):
                 return DirectSampler(posterior)
             else:
@@ -141,16 +137,16 @@ class PlotSinglePosterior(_SampleBasedMetric):
     def __call__(
         self,
         posterior: ModelClass,
-        x: Optional[np.array] = None,
-        theta: Optional[np.array] = None,
-        x_obs: Optional[np.array] = None,
-        theta_fid: Optional[np.array] = None,
-        signature: Optional[str] = "",
-        lower: Optional[List[float]] = None,
-        upper: Optional[List[float]] = None,
-        plot_kws: Optional[dict] = {},
-        grid: Optional[sns.PairGrid] = None,
-        name: Optional[str] = None,
+        x: np.array | None = None,
+        theta: np.array | None = None,
+        x_obs: np.array | None = None,
+        theta_fid: np.array | None = None,
+        signature: str | None = "",
+        lower: list[float] | None = None,
+        upper: list[float] | None = None,
+        plot_kws: dict | None = {},
+        grid: sns.PairGrid | None = None,
+        name: str | None = None,
         **grid_kws
     ):
         """Given a posterior and test data, plot the inferred posterior of a
@@ -305,10 +301,10 @@ class PosteriorSamples(_SampleBasedMetric):
         posterior: ModelClass,
         x: np.array,
         theta: np.array = None,
-        signature: Optional[str] = "",
+        signature: str | None = "",
         # here for debugging purpose, otherwise error in runner.py line 123
-        x_obs: Optional[np.array] = None,
-        theta_fid: Optional[np.array] = None,
+        x_obs: np.array | None = None,
+        theta_fid: np.array | None = None,
         **kwargs
     ):
         """Given a posterior and test data, infer posterior samples of a
@@ -349,7 +345,7 @@ class PosteriorCoverage(PosteriorSamples):
         save_samples (bool): whether to save posterior samples
     """
 
-    def __init__(self, plot_list: List[str], save_samples: bool = False, **kwargs):
+    def __init__(self, plot_list: list[str], save_samples: bool = False, **kwargs):
         self.plot_list = plot_list
         self.save_samples = save_samples
         super().__init__(**kwargs)
@@ -517,9 +513,9 @@ class PosteriorCoverage(PosteriorSamples):
         self, posterior_samples: np.array, theta: np.array,
         signature: str,
         references: str = "random", metric: str = "euclidean",
-        bootstrap: Optional[bool] = True, norm: Optional[bool] = True,
-        num_alpha_bins: Optional[int] = None,
-        num_bootstrap: Optional[int] = 100
+        bootstrap: bool | None = True, norm: bool | None = True,
+        num_alpha_bins: int | None = None,
+        num_bootstrap: int | None = 100
     ) -> plt.Figure:
         """
         Plots the TARP credibility metric for the given posterior samples
@@ -614,7 +610,7 @@ class PosteriorCoverage(PosteriorSamples):
         ax.hist(logprobs, bins=20)
         ax.axvline(mean, color="b", linestyle="--", label='mean')
         ax.axvline(median, color="r", linestyle="--", label='median')
-        ax.set_xlabel("Log-likelihood $\mathbb{E}[\log q(\\theta_o | x_o)]$")
+        ax.set_xlabel("Log-likelihood $\\mathbb{E}[\\log q(\\theta_o | x_o)]$")
         ax.set_ylabel("Counts")
         ax.set_title(f"Mean: {mean:.3e}, "
                      f"Median: {median:.3e}", fontsize=14)
@@ -639,12 +635,12 @@ class PosteriorCoverage(PosteriorSamples):
         posterior: ModelClass,
         x: np.array,
         theta: np.array,
-        x_obs: Optional[np.array] = None,
-        theta_fid: Optional[np.array] = None,
-        signature: Optional[str] = "",
+        x_obs: np.array | None = None,
+        theta_fid: np.array | None = None,
+        signature: str | None = "",
         references: str = "random",
         metric: str = "euclidean",
-        num_alpha_bins: Union[int, None] = None,
+        num_alpha_bins: int | None = None,
         num_bootstrap: int = 100,
         norm: bool = True,
         bootstrap: bool = True

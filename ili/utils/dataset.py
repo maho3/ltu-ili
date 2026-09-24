@@ -6,20 +6,20 @@ Forked code from https://github.com/florpi/ili-summarizer/blob/main/summarizer/d
 """
 
 from pathlib import Path
-from typing import List, Dict
-import xarray as xr
+
 import numpy as np
+import xarray as xr
 
 
 class Dataset:
     def __init__(
         self,
-        nodes: List[int],
+        nodes: list[int],
         path_to_data: Path,
         root_file: str,
-        islice_filters: Dict = None,
-        slice_filters: Dict = None,
-        select_filters: Dict = None,
+        islice_filters: dict = None,
+        slice_filters: dict = None,
+        select_filters: dict = None,
     ):
         """Read dataset of summaries
 
@@ -50,7 +50,7 @@ class Dataset:
     def __len__(self,) -> int:
         return len(self.nodes)
 
-    def transform_filters_to_slices(self, filters: Dict) -> Dict:
+    def transform_filters_to_slices(self, filters: dict) -> dict:
         """Transform a dictionary of filters into slices that select from min to max
 
         Args:
@@ -64,7 +64,7 @@ class Dataset:
             filters[filter] = slice(min, max)
         return filters
 
-    def transform_filters_to_islices(self, filters: Dict) -> Dict:
+    def transform_filters_to_islices(self, filters: dict) -> dict:
         """Transform a dictionary of filters into slices that select from min index to max index in step
 
         Args:

@@ -4,11 +4,13 @@ interface.
 """
 
 import pickle
+from collections.abc import Callable
+from math import ceil
+
 import emcee
 import numpy as np
-from math import ceil
-from typing import Dict, List, Callable, Optional, Union
 from pydelfi.delfi import Delfi
+
 from ili.utils import load_nde_pydelfi
 
 
@@ -26,8 +28,8 @@ class DelfiWrapper(Delfi):
 
     def __init__(
         self,
-        config_ndes: List[Dict],
-        name: Optional[str] = '',
+        config_ndes: list[dict],
+        name: str | None = '',
         **kwargs
     ):
         super().__init__(**kwargs)
@@ -70,7 +72,7 @@ class DelfiWrapper(Delfi):
 
     def sample(
         self,
-        sample_shape: Union[int, tuple],
+        sample_shape: int | tuple,
         x: np.array,
         show_progress_bars=False,
         num_chains: int = 10,
@@ -137,10 +139,10 @@ class DelfiWrapper(Delfi):
 
     @staticmethod
     def load_ndes(
-        config_ndes: List[Dict],
+        config_ndes: list[dict],
         n_params: int,
         n_data: int,
-    ) -> List[Callable]:
+    ) -> list[Callable]:
         """Initialize the neural density estimators from configuration yamls.
 
         Args:

@@ -9,17 +9,15 @@ distributions in torch.distributions, so we wrap them here.
 """
 
 
-from torch.distributions.utils import broadcast_all
-from torch.distributions import constraints, Distribution
-from numbers import Number
 import math
-import torch
-from torch.distributions import Independent
-from .import_utils import load_class
+from numbers import Number
 
 # Not used directly, but raises error if tried loading with wrong backend
-import sbi
+import torch
+from torch.distributions import Distribution, Independent, constraints
+from torch.distributions.utils import broadcast_all
 
+from .import_utils import load_class
 
 # These distributions will be loaded and wrapped
 dist_names = [

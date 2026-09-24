@@ -4,8 +4,8 @@ and make their configuration easier in the sbi interface.
 """
 
 import numpy as np
+from pydelfi.priors import TruncatedGaussian, Uniform
 from scipy.stats import norm
-from pydelfi.priors import Uniform, TruncatedGaussian
 
 
 class Uniform(Uniform):
@@ -17,7 +17,7 @@ class Uniform(Uniform):
         super().__init__(lower=low, upper=high)
 
 
-class IndependentNormal():
+class IndependentNormal:
     def __init__(self, loc, scale, device='cpu'):
         loc, scale = map(np.ascontiguousarray, [loc, scale])
         self.loc = loc

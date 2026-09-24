@@ -3,7 +3,7 @@ Module with tools for importing classes from modules and initializing them
 """
 
 import importlib
-from typing import Dict, Any
+from typing import Any
 
 
 def load_class(
@@ -23,7 +23,7 @@ def load_class(
     return getattr(module, class_name)
 
 
-def load_from_config(config: Dict) -> Any:
+def load_from_config(config: dict) -> Any:
     """General tool to load and initialize any class from any module with
     given configuration.
 
@@ -38,7 +38,7 @@ def load_from_config(config: Dict) -> Any:
     return load_class(config['module'], config['class'])(**config["args"])
 
 
-def update(config: Dict, **kwargs) -> Dict:
+def update(config: dict, **kwargs) -> dict:
     """Recursively update a dictionary with another dictionary.
 
     Args:
