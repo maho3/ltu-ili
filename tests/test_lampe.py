@@ -102,7 +102,7 @@ def test_npe(monkeypatch):
     )
 
     # train the model
-    posterior, summaries = runner(loader=loader)
+    posterior, _ = runner(loader=loader)
 
     # ~~~ Test a full runthrough ~~~
 
@@ -116,7 +116,7 @@ def test_npe(monkeypatch):
         proposal=None,
         out_dir="./toy_lampe"
     )
-    posterior, summaries = runner(loader=loader)
+    posterior, _ = runner(loader=loader)
 
     # choose a random input
     ind = np.random.randint(len(theta))
@@ -128,7 +128,7 @@ def test_npe(monkeypatch):
     _ = posterior.posteriors[0].sample(0, x[ind])  # test input casting
 
     # calculate the log_prob for each sample
-    log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
+    posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
 
     # use ltu-ili's built-in validation metrics to plot the posterior
     if os.path.isfile('./toy_lampe/single_samples.npy'):
@@ -139,7 +139,7 @@ def test_npe(monkeypatch):
         sample_method='direct', labels=[f'$\\theta_{i}$' for i in range(3)],
         seed=1, save_samples=True
     )
-    fig = metric(
+    metric(
         posterior=posterior,
         x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta
@@ -154,7 +154,7 @@ def test_npe(monkeypatch):
         plot_list=["tarp", "predictions", "coverage", "histogram", "logprob"],
         save_samples=True,
     )
-    fig = metric(
+    metric(
         posterior=posterior,
         x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta, bootstrap=False,
@@ -205,7 +205,7 @@ def test_npe(monkeypatch):
         proposal=None,
         out_dir="./toy_lampe"
     )
-    posterior, summaries = runner(loader=loader, seed=12345)  # test seed
+    posterior, _ = runner(loader=loader, seed=12345)  # test seed
     prior = proposal  # reset prior
 
     # test TorchLoader
@@ -229,7 +229,7 @@ def test_npe(monkeypatch):
         proposal=None,
         out_dir=None
     )
-    posterior, summaries = runner(loader=loader)
+    posterior, _ = runner(loader=loader)
 
     # test input shape casting of FCN
     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
@@ -311,34 +311,34 @@ def test_yaml():
     np.save("toy_lampe/x.npy", x)
 
     # Yaml file for data
-    data = dict(
-        in_dir='./toy_lampe',
-        x_file='x.npy',
-        theta_file='theta.npy'
-    )
+    data = {
+        'in_dir': './toy_lampe',
+        'x_file': 'x.npy',
+        'theta_file': 'theta.npy'
+    }
     with open('./toy_lampe/data.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for infer
-    data = dict(
-        proposal={
+    data = {
+        'proposal': {
             'module': 'ili.utils',
             'class': 'Uniform',
             'args': {'low': [0, 0, 0], 'high': [1, 1, 1]},
         },
-        prior={
+        'prior': {
             'module': 'ili.utils',
             'class': 'IndependentNormal',
             'args': {'loc': [0, 0, 0], 'scale': [0.1, 0.1, 0.1]},
         },
-        model={
+        'model': {
             'engine': 'NPE',
             'nets': config_ndes,
         },
-        train_args={'batch_size': 32, 'epochs': 5},
-        out_dir='toy_lampe',
-        device='cpu',
-    )
+        'train_args': {'batch_size': 32, 'epochs': 5},
+        'out_dir': 'toy_lampe',
+        'device': 'cpu',
+    }
     with open('./toy_lampe/infer_noname.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
     data['model']['name'] = 'test_lampe'
@@ -353,21 +353,21 @@ def test_yaml():
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for validation
-    data = dict(
-        posterior_file='posterior.pkl',
-        out_dir='./toy_lampe/',
-        labels=['t1', 't2', 't3'],
-        metrics={
+    data = {
+        'posterior_file': 'posterior.pkl',
+        'out_dir': './toy_lampe/',
+        'labels': ['t1', 't2', 't3'],
+        'metrics': {
             'single_example': {
                 'module': 'ili.validation.metrics',
                 'class': 'PlotSinglePosterior',
-                'args': dict(
-                    num_samples=20,
-                    sample_method='direct'
-                )
+                'args': {
+                    'num_samples': 20,
+                    'sample_method': 'direct'
+                }
             }
         }
-    )
+    }
     with open('./toy_lampe/val.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
@@ -395,7 +395,7 @@ def test_universal(monkeypatch):
         return y
 
     theta = np.random.rand(100, 3)  # 100 simulations, 3 parameters
-    x = np.array([simulator(t) for t in theta])
+    np.array([simulator(t) for t in theta])
 
     # define a prior
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)

@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
     if args.inf == 'mcabc':
         from ili.inference import ABCRunner
-        train_args = dict(num_simulations=args.N, quantile=100/args.N)
+        train_args = {'num_simulations': args.N, 'quantile': 100/args.N}
         runner = ABCRunner.from_config(
             join(cfgdir, 'infer', f'{cfgname}.yaml'),
             out_dir=out_dir,
@@ -68,19 +68,19 @@ if __name__ == '__main__':
         np.save(join(out_dir, 'single_samples.npy'), samples)
         sys.exit(0)
 
-    kwargs = dict(
-        out_dir=out_dir
-    )
+    kwargs = {
+        'out_dir': out_dir
+    }
     if seq:
-        kwargs['model'] = dict(engine=args.inf.upper())
+        kwargs['model'] = {'engine': args.inf.upper()}
     runner = InferenceRunner.from_config(
         join(cfgdir, 'infer', f'{cfgname}.yaml'), **kwargs)
     runner(loader=loader)
 
     # VALIDATION
-    kwargs = dict(
-        out_dir=out_dir
-    )
+    kwargs = {
+        'out_dir': out_dir
+    }
     val_runner = ValidationRunner.from_config(
         join(cfgdir, 'val', f'{cfgname}.yaml'), **kwargs)
     val_runner(loader=loader)

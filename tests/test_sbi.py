@@ -105,9 +105,7 @@ def test_snpe(monkeypatch):
     )
 
     # train the model
-    posterior, summaries = runner(loader=loader)
-
-    signatures = posterior.signatures
+    posterior, _ = runner(loader=loader)
 
     # choose a random input
     ind = np.random.randint(len(theta))
@@ -121,7 +119,7 @@ def test_snpe(monkeypatch):
     samples = posterior.sample((nsamples,), torch.Tensor(x[ind]).to(device))
 
     # calculate the log_prob for each sample
-    log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
+    posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
 
     # use ltu-ili's built-in validation metrics to plot the posterior
     if os.path.isfile('./toy/single_samples.npy'):
@@ -143,7 +141,7 @@ def test_snpe(monkeypatch):
         x_obs=x[ind], theta_fid=theta[ind],
         x=x, theta=theta,
         lower=[0, 0, 0], upper=[1, 1, 1],
-        plot_kws=dict(fill=True),
+        plot_kws={'fill': True},
         name='M2',
         grid=fig
     )
@@ -297,9 +295,7 @@ def test_snle(monkeypatch):
         )
 
         # train the model. this outputs a posterior model and training logs
-        posterior, summaries = runner(loader=loader, seed=1)
-
-        signatures = posterior.signatures
+        posterior, _ = runner(loader=loader, seed=1)
 
         # choose a random input
         ind = np.random.randint(len(theta))
@@ -313,7 +309,7 @@ def test_snle(monkeypatch):
         ).detach().cpu().numpy()
 
         # calculate the potential (prop. to log_prob) for each sample
-        log_prob = posterior.log_prob(
+        posterior.log_prob(
             samples,
             x[ind]
         ).detach().cpu().numpy()
@@ -326,7 +322,7 @@ def test_snle(monkeypatch):
             labels=[f'$\\theta_{i}$' for i in range(npar)],
             seed=1, save_samples=True,
         )
-        fig = metric(
+        metric(
             posterior=posterior,
             x_obs=x[ind], theta_fid=theta[ind],
             x=x, theta=theta
@@ -339,7 +335,7 @@ def test_snle(monkeypatch):
                            'n_particles': 32, 'learning_rate': 0.01},
             labels=[f'$\\theta_{i}$' for i in range(npar)]
         )
-        fig = metric(
+        metric(
             posterior=posterior,
             x_obs=x[ind], theta_fid=theta[ind],
             x=x, theta=theta
@@ -420,7 +416,7 @@ def test_snre():
     )
 
     # train the model. this outputs a posterior model and training logs
-    posterior, summaries = runner(loader=loader)
+    runner(loader=loader)
 
 
 
@@ -607,7 +603,7 @@ def test_prior():
         )
 
         # train the model. this outputs a posterior model and training logs
-        posterior, summaries = runner(loader=loader)
+        posterior, _ = runner(loader=loader)
 
         # choose a random input
         ind = np.random.randint(len(theta))
@@ -619,7 +615,7 @@ def test_prior():
             (nsamples,), torch.Tensor(x[ind]).to(device))
 
         # calculate the log_prob for each sample
-        log_prob = posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
+        posterior.log_prob(samples, torch.Tensor(x[ind]).to(device))
 
 
 
@@ -667,14 +663,14 @@ def test_custom_priors():
     try:
         _TruncatedStandardNormal(high, low)  # bounds in wrong order
         success = False
-    except Exception:
+    except Exception:  # noqa: BLE001
         success = True
     unittest.TestCase().assertTrue(success)
     try:
         _TruncatedStandardNormal(
             low.float(), high.double())  # bounds wrong type
         success = False
-    except Exception:
+    except Exception:  # noqa: BLE001
         success = True
     unittest.TestCase().assertTrue(success)
     _TruncatedStandardNormal(0.0, 1.0)  # bounds are numbers
@@ -708,7 +704,7 @@ def test_yaml():
 
     # simulate a single test observation and save as numpy files
     theta0 = np.zeros((1, 3))
-    x0 = simulator(theta0)
+    simulator(theta0)
     np.save('toy/thetaobs.npy', theta[0])
     np.save('toy/xobs.npy', x[0])
 
@@ -721,133 +717,140 @@ def test_yaml():
     np.save("toy/x.npy", x)
 
     # Yaml file for data - standard
-    data = dict(
-        in_dir='./toy',
-        x_file='x.npy',
-        theta_file='theta.npy'
-    )
+    data = {
+        'in_dir': './toy',
+        'x_file': 'x.npy',
+        'theta_file': 'theta.npy'
+    }
     with open('./toy/data.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for data - subset
-    data = dict(
-        in_dir='./toy',
-        x_file='x_val.npy',
-        theta_file='theta_val.npy'
-    )
+    data = {
+        'in_dir': './toy',
+        'x_file': 'x_val.npy',
+        'theta_file': 'theta_val.npy'
+    }
     with open('./toy/data_val.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for data - multiround
-    data = dict(
-        in_dir='./toy',
-        xobs_file='xobs.npy',
-        thetafid_file='thetaobs.npy',
-        x_file='x.npy',
-        theta_file='theta.npy',
-        num_simulations=10,
-    )
+    data = {
+        'in_dir': './toy',
+        'xobs_file': 'xobs.npy',
+        'thetafid_file': 'thetaobs.npy',
+        'x_file': 'x.npy',
+        'theta_file': 'theta.npy',
+        'num_simulations': 10,
+    }
     with open('./toy/data_multi.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for infer - standard
-    data = dict(
-        prior={'module': 'ili.utils',
-               'class': 'IndependentNormal',
-               'args': dict(
-                   loc=[0.5, 0.5, 0.5],
-                   scale=[0.5, 0.5, 0.5],
-               ),
+    data = {
+        'prior': {
+            'module': 'ili.utils',
+            'class': 'IndependentNormal',
+            'args': {
+                'loc': [0.5, 0.5, 0.5],
+                'scale': [0.5, 0.5, 0.5],
+            },
                },
-        proposal={'module': 'ili.utils',
-                  'class': 'IndependentNormal',
-                  'args': dict(
-                      loc=[0.5, 0.5, 0.5],
-                      scale=[0.5, 0.5, 0.5],
-                  ),
-                  },
-        model={'engine': 'NPE',
-               'nets': [
-                   dict(model='maf', hidden_features=50,
-                        num_transforms=5, signature='maf1'),
-                   dict(model='mdn', hidden_features=50, num_components=2)],
-               'name': 'test_snpe'
-               },
-        train_args=dict(
-            training_batch_size=32,
-            learning_rate=0.001,
-        ),
-        embedding_net={'module': 'ili.embedding',
-                       'class': 'FCN',
-                       'args': {
-                           'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
-                           'act_fn': "SiLU",
-                           "n_input": x.shape[1]
-                       },
-                       },
-        device='cpu',
-        out_dir='./toy'
-    )
+        'proposal': {
+            'module': 'ili.utils',
+            'class': 'IndependentNormal',
+            'args': {
+                'loc': [0.5, 0.5, 0.5],
+                'scale': [0.5, 0.5, 0.5],
+            },
+        },
+        'model': {
+            'engine': 'NPE',
+            'nets': [
+                { 'model': 'maf', 'hidden_features': 50, 'num_transforms': 5 },
+                { 'model': 'mdn', 'hidden_features': 50, 'num_components': 2 }],
+            'name': 'test_snpe'
+        },
+        'train_args': {
+            'training_batch_size': 32,
+            'learning_rate': 0.001,
+        },
+        'embedding_net': {
+            'module': 'ili.embedding',
+            'class': 'FCN',
+            'args': {
+                'n_hidden': [x.shape[1], x.shape[1], x.shape[1]],
+                'act_fn': "SiLU",
+                "n_input": x.shape[1]
+            },
+        },
+        'device':'cpu',
+        'out_dir':'./toy'
+    }
     with open('./toy/infer_snpe.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
     data['model']['engine'] = 'NLE'
     data['model']['nets'] = [
-        dict(model='maf', hidden_features=50, num_transforms=5),
-        dict(model='made', hidden_features=50, num_transforms=5)]
+        { 'model': 'maf', 'hidden_features': 50, 'num_transforms': 5 },
+        { 'model': 'made', 'hidden_features': 50, 'num_transforms': 5 }]
     with open('./toy/infer_snle.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
     data['model']['engine'] = 'NRE'
     data['model']['nets'] = [
-        dict(model='resnet', hidden_features=50, num_blocks=3),
-        dict(model='mlp', hidden_features=50)]
+        { 'model': 'resnet', 'hidden_features': 50, 'num_blocks': 3 },
+        { 'model': 'mlp', 'hidden_features': 50 }]
     with open('./toy/infer_snre.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for infer - multiround
-    data = dict(
-        prior={'module': 'ili.utils',
-               'class': 'Uniform',
-               'args': dict(
-                   low=[0, 0, 0],
-                   high=[1, 1, 1],
-               ),
+    data = {
+        'prior': {
+            'module': 'ili.utils',
+            'class': 'Uniform',
+            'args': {
+                'low': [0, 0, 0],
+                'high': [1, 1, 1],
+            },
                },
-        model={'engine': 'SNPE',
-               'nets': [
-                   dict(model='maf', hidden_features=100, num_transforms=2),
-                   dict(model='mdn', hidden_features=50, num_components=6)],
+        'model': {
+            'engine': 'SNPE',
+            'nets': [
+                { 'model': 'maf', 'hidden_features': 100, 'num_transforms': 2 },
+                { 'model': 'mdn', 'hidden_features': 50, 'num_components': 6 }],
                },
-        train_args=dict(
-            training_batch_size=32,
-            learning_rate=0.01,
-            num_round=2,
-        ),
-        device='cpu',
-        out_dir='./toy'
-    )
+        'train_args': {
+            'training_batch_size': 32,
+            'learning_rate': 0.01,
+            'num_round': 2,
+        },
+        'device': 'cpu',
+        'out_dir': './toy'
+    }
     with open('./toy/infer_multi.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     #  Yaml file for infer - ABC
-    data = dict(
-        prior={'module': 'ili.utils',
-               'class': 'Uniform',
-               'args': dict(
-                   low=[0, 0, 0],
-                   high=[1, 1, 1],
-               ),
+    data = {
+        'prior': {
+            'module': 'ili.utils',
+            'class': 'Uniform',
+            'args': {
+                'low': [0, 0, 0],
+                'high': [1, 1, 1],
+            },
                },
-        model={'engine': 'MCABC',
-               'name': 'toy_abc',
-               'num_workers': 8,
+        'model': {
+            'engine': 'MCABC',
+            'name': 'toy_abc',
+            'num_workers': 8,
                },
-        train_args=dict(
-            num_simulations=1000,
-            quantile=0.01,
-        ),
-        device='cpu',
-        out_dir='./toy',
-    )
+        'train_args':{
+            'num_simulations': 1000,
+            'quantile': 0.01,
+        },
+        'device': 'cpu',
+        'out_dir': './toy',
+    }
     with open('./toy/infer_abc.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
@@ -920,55 +923,55 @@ def test_yaml():
             print(f'{k} : {v}', file=fout)
 
     # Yaml file for validation
-    data = dict(
-        out_dir='./toy',
-        posterior_file='./posterior.pkl',
-        style_path='./toy/style.mcstyle',
-        labels=['t1', 't2', 't3'],
-        ensemble_mode=False,
-        metrics=dict(
-            single_example={
+    data = {
+        'out_dir': './toy',
+        'posterior_file': './posterior.pkl',
+        'style_path': './toy/style.mcstyle',
+        'labels': ['t1', 't2', 't3'],
+        'ensemble_mode': False,
+        'metrics': {
+            'single_example': {
                 'module': 'ili.validation.metrics',
                 'class': 'PlotSinglePosterior',
-                'args': dict(
-                    num_samples=2,
-                    sample_method='direct',
-                    sample_params=dict(
-                        num_chains=1,
-                        burn_in=1,
-                        thin=1,
-                    )
-                )
+                'args': {
+                    'num_samples': 2,
+                    'sample_method': 'direct',
+                    'sample_params': {
+                        'num_chains': 1,
+                        'burn_in': 1,
+                        'thin': 1,
+                    }
+                }
             },
-            coverage={
+            'coverage': {
                 'module': 'ili.validation.metrics',
                 'class': 'PosteriorCoverage',
-                'args': dict(
-                    plot_list=["coverage", "histogram", "predictions", "tarp"],
-                    num_samples=2,
-                    sample_method='direct',
-                    sample_params=dict(
-                        num_chains=1,
-                        burn_in=1,
-                        thin=1,
-                    )
-                )
+                'args': {
+                    'plot_list': ["coverage", "histogram", "predictions", "tarp"],
+                    'num_samples': 2,
+                    'sample_method': 'direct',
+                    'sample_params': {
+                        'num_chains': 1,
+                        'burn_in': 1,
+                        'thin': 1,
+                    }
+                }
             },
-            save_samples={
+            'save_samples': {
                 'module': 'ili.validation.metrics',
                 'class': 'PosteriorSamples',
-                'args': dict(
-                    num_samples=1,
-                    sample_method='direct',
-                    sample_params=dict(
-                        num_chains=1,
-                        burn_in=1,
-                        thin=1
-                    )
-                )
+                'args': {
+                    'num_samples': 1,
+                    'sample_method': 'direct',
+                    'sample_params': {
+                        'num_chains': 1,
+                        'burn_in': 1,
+                        'thin': 1
+                    }
+                }
             },
-        )
-    )
+        }
+    }
     with open('./toy/val.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
@@ -977,15 +980,15 @@ def test_yaml():
         'save_samples': {
             'module': 'ili.validation.metrics',
             'class': 'PosteriorSamples',
-            'args': dict(
-                num_samples=1,
-                sample_method='direct',
-                sample_params=dict(
-                    num_chains=1,
-                    burn_in=1,
-                    thin=1
-                )
-            )
+            'args': {
+                'num_samples': 1,
+                'sample_method': 'direct',
+                'sample_params': {
+                    'num_chains': 1,
+                    'burn_in': 1,
+                    'thin': 1
+                }
+            }
         }
     }
     with open('./toy/val_vi.yml', 'w') as outfile:
@@ -1051,7 +1054,7 @@ def test_loaders():
     theta = np.random.rand(200, 3)  # 200 simulations, 3 parameters
     x = np.random.rand(190)  # 190 simulations
     unittest.TestCase().assertRaises(
-        Exception,
+        ValueError,
         NumpyLoader,
         x,
         theta
@@ -1111,9 +1114,9 @@ def test_loaders():
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
     loader.simulate(prior)
     unittest.TestCase().assertEqual(len(loader), 10)
-    # Exception is files not specified
+    # Exception if files not specified
     unittest.TestCase().assertRaises(
-        Exception,
+        FileNotFoundError,
         SBISimulator,
         in_dir='./toy',
         xobs_file='x.npy',
@@ -1285,13 +1288,13 @@ def test_loaders():
     )
 
     # Use a config file
-    data = dict(
-        in_dir='./toy',
-        x_root=f'{summary!s}/cat',
-        theta_file='summarizer_params.txt',
-        train_test_split_file='summarizer_train_test_split.json',
-        param_names=['t0', 't1', 't2'],
-    )
+    data = {
+        'in_dir': './toy',
+        'x_root': f'{summary!s}/cat',
+        'theta_file': 'summarizer_params.txt',
+        'train_test_split_file': 'summarizer_train_test_split.json',
+        'param_names': ['t0', 't1', 't2'],
+    }
     with open('./toy/summarizer_data.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
     all_loaders.append(
@@ -1355,7 +1358,7 @@ def test_universal():
     x = np.array([simulator(t) for t in theta])
 
     # make a dataloader
-    loader = NumpyLoader(x=x, theta=theta)
+    NumpyLoader(x=x, theta=theta)
 
     # define a prior
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1], device=device)
@@ -1426,38 +1429,39 @@ def test_universal():
     )
 
     netcfg = [
-        dict(model='maf', hidden_features=50, num_transforms=5),
-        dict(model='mdn', hidden_features=50, num_components=2)
+        {'model': 'maf', 'hidden_features': 50, 'num_transforms': 5},
+        {'model': 'mdn', 'hidden_features': 50, 'num_components': 2}
     ]
-    priorcfg = dict(
-        module='ili.utils',
-        args=dict(
-            low=[0, 0, 0],
-            high=[1, 1, 1],
-        ),
-    )
+    priorcfg = {
+        'class': 'Uniform',
+        'module': 'ili.utils',
+        'args': {
+            'low': [0, 0, 0],
+            'high': [1, 1, 1],
+        },
+    }
     priorcfg['class'] = 'Uniform'
-    modelcfg = dict(
-        backend='sbi',
-        engine='NPE',
-        nets=netcfg,
-    )
-    cfg = dict(
-        model=modelcfg,
-        prior=priorcfg,
-        device='cpu',
-        out_dir='./toy',
-        train_args={}
-    )
+    modelcfg = {
+        'backend': 'sbi',
+        'engine': 'NPE',
+        'nets': netcfg,
+    }
+    cfg = {
+        'model':modelcfg,
+        'prior':priorcfg,
+        'device': 'cpu',
+        'out_dir': './toy',
+        'train_args': {}
+    }
     with open('./toy/inf_univ.yml', 'w') as outfile:
         yaml.dump(cfg, outfile, default_flow_style=False)
-    runner = InferenceRunner.from_config('./toy/inf_univ.yml')
+    InferenceRunner.from_config('./toy/inf_univ.yml')
 
     # -------
     # Test ndes_pt
 
     # test that it works
-    model = load_nde_sbi(
+    load_nde_sbi(
         engine='NPE',
         model='maf', hidden_features=50, num_transforms=5)
 
@@ -1500,7 +1504,7 @@ def test_universal():
     )
 
     # test that it works if you underspecify
-    model = load_nde_sbi(
+    load_nde_sbi(
         engine='NLE',
         model='maf', hidden_features=50)
 

@@ -9,12 +9,18 @@ import numpy as np
 import tensorflow as tf
 import yaml
 from numpy import testing
+from scipy.stats import norm
 
 import ili
 from ili.dataloaders import NumpyLoader, StaticNumpyLoader
 from ili.inference import DelfiRunner, InferenceRunner
 from ili.inference.pydelfi_wrappers import DelfiWrapper
-from ili.utils import load_nde_pydelfi
+from ili.utils import (
+    IndependentNormal,
+    IndependentTruncatedNormal,
+    MultivariateTruncatedNormal,
+    load_nde_pydelfi,
+)
 from ili.validation.metrics import PlotSinglePosterior, PosteriorCoverage
 from ili.validation.runner import ValidationRunner
 
@@ -216,13 +222,6 @@ def test_prior():
 
 
 def test_custom_priors():
-    from scipy.stats import norm
-
-    from ili.utils import (
-        IndependentNormal,
-        IndependentTruncatedNormal,
-        MultivariateTruncatedNormal,
-    )
 
     tf.keras.backend.clear_session()
     # IndependentNormal
@@ -281,28 +280,28 @@ def test_yaml():
     np.save("toy_pydelfi/x.npy", x)
 
     # Yaml file for data
-    data = dict(
-        in_dir='./toy_pydelfi',
-        x_file='x.npy',
-        theta_file='theta.npy'
-    )
+    data = {
+        'in_dir': './toy_pydelfi',
+        'x_file': 'x.npy',
+        'theta_file': 'theta.npy'
+    }
     with open('./toy_pydelfi/data.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for infer
-    data = dict(
-        prior={
+    data = {
+        'prior': {
             'module': 'ili.utils',
             'class': 'Uniform',
             'args': {'low': [0, 0, 0], 'high': [1, 1, 1]},
         },
-        model={
+        'model': {
             'engine': 'NLE',
             'nets': config_ndes,
         },
-        train_args={'batch_size': 32, 'epochs': 5},
-        out_dir='toy_pydelfi',
-    )
+        'train_args': {'batch_size': 32, 'epochs': 5},
+        'out_dir': 'toy_pydelfi',
+    }
     with open('./toy_pydelfi/infer_noname.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
     data['model']['name'] = 'test_pydelfi'
@@ -311,23 +310,23 @@ def test_yaml():
         yaml.dump(data, outfile, default_flow_style=False)
 
     # Yaml file for validation
-    data = dict(
-        posterior_file='posterior.pkl',
-        out_dir='./toy_pydelfi/',
-        labels=['t1', 't2', 't3'],
-        metrics={
+    data = {
+        'posterior_file': 'posterior.pkl',
+        'out_dir': './toy_pydelfi/',
+        'labels': ['t1', 't2', 't3'],
+        'metrics': {
             'single_example': {
                 'module': 'ili.validation.metrics',
                 'class': 'PlotSinglePosterior',
-                'args': dict(
-                    num_samples=20,
-                    sample_method='emcee',
-                    sample_params={'num_chains': 10,
+                'args': {
+                    'num_samples': 20,
+                    'sample_method': 'emcee',
+                    'sample_params': {'num_chains': 10,
                                    'burn_in': 100, 'thin': 10}
-                )
+                }
             }
         }
-    )
+    }
     with open('./toy_pydelfi/val.yml', 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False)
 
@@ -360,14 +359,14 @@ def test_universal():
     x = np.array([simulator(t) for t in theta])
 
     # make a dataloader
-    loader = NumpyLoader(x=x, theta=theta)
+    NumpyLoader(x=x, theta=theta)
 
     # define a prior
     prior = ili.utils.Uniform(low=[0, 0, 0], high=[1, 1, 1])
 
     config_ndes = [
-        dict(model='maf', hidden_features=50, num_transforms=5),
-        dict(model='mdn', hidden_features=50, num_components=2)
+        {'model': 'maf', 'hidden_features': 50, 'num_transforms': 5},
+        {'model': 'mdn', 'hidden_features': 50, 'num_components': 2}
     ]
 
     # -------
@@ -419,38 +418,39 @@ def test_universal():
     )
 
     netcfg = [
-        dict(model='maf', hidden_features=50, num_transforms=5),
-        dict(model='mdn', hidden_features=50, num_components=2)
+        {'model': 'maf', 'hidden_features': 50, 'num_transforms': 5},
+        {'model': 'mdn', 'hidden_features': 50, 'num_components': 2}
     ]
-    priorcfg = dict(
-        module='ili.utils',
-        args=dict(
-            low=[0, 0, 0],
-            high=[1, 1, 1],
-        ),
-    )
+    priorcfg = {
+        'class': 'Uniform',
+        'module': 'ili.utils',
+        'args': {
+            'low': [0, 0, 0],
+            'high': [1, 1, 1],
+        },
+    }
     priorcfg['class'] = 'Uniform'
-    modelcfg = dict(
-        backend='pydelfi',
-        engine='NLE',
-        nets=netcfg,
-    )
-    cfg = dict(
-        model=modelcfg,
-        prior=priorcfg,
-        device='cpu',
-        out_dir='./toy_pydelfi',
-        train_args={}
-    )
+    modelcfg = {
+        'backend': 'pydelfi',
+        'engine': 'NLE',
+        'nets': netcfg,
+    }
+    cfg = {
+        'model': modelcfg,
+        'prior': priorcfg,
+        'device': 'cpu',
+        'out_dir': './toy_pydelfi',
+        'train_args': {}
+    }
     with open('./toy_pydelfi/inf_univ.yml', 'w') as outfile:
         yaml.dump(cfg, outfile, default_flow_style=False)
-    runner = InferenceRunner.from_config('./toy_pydelfi/inf_univ.yml')
+    InferenceRunner.from_config('./toy_pydelfi/inf_univ.yml')
 
     # -------
     # Test ndes_pt
 
     # test that it works
-    model = load_nde_pydelfi(
+    load_nde_pydelfi(
         n_params=theta.shape[1], n_data=x.shape[1],
         model='maf', hidden_features=50, num_transforms=5)
 
@@ -483,6 +483,6 @@ def test_universal():
 
     # test that it works if you underspecify
     tf.reset_default_graph()
-    model = load_nde_pydelfi(
+    load_nde_pydelfi(
         n_params=theta.shape[1], n_data=x.shape[1],
         model='maf', hidden_features=50)

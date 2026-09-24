@@ -132,10 +132,12 @@ class GraphLayer(torch.nn.Module):
         node_in_channels: int=2,
         node_out_channels: int=1,
         edge_in_channels: int=2,
-        hidden_layers: list[int]=[128,128,128],
+        hidden_layers: list[int] | None =None,
         edge_out_channels: int=16,
         global_in_channels: int=0,
     ):
+        if hidden_layers is None:
+            hidden_layers = [128,128,128]
         super().__init__()
         node_in_channels = node_in_channels if node_in_channels is not None else 0
         self.edge_update = EdgeUpdate(
@@ -169,8 +171,10 @@ class GraphNetwork(torch.nn.Module):
             edge_features_hidden_dim: int = 32,
             global_output_dim: int = 16,
             message_passing_steps: int = 3,
-            hidden_layers: list[int] | None = [128, 128, 128],
+            hidden_layers: list[int] | None = None,
     ):
+        if hidden_layers is None:
+            hidden_layers = [128, 128, 128]
         super().__init__()
         self.graph_layers = torch.nn.ModuleList() 
         for idx in range(message_passing_steps):

@@ -1,5 +1,6 @@
 import corner
 import h5py
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
@@ -40,7 +41,7 @@ mags = np.moveaxis(mags, [1, 0], [0, 1])
 
 
 def calc_df(_x, volume, massBinLimits):
-    hist, dummy = np.histogram(_x, bins=massBinLimits)
+    hist, _ = np.histogram(_x, bins=massBinLimits)
     hist = np.float64(hist)
     phi = (hist / volume) / (massBinLimits[1] - massBinLimits[0])
 
@@ -109,15 +110,15 @@ posterior_samples = posterior_samples.detach().cpu().numpy()
 
 fig = corner.corner(
     posterior_samples,
-    labels=cam.cond_params[1:],
+    # labels=cam.cond_params[1:],
     quantiles=[0.16, 0.5, 0.84],  # 0.5
     show_titles=True,
     title_kwargs={"fontsize": 12},
     plot_datapoints=False
 )
 
-corner.overplot_lines(fig, Y[idx], color="C1")
-corner.overplot_points(fig, Y[idx][None], marker="s", color="C1")
+# corner.overplot_lines(fig, Y[idx], color="C1")
+# corner.overplot_points(fig, Y[idx][None], marker="s", color="C1")
 
 ax = fig.add_axes([0.6, 0.6, 0.3, 0.3])
 
@@ -125,12 +126,12 @@ bins = binLimits[:-1] + (binLimits[1:] - binLimits[:-1])/2
 with np.errstate(divide='ignore'):
     mean = torch.tensor(
         np.median(np.array(posterior_samples), axis=0), device='cuda')
-    ax.plot(bins, np.mean([np.log10(generate_hmf(mean)) for i in np.arange(10)], axis=0),
-            label='Posterior median', zorder=2)
+    # ax.plot(bins, np.mean([np.log10(generate_hmf(mean)) for i in np.arange(10)], axis=0),
+    #         label='Posterior median', zorder=2)
     ax.plot(bins, np.log10(x_o), label='True', zorder=3)
 
-    [ax.plot(bins, np.log10(generate_hmf(torch.tensor(posterior_samples[i], device='cuda'))),
-             alpha=0.1, color='black', zorder=0) for i in np.arange(100)]
+    # [ax.plot(bins, np.log10(generate_hmf(torch.tensor(posterior_samples[i], device='cuda'))),
+    #          alpha=0.1, color='black', zorder=0) for i in np.arange(100)]
 
 ax.set_ylim(-4.5, -0.5)
 ax.set_xlim(10, 14.4)

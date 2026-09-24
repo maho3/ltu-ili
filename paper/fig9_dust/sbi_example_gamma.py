@@ -26,7 +26,7 @@ old_specs = Sed(lam=lam, lnu=old_specs)
 # define a filter collection object
 try:
     fc = FilterCollection(path='custom_filter_collection.hdf5')
-except:
+except Exception:   # noqa: BLE001
     fs = [f"SLOAN/SDSS.{f}" for f in ['u', 'g', 'r', 'i', 'z']]
 
     fc = FilterCollection(
