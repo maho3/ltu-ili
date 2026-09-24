@@ -3,26 +3,29 @@ Module to train posterior inference models using the lampe package
 """
 
 import json
-import yaml
-import time
 import logging
 import pickle
+import time
+from collections.abc import Callable
 from copy import deepcopy
-from tqdm import tqdm
-import torch
-import torch.nn as nn
-from torch.utils.data import TensorDataset, DataLoader
-import lampe
 from pathlib import Path
-from typing import Dict, List, Callable, Optional
+
+import lampe
+import torch
+import yaml
+from torch import nn
 from torch.distributions import Distribution
+from torch.utils.data import DataLoader, TensorDataset
+from tqdm import tqdm
+
 from ili.dataloaders import _BaseLoader
-from ili.utils import load_from_config, LampeEnsemble, load_nde_lampe
+from ili.utils import LampeEnsemble, load_from_config, load_nde_lampe
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
-class LampeRunner():
+class LampeRunner:
     """Class to train NPE posterior inference models using the lampe package.
     Follows methodology of: https://arxiv.org/abs/1711.01861
 
@@ -44,33 +47,36 @@ class LampeRunner():
     def __init__(
         self,
         prior: Distribution,
-        nets: List[Callable],
-        engine: str = 'NPE',
-        train_args: Dict = {},
-        out_dir: Path = None,
-        device: str = 'cpu',
+        nets: list[Callable],
+        engine: str = "NPE",
+        train_args: dict | None = None,
+        out_dir: Path | None = None,
+        device: str = "cpu",
         proposal: Distribution = None,
-        name: Optional[str] = "",
-        signatures: Optional[List[str]] = None,
+        name: str | None = "",
+        signatures: list[str] | None = None,
     ):
         self.prior = prior
         nets_list = []
+        if train_args is None:
+            train_args = {}
         for net_el in nets:
-            if isinstance(net_el, List):  # for repeat nets
-                for net in net_el:
-                    nets_list.append(net)
+            if isinstance(net_el, list):  # for repeat nets
+                nets_list.extend(net_el)
             else:
                 nets_list.append(net_el)
         self.nets = nets_list
-        if engine != 'NPE':
-            logging.warning(
-                'lampe only supports NPE engine. Engine set to NPE.')
-        self.engine = 'NPE'
-        self.train_args = dict(
-            training_batch_size=50, learning_rate=5e-4,
-            stop_after_epochs=30, clip_max_norm=5,
-            max_epochs=int(1e10),
-            validation_fraction=0.1)
+        if engine != "NPE":
+            logger.warning("lampe only supports NPE engine. Engine set to NPE.")
+        self.engine = "NPE"
+        self.train_args = {
+            "training_batch_size": 50,
+            "learning_rate": 5e-4,
+            "stop_after_epochs": 30,
+            "clip_max_norm": 5,
+            "max_epochs": int(1e10),
+            "validation_fraction": 0.1,
+        }
         self.train_args.update(train_args)
         self.out_dir = out_dir
         if self.out_dir is not None:
@@ -86,7 +92,7 @@ class LampeRunner():
         self.name = name
         self.signatures = signatures
         if self.signatures is None:
-            self.signatures = [""]*len(self.nets)
+            self.signatures = [""] * len(self.nets)
 
     @classmethod
     def from_config(cls, config_path: Path, **kwargs) -> "LampeRunner":
@@ -105,13 +111,13 @@ class LampeRunner():
         config.update(kwargs)
 
         # load prior distribution
-        config['prior']['args']['device'] = config['device']
+        config["prior"]["args"]["device"] = config["device"]
         prior = load_from_config(config["prior"])
 
         # load proposal distributions
         proposal = None
         if "proposal" in config:
-            config['proposal']['args']['device'] = config['device']
+            config["proposal"]["args"]["device"] = config["device"]
             proposal = load_from_config(config["proposal"])
 
         # load embedding net
@@ -126,7 +132,7 @@ class LampeRunner():
         train_args = config["train_args"]
         out_dir = Path(config["out_dir"])
         if "name" in config["model"]:
-            name = config["model"]["name"]+"_"
+            name = config["model"]["name"] + "_"
         else:
             name = ""
         signatures = []
@@ -137,7 +143,7 @@ class LampeRunner():
         nets = []
 
         # For every different nets architecture
-        for model_args in config['model']['nets']:
+        for model_args in config["model"]["nets"]:
             if "repeats" in model_args:
                 n_size = model_args["repeats"]
                 model_args.pop("repeats")
@@ -146,9 +152,13 @@ class LampeRunner():
 
             # Repeat to have an ensemble of n_size >=1 of the same nets architecture
             for n in range(n_size):
-                nets.append(load_nde_lampe(embedding_net=embedding_net,
-                                           device=config["device"],
-                                           **model_args))
+                nets.append(
+                    load_nde_lampe(
+                        embedding_net=embedding_net,
+                        device=config["device"],
+                        **model_args,
+                    )
+                )
 
         # initialize
         return cls(
@@ -164,11 +174,9 @@ class LampeRunner():
 
     def _prepare_loader(self, loader: _BaseLoader):
         """Prepare a loader for training."""
-        if (hasattr(loader, "train_loader") and
-                hasattr(loader, "val_loader")):
+        if hasattr(loader, "train_loader") and hasattr(loader, "val_loader"):
             train_loader, val_loader = loader.train_loader, loader.val_loader
-        elif (hasattr(loader, "get_all_data") and
-                hasattr(loader, "get_all_parameters")):
+        elif hasattr(loader, "get_all_data") and hasattr(loader, "get_all_parameters"):
             x, theta = loader.get_all_data(), loader.get_all_parameters()
 
             # move to device
@@ -177,18 +185,23 @@ class LampeRunner():
 
             # split data into train and validation
             mask = torch.randperm(len(x)) < int(
-                self.train_args['validation_fraction']*len(x))
+                self.train_args["validation_fraction"] * len(x)
+            )
             x_train, x_val = x[~mask], x[mask]
             theta_train, theta_val = theta[~mask], theta[mask]
 
             data_train = TensorDataset(x_train, theta_train)
             data_val = TensorDataset(x_val, theta_val)
             train_loader = DataLoader(
-                data_train, shuffle=True,
-                batch_size=self.train_args["training_batch_size"])
+                data_train,
+                shuffle=True,
+                batch_size=self.train_args["training_batch_size"],
+            )
             val_loader = DataLoader(
-                data_val, shuffle=False,
-                batch_size=self.train_args["training_batch_size"])
+                data_val,
+                shuffle=False,
+                batch_size=self.train_args["training_batch_size"],
+            )
         else:
             raise ValueError("Loader must be a subclass of _BaseLoader.")
         return train_loader, val_loader
@@ -212,10 +225,9 @@ class LampeRunner():
         loss_train, count = [], 0
         for x, theta in train_loader:
             x, theta = x.to(self.device), theta.to(self.device)
-            loss_train.append(
-                stepper(self._loss(model, theta, x)) * len(theta))
+            loss_train.append(stepper(self._loss(model, theta, x)) * len(theta))
             count += len(theta)
-        loss_train = torch.stack(loss_train).sum().item()/count
+        loss_train = torch.stack(loss_train).sum().item() / count
 
         model.eval()
         with torch.no_grad():
@@ -224,38 +236,35 @@ class LampeRunner():
                 x, theta = x.to(self.device), theta.to(self.device)
                 loss_val.append(self._loss(model, theta, x) * len(theta))
                 count += len(theta)
-            loss_val = torch.stack(loss_val).sum().item()/count
+            loss_val = torch.stack(loss_val).sum().item() / count
         return loss_train, loss_val
 
-    def _train_round(self, models: List[Callable],
-                     train_loader: DataLoader, val_loader: DataLoader):
+    def _train_round(
+        self, models: list[Callable], train_loader: DataLoader, val_loader: DataLoader
+    ):
         """Train a single round of inference for an ensemble of models."""
 
         # initialize models
         x_, y_ = next(iter(train_loader))
-        models_rnd = [
-            model(x_, y_, self.prior).to(self.device)
-            for model in models
-        ]
+        models_rnd = [model(x_, y_, self.prior).to(self.device) for model in models]
 
         posteriors, summaries = [], []
         for i, model in enumerate(models_rnd):
-            logging.info(f"Training model {i+1} / {len(models_rnd)}.")
+            logger.info(f"Training model {i+1} / {len(models_rnd)}.")
 
             # define optimizer
             optimizer = torch.optim.Adam(
-                model.parameters(),
-                lr=self.train_args["learning_rate"]
+                model.parameters(), lr=self.train_args["learning_rate"]
             )
             stepper = lampe.utils.GDStep(
-                optimizer, clip=self.train_args["clip_max_norm"])
+                optimizer, clip=self.train_args["clip_max_norm"]
+            )
 
             # train model
-            best_val = float('inf')
+            best_val = float("inf")
             wait = 0
-            summary = {'training_log_probs': [], 'validation_log_probs': []}
-            with tqdm(iter(range(self.train_args["max_epochs"])),
-                      unit=' epochs') as tq:
+            summary = {"training_log_probs": [], "validation_log_probs": []}
+            with tqdm(iter(range(self.train_args["max_epochs"])), unit=" epochs") as tq:
                 for epoch in tq:
                     loss_train, loss_val = self._train_epoch(
                         model=model,
@@ -267,8 +276,8 @@ class LampeRunner():
                         loss=loss_train,
                         loss_val=loss_val,
                     )
-                    summary['training_log_probs'].append(-loss_train)
-                    summary['validation_log_probs'].append(-loss_val)
+                    summary["training_log_probs"].append(-loss_train)
+                    summary["validation_log_probs"].append(-loss_val)
 
                     # check for convergence
                     if loss_val < best_val:
@@ -280,11 +289,12 @@ class LampeRunner():
                     else:
                         wait += 1
                 else:
-                    logging.warning(
+                    logger.warning(
                         "Training did not converge in "
-                        f"{self.train_args['max_epochs']} epochs.")
-                summary['best_validation_log_prob'] = -best_val
-                summary['epochs_trained'] = epoch
+                        f"{self.train_args['max_epochs']} epochs."
+                    )
+                summary["best_validation_log_prob"] = -best_val
+                summary["epochs_trained"] = epoch
 
             # save model
             model.load_state_dict(best_model)
@@ -307,11 +317,10 @@ class LampeRunner():
 
         return posterior_ensemble, summaries
 
-    def _save_models(self, posterior_ensemble: LampeEnsemble,
-                     summaries: List[Dict]):
+    def _save_models(self, posterior_ensemble: LampeEnsemble, summaries: list[dict]):
         """Save models to file."""
 
-        logging.info(f"Saving model to {self.out_dir}")
+        logger.info(f"Saving model to {self.out_dir}")
         str_p = self.name + "posterior.pkl"
         str_s = self.name + "summary.json"
         with open(self.out_dir / str_p, "wb") as handle:
@@ -319,7 +328,7 @@ class LampeRunner():
         with open(self.out_dir / str_s, "w") as handle:
             json.dump(summaries, handle)
 
-    def __call__(self, loader: _BaseLoader, seed: int = None):
+    def __call__(self, loader: _BaseLoader, seed: int | None = None):
         """Train your posterior and save it to file
 
         Args:
@@ -332,7 +341,7 @@ class LampeRunner():
             torch.manual_seed(seed)
 
         # setup training engines for each model in the ensemble
-        logging.info("MODEL INFERENCE CLASS: NPE")
+        logger.info("MODEL INFERENCE CLASS: NPE")
 
         # load single-round data
         train_loader, val_loader = self._prepare_loader(loader)
@@ -344,7 +353,7 @@ class LampeRunner():
             train_loader=train_loader,
             val_loader=val_loader,
         )
-        logging.info(f"It took {time.time() - t0} seconds to train models.")
+        logger.info(f"It took {time.time() - t0} seconds to train models.")
 
         # save if output path is specified
         if self.out_dir is not None:

@@ -1,29 +1,36 @@
 import argparse
+
 from ili.dataloaders import SummarizerDatasetLoader
 from ili.inference import InferenceRunner
 from ili.validation import ValidationRunner
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Run SBI inference for quijote test data.")
+        description="Run SBI inference for quijote test data."
+    )
     parser.add_argument(
-        "--cfgdata", type=str,
+        "--cfgdata",
+        type=str,
         default="configs/data/quijote_TPCF.yaml",
-        help="Configuration file to use for dataloaders")
+        help="Configuration file to use for dataloaders",
+    )
     parser.add_argument(
-        "--cfginfer", type=str,
+        "--cfginfer",
+        type=str,
         default="configs/infer/quijote_sbi_MAF.yaml",
-        help="Configuration file to use for inference training")
+        help="Configuration file to use for inference training",
+    )
     parser.add_argument(
-        "--cfgval", type=str,
+        "--cfgval",
+        type=str,
         default="configs/val/quijote_sbi.yaml",
-        help="Configuration file to use for inference validation")
+        help="Configuration file to use for inference validation",
+    )
 
     args = parser.parse_args()
 
-    train_loader = SummarizerDatasetLoader.from_config(
-        args.cfgdata, stage='train')
-    val_loader = SummarizerDatasetLoader.from_config(args.cfgdata, stage='val')
+    train_loader = SummarizerDatasetLoader.from_config(args.cfgdata, stage="train")
+    val_loader = SummarizerDatasetLoader.from_config(args.cfgdata, stage="val")
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl
     runner = InferenceRunner.from_config(args.cfginfer)

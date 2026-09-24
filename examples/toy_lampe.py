@@ -1,5 +1,7 @@
 import os
+
 import numpy as np
+
 from ili.dataloaders import StaticNumpyLoader
 from ili.inference import InferenceRunner
 from ili.validation import ValidationRunner
@@ -8,12 +10,12 @@ from ili.validation import ValidationRunner
 def simulator(params):
     # create toy simulations
     x = np.arange(10)
-    y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+    y = 3 * params[0] * np.sin(x) + params[1] * x**2 - 2 * params[2] * x
     y += np.random.randn(len(x))
     return y
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # construct a working directory
     if not os.path.isdir("toy"):
         os.mkdir("toy")

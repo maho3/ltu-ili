@@ -1,27 +1,30 @@
-
-from typing import Dict, Optional, Any, Union
 from pathlib import Path
+from typing import Any, Optional, Union
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
+
     ModelClass = NeuralPosterior
-    interface = 'torch'
+    interface = "torch"
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
+
     ModelClass = DelfiWrapper
-    interface = 'tensorflow'
+    interface = "tensorflow"
 
 
-class _BaseRunner():
+class _BaseRunner:
     def __init__(
         self,
         prior: Any,
-        train_args: Dict = {},
-        out_dir: Union[str, Path] = None,
-        device: str = 'cpu',
-        name: Optional[str] = "",
+        train_args: Optional[dict] = None,
+        out_dir: Optional[Union[str, Path]] = None,
+        device: str = "cpu",
+        name: Optional[str] = None,
     ):
         self.prior = prior
+        if train_args is None:
+            train_args = {}
         self.train_args = train_args
         self.device = device
         self.name = name

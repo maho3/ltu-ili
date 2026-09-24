@@ -1,30 +1,34 @@
-
 """
 Module to contain a universal inference engine configuration for all backends.
 """
-import yaml
-from typing import Any, Union
+
 from pathlib import Path
+from typing import Any, Optional, Union
+
+import yaml
+
 from ili.utils import update
 
 try:
-    from ili.inference import SBIRunner, SBIRunnerSequential, LampeRunner
-    interface = 'torch'
+    from ili.inference import LampeRunner, SBIRunner, SBIRunnerSequential
+
+    interface = "torch"
 except ImportError:
     from ili.inference import DelfiRunner
-    interface = 'tensorflow'
+
+    interface = "tensorflow"
 
 
-class InferenceRunner():
-    """ A universal class to train posterior inference models using either
-        the sbi/pydelfi/lampe backends. Provides a univeral interface to configure
-        either backend.
+class InferenceRunner:
+    """A universal class to train posterior inference models using either
+    the sbi/pydelfi/lampe backends. Provides a univeral interface to configure
+    either backend.
     """
 
     def __init__(self):
         raise NotImplementedError(
-            'This class should not be instantiated. Did you mean to use '
-            '.load() or .from_config()?'
+            "This class should not be instantiated. Did you mean to use "
+            ".load() or .from_config()?"
         )
 
     @classmethod
@@ -33,10 +37,10 @@ class InferenceRunner():
         backend: str,
         engine: str,
         prior: Any,
-        out_dir: Union[str, Path] = None,
-        device: str = 'cpu',
-        name: str = '',
-        **kwargs
+        out_dir: Optional[Union[str, Path]] = None,
+        device: str = "cpu",
+        name: Optional[str] = None,
+        **kwargs,
     ):
         """Create an inference runner from inline arguments
 
@@ -57,7 +61,7 @@ class InferenceRunner():
             device=device,
             name=name,
             engine=engine,
-            **kwargs
+            **kwargs,
         )
 
     @classmethod
@@ -76,8 +80,8 @@ class InferenceRunner():
         # optionally overload config file with kwargs
         update(config, **kwargs)
 
-        backend = config['model']['backend']
-        engine = config['model']['engine']
+        backend = config["model"]["backend"]
+        engine = config["model"]["engine"]
 
         runner_class = cls._parse_runner(backend, engine)
 
@@ -95,55 +99,54 @@ class InferenceRunner():
             Any: the loaded training class
             Any: the loaded engine class
         """
-        global interface
 
-        if backend == 'sbi':
-            if interface != 'torch':  # check installation
+        if backend == "sbi":
+            if interface != "torch":  # check installation
                 raise ValueError(
-                    'User requested an sbi model, but torch backend is not '
-                    'installed. Please use torch installation or change model.'
+                    "User requested an sbi model, but torch backend is not "
+                    "installed. Please use torch installation or change model."
                 )
             # check model type
-            if engine not in ['NPE', 'NLE', 'NRE', 'SNPE', 'SNLE', 'SNRE']:
+            if engine not in ["NPE", "NLE", "NRE", "SNPE", "SNLE", "SNRE"]:
                 raise ValueError(
-                    'User requested an invalid model type for sbi: '
-                    f'{engine}. Please use one of: NPE, NLE, NRE,  '
-                    'SNPE, SNLE, or SNRE.'
+                    "User requested an invalid model type for sbi: "
+                    f"{engine}. Please use one of: NPE, NLE, NRE,  "
+                    "SNPE, SNLE, or SNRE."
                 )
 
-            if engine[0] == 'S':
+            if engine[0] == "S":
                 return SBIRunnerSequential
             else:
                 return SBIRunner
-        elif backend == 'pydelfi':
-            if interface != 'tensorflow':  # check installation
+        elif backend == "pydelfi":
+            if interface != "tensorflow":  # check installation
                 raise ValueError(
-                    'User requested a pydelfi model, but tensorflow is not '
-                    'installed. Please use tensorflow installation or change '
-                    'model.'
+                    "User requested a pydelfi model, but tensorflow is not "
+                    "installed. Please use tensorflow installation or change "
+                    "model."
                 )
             # check model type
-            if engine not in ['NLE', 'SNLE']:
+            if engine not in ["NLE", "SNLE"]:
                 raise ValueError(
-                    'User requested an invalid model type for pydelfi: '
-                    f'{engine}. Please use either NLE or SNLE.'
+                    "User requested an invalid model type for pydelfi: "
+                    f"{engine}. Please use either NLE or SNLE."
                 )
             return DelfiRunner
-        elif backend == 'lampe':
-            if interface != 'torch':  # check installation
+        elif backend == "lampe":
+            if interface != "torch":  # check installation
                 raise ValueError(
-                    'User requested a lampe model, but torch backend is not '
-                    'installed. Please use torch installation or change model.'
+                    "User requested a lampe model, but torch backend is not "
+                    "installed. Please use torch installation or change model."
                 )
             # check model type
-            if engine not in ['NPE']:
+            if engine not in ["NPE"]:
                 raise ValueError(
-                    'User requested an invalid model type for lampe: '
-                    f'{engine}. lampe only supports NPE.'
+                    "User requested an invalid model type for lampe: "
+                    f"{engine}. lampe only supports NPE."
                 )
             return LampeRunner
         else:
             raise ValueError(
-                f'User requested an invalid model backend: {backend}. Please '
-                'use either sbi or pydelfi.'
+                f"User requested an invalid model backend: {backend}. Please "
+                "use either sbi or pydelfi."
             )

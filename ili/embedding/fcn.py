@@ -2,10 +2,10 @@
 Module providing compression networks for data.
 """
 
-from typing import List
+from collections import OrderedDict
+
 import torch
-import torch.nn as nn
-from typing import OrderedDict
+from torch import nn
 
 
 class FCN(nn.Module):
@@ -17,10 +17,8 @@ class FCN(nn.Module):
         n_input (int): dimensionality of the input (optional)
     """
 
-    def __init__(
-        self, n_hidden: List[int], act_fn: str = "SiLU", n_input=None
-    ):
-        super(FCN, self).__init__()
+    def __init__(self, n_hidden: list[int], act_fn: str = "SiLU", n_input=None):
+        super().__init__()
         self.act_fn = getattr(nn, act_fn)()
         self.n_layers = len(n_hidden)
         self.n_hidden = n_hidden
@@ -41,8 +39,7 @@ class FCN(nn.Module):
         model = []
         n_left = n_input
         for layer in range(self.n_layers):
-            model.append((f"mlp{layer}", nn.Linear(
-                n_left, self.n_hidden[layer])))
+            model.append((f"mlp{layer}", nn.Linear(n_left, self.n_hidden[layer])))
             model.append((f"act{layer}", self.act_fn))
             n_left = self.n_hidden[layer]
         model.pop()  # remove last activation

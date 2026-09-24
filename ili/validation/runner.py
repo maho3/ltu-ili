@@ -5,36 +5,44 @@ Module to run validation metrics on posterior inference models
 import logging
 import pickle
 import time
-import yaml
-import matplotlib as mpl
+from typing import Any, Dict, List, Optional, Union
 from pathlib import Path
-from typing import List, Optional, Union, Dict
+
+import matplotlib as mpl
+import yaml
+
 from ili.dataloaders import _BaseLoader
-from ili.validation.metrics import _BaseMetric
 from ili.utils import load_from_config, update
+from ili.validation.metrics import _BaseMetric
+
+logger = logging.getLogger(__name__)
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
+
     ModelClass = NeuralPosterior
     try:  # sbi > 0.22.0
         from sbi.inference.posteriors import EnsemblePosterior
     except ImportError:  # sbi < 0.22.0
-        from sbi.utils.posterior_ensemble import NeuralPosteriorEnsemble as EnsemblePosterior
-    interface = 'torch'
+        from sbi.utils.posterior_ensemble import (
+            NeuralPosteriorEnsemble as EnsemblePosterior,
+        )
+    interface = "torch"
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
+
     ModelClass = DelfiWrapper
-    interface = 'tensorflow'
+    interface = "tensorflow"
 
 logging.basicConfig(level=logging.INFO)
 
 
-class ValidationRunner():
+class ValidationRunner:
     """Class to measure validation metrics of posterior inference models
 
     Args:
         posterior (ModelClass): trained sbi posterior inference engine
-        metrics (Dict[str, _BaseMetric]): dictionary of named metric objects 
+        metrics (Dict[str, _BaseMetric]): dictionary of named metric objects
             to measure on the test set
         out_dir (str, Path): directory where to load posterior and store outputs
         ensemble_mode (Optional[bool], optional): whether to evaluate metrics
@@ -52,7 +60,7 @@ class ValidationRunner():
         out_dir: Union[str, Path],
         ensemble_mode: Optional[bool] = True,
         name: Optional[str] = "",
-        signatures: Optional[List[str]] = [],
+        signatures: Optional[List[str]] = None,
     ):
         self.posterior = posterior
         self.metrics = metrics
@@ -62,14 +70,13 @@ class ValidationRunner():
             self.out_dir.mkdir(parents=True, exist_ok=True)
         self.ensemble_mode = ensemble_mode
         self.name = name
-        self.signatures = signatures
+        if signatures is None:
+            self.signatures = []
+        else:
+            self.signatures = signatures
 
     @classmethod
-    def from_config(
-        cls,
-        config_path: Union[str, Path],
-        **kwargs
-    ) -> "ValidationRunner":
+    def from_config(cls, config_path: Union[str, Path], **kwargs) -> "ValidationRunner":
         """Create a validation runner from a yaml config file
 
         Args:
@@ -87,16 +94,17 @@ class ValidationRunner():
 
         out_dir = Path(config["out_dir"])
 
-        global interface
-        if interface == 'torch':
+        if interface == "torch":
             posterior_ensemble = cls.load_posterior_sbi(
-                out_dir / config["posterior_file"])
+                out_dir / config["posterior_file"]
+            )
             signatures = posterior_ensemble.signatures
-        elif interface == 'tensorflow':
+        elif interface == "tensorflow":
             posterior_ensemble = DelfiWrapper.load_engine(
-                out_dir / config["posterior_file"])
+                out_dir / config["posterior_file"]
+            )
             # Note, pydelfi models don't currently use signatures
-            signatures = [""]*posterior_ensemble.num_components
+            signatures = [""] * posterior_ensemble.num_components
         else:
             raise NotImplementedError
         name = posterior_ensemble.name
@@ -107,14 +115,14 @@ class ValidationRunner():
         else:
             ensemble_mode = True
 
-        logging.info("Number of posteriors in the ensemble is "
-                     f"{posterior_ensemble.num_components}")
+        logger.info(
+            "Number of posteriors in the ensemble is "
+            f"{posterior_ensemble.num_components}"
+        )
         if ensemble_mode:
-            logging.info(
-                "Metrics are computed for the ensemble posterior estimate.")
+            logger.info("Metrics are computed for the ensemble posterior estimate.")
         else:
-            logging.info(
-                "Metrics are computed for each posterior in the ensemble.")
+            logger.info("Metrics are computed for each posterior in the ensemble.")
 
         metrics = {}
         for key, value in config["metrics"].items():
@@ -162,26 +170,37 @@ class ValidationRunner():
         theta_fid = loader.get_fid_parameters()
 
         # evaluate metrics on each posterior in the ensemble separately
-        global interface
-        if ((not self.ensemble_mode) and (interface == 'torch') and
-                isinstance(self.posterior, EnsemblePosterior)):
-            n = 0
-            for posterior_model in self.posterior.posteriors:
-                signature = self.signatures[n]+"_"
-                n += 1
+        if (
+            (not self.ensemble_mode)
+            and (interface == "torch")
+            and isinstance(self.posterior, EnsemblePosterior)
+        ):
+            for n, posterior_model in enumerate(self.posterior.posteriors):
+                signature = self.signatures[n] + "_"
                 for metric in self.metrics.values():
-                    logging.info(
-                        f"Running metric {metric.__class__.__name__}.")
-                    metric(posterior_model, x_test, theta_test, x_obs=x_obs,
-                           theta_fid=theta_fid, signature=signature)
+                    logger.info(f"Running metric {metric.__class__.__name__}.")
+                    metric(
+                        posterior_model,
+                        x_test,
+                        theta_test,
+                        x_obs=x_obs,
+                        theta_fid=theta_fid,
+                        signature=signature,
+                    )
         # evaluate metrics on the ensemble posterior
         else:
             # evaluate metrics
             sigcat = [f"{t}_" for t in self.signatures if t != ""]
-            signature = self.name+"".join(sigcat)
+            signature = self.name + "".join(sigcat)
             for metric in self.metrics.values():
-                logging.info(f"Running metric {metric.__class__.__name__}.")
-                metric(self.posterior, x_test, theta_test,
-                       x_obs=x_obs, theta_fid=theta_fid, signature=signature)
+                logger.info(f"Running metric {metric.__class__.__name__}.")
+                metric(
+                    self.posterior,
+                    x_test,
+                    theta_test,
+                    x_obs=x_obs,
+                    theta_fid=theta_fid,
+                    signature=signature,
+                )
 
-        logging.info(f"It took {time.time() - t0} seconds to run all metrics.")
+        logger.info(f"It took {time.time() - t0} seconds to run all metrics.")

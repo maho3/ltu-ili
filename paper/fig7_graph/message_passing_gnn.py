@@ -1,26 +1,28 @@
-
 # Let's build a model similar to your previous one
 
+
 import torch
-from typing import List, Optional
-from torch_geometric.nn import MessagePassing, global_mean_pool
 from torch import Tensor
+from torch_geometric.nn import MessagePassing, global_mean_pool
 
 from ili.embedding.fcn import FCN
 
-def get_mlp(in_channels, hidden_layers,):
-    fcn = FCN(
-        n_hidden = hidden_layers
-    )
+
+def get_mlp(
+    in_channels,
+    hidden_layers,
+):
+    fcn = FCN(n_hidden=hidden_layers)
     fcn.initalize_model(in_channels)
     return fcn
+
 
 class EdgeUpdate(torch.nn.Module):
     def __init__(
         self,
         edge_in_channels: int,
         edge_out_channels: int,
-        hidden_layers: List[int],
+        hidden_layers: list[int],
     ):
         """Update edge attributes
 
@@ -32,7 +34,10 @@ class EdgeUpdate(torch.nn.Module):
         super().__init__()
         self.mlp = get_mlp(
             in_channels=edge_in_channels,
-            hidden_layers=hidden_layers + [edge_out_channels,],
+            hidden_layers=hidden_layers
+            + [
+                edge_out_channels,
+            ],
         )
 
     def forward(self, h_i: Tensor, h_j: Tensor, edge_attr: Tensor, u: Tensor) -> Tensor:
@@ -59,13 +64,14 @@ class EdgeUpdate(torch.nn.Module):
         inputs = torch.concat(inputs_to_concat, dim=-1)
         return self.mlp(inputs)
 
+
 # The node update would do all the work
 class NodeUpdate(MessagePassing):
     def __init__(
         self,
         in_channels: int,
         out_channels: int,
-        hidden_layers: List[int],
+        hidden_layers: list[int],
         aggr: str = "add",
     ):
         """Update nodes
@@ -80,7 +86,10 @@ class NodeUpdate(MessagePassing):
         super().__init__(aggr=aggr)
         self.mlp = get_mlp(
             in_channels=in_channels,
-            hidden_layers=hidden_layers + [out_channels,],
+            hidden_layers=hidden_layers
+            + [
+                out_channels,
+            ],
         )
 
     def forward(
@@ -123,18 +132,20 @@ class NodeUpdate(MessagePassing):
         """
         return edge_attr
 
-    
+
 # GNN Layer
 class GraphLayer(torch.nn.Module):
     def __init__(
         self,
-        node_in_channels: int=2,
-        node_out_channels: int=1,
-        edge_in_channels: int=2,
-        hidden_layers: List[int]=[128,128,128],
-        edge_out_channels: int=16,
-        global_in_channels: int=0,
+        node_in_channels: int = 2,
+        node_out_channels: int = 1,
+        edge_in_channels: int = 2,
+        hidden_layers: list[int] | None = None,
+        edge_out_channels: int = 16,
+        global_in_channels: int = 0,
     ):
+        if hidden_layers is None:
+            hidden_layers = [128, 128, 128]
         super().__init__()
         node_in_channels = node_in_channels if node_in_channels is not None else 0
         self.edge_update = EdgeUpdate(
@@ -150,28 +161,37 @@ class GraphLayer(torch.nn.Module):
             hidden_layers=hidden_layers,
         )
 
-    def forward(self, h, edge_index, edge_attr, batch=None,):
+    def forward(
+        self,
+        h,
+        edge_index,
+        edge_attr,
+        batch=None,
+    ):
         row, col = edge_index
         # TODO: properly account for global u
         if h is not None:
             edge_attr = self.edge_update(h[row], h[col], edge_attr, None)
         else:
             edge_attr = self.edge_update(None, None, edge_attr, None)
-        return self.node_update(h, edge_index, edge_attr,None), edge_attr
+        return self.node_update(h, edge_index, edge_attr, None), edge_attr
+
 
 class GraphNetwork(torch.nn.Module):
     def __init__(
-            self,
-            node_features_dim: Optional[int] = None,
-            edge_features_dim: Optional[int] = 3,
-            node_features_hidden_dim: int = 32,
-            edge_features_hidden_dim: int = 32,
-            global_output_dim: int = 16,
-            message_passing_steps: int = 3,
-            hidden_layers: Optional[List[int]] = [128, 128, 128],
+        self,
+        node_features_dim: int | None = None,
+        edge_features_dim: int | None = 3,
+        node_features_hidden_dim: int = 32,
+        edge_features_hidden_dim: int = 32,
+        global_output_dim: int = 16,
+        message_passing_steps: int = 3,
+        hidden_layers: list[int] | None = None,
     ):
+        if hidden_layers is None:
+            hidden_layers = [128, 128, 128]
         super().__init__()
-        self.graph_layers = torch.nn.ModuleList() 
+        self.graph_layers = torch.nn.ModuleList()
         for idx in range(message_passing_steps):
             if idx == 0:
                 node_in_channels = node_features_dim
@@ -193,12 +213,20 @@ class GraphNetwork(torch.nn.Module):
                 )
             )
         self.global_mlp = get_mlp(
-            node_features_hidden_dim, 
-            hidden_layers=hidden_layers + [global_output_dim,],
+            node_features_hidden_dim,
+            hidden_layers=hidden_layers
+            + [
+                global_output_dim,
+            ],
         )
 
     def forward(self, data):
-        h, edge_index, edge_attr, batch = data.x, data.edge_index, data.edge_attr, data.batch
+        h, edge_index, edge_attr, batch = (
+            data.x,
+            data.edge_index,
+            data.edge_attr,
+            data.batch,
+        )
         for layer in self.graph_layers:
             h, edge_attr = layer(h, edge_index, edge_attr, batch)
         h = global_mean_pool(h, batch)  # Global pooling

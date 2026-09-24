@@ -2,13 +2,16 @@
 Module for loading data into the ltu-ili pipeline.
 """
 
-import yaml
-from abc import ABC, abstractmethod
-from typing import Any, List, Tuple, Optional, Union
-from pathlib import Path
-import numpy as np
 import json
+from abc import ABC, abstractmethod
+from collections.abc import Callable
+from pathlib import Path
+from typing import Any, List, Optional, Tuple, Union
+
+import numpy as np
 import pandas as pd
+import yaml
+
 from ili.utils import Dataset, update
 
 try:
@@ -21,11 +24,7 @@ except ModuleNotFoundError:
 
 class _BaseLoader(ABC):
     @classmethod
-    def from_config(
-        cls,
-        config_path: Union[str, Path],
-        **kwargs
-    ) -> "_BaseLoader":
+    def from_config(cls, config_path: Union[str, Path], **kwargs) -> "_BaseLoader":
         """Create a data loader from a yaml config file
 
         Args:
@@ -89,55 +88,9 @@ class _BaseLoader(ABC):
         """
         return NotImplemented
 
-    @abstractmethod
-    def __len__(self) -> int:
-        """Returns the total number of data points in the dataset
-
-        Returns:
-            int: length of dataset
-        """
-        return NotImplemented
-
-    @abstractmethod
-    def get_all_data(self) -> Any:
-        """Returns all the loaded data
-
-        Returns:
-            Any: data
-        """
-        return NotImplemented
-
-    @abstractmethod
-    def get_all_parameters(self) -> Any:
-        """Returns all the loaded parameters
-
-        Returns:
-            Any: parameters
-        """
-        return NotImplemented
-
-    @abstractmethod
-    def get_obs_data(self) -> Any:
-        """Returns the observed data
-
-        Returns:
-            Any: data
-        """
-        return NotImplemented
-
-    @abstractmethod
-    def get_fid_parameters(self) -> Any:
-        """Returns the fiducial parameters which we expect the
-        observed data to resemble
-
-        Returns:
-            Any: parameters
-        """
-        return NotImplemented
-
 
 class NumpyLoader(_BaseLoader):
-    """A class for loading in-memory data using numpy arrays.
+    r"""A class for loading in-memory data using numpy arrays.
 
     Args:
         x (np.array): Array of training data of
@@ -152,16 +105,15 @@ class NumpyLoader(_BaseLoader):
 
     def __init__(
         self,
-        x: np.array,
-        theta: np.array,
-        xobs: Optional[np.array] = None,
-        thetafid: Optional[np.array] = None
+        x: np.ndarray,
+        theta: np.ndarray,
+        xobs: Optional[np.ndarray] = None,
+        thetafid: Optional[np.ndarray] = None,
     ) -> None:
         self.x = x
         self.theta = theta
         if len(self.x) != len(self.theta):
-            raise Exception(
-                "Stored data and parameters are not of same length.")
+            raise ValueError("Stored data and parameters are not of same length.")
         self.xobs = xobs
         self.thetafid = thetafid
 
@@ -175,11 +127,11 @@ class NumpyLoader(_BaseLoader):
             return 0
         return len(self.x)
 
-    def get_all_data(self) -> np.array:
+    def get_all_data(self) -> np.ndarray:
         """Returns all the loaded data for training
 
         Returns:
-            np.array: data
+            np.ndarray: data
         """
         return self.x
 
@@ -187,15 +139,15 @@ class NumpyLoader(_BaseLoader):
         """Returns all the loaded parameters for training
 
         Returns:
-            np.array: parameters
+            np.ndarray: parameters
         """
         return self.theta
 
-    def get_obs_data(self) -> np.array:
+    def get_obs_data(self) -> np.ndarray:
         """Returns the observed data
 
         Returns:
-            np.array: data
+            np.ndarray: data
         """
         return self.xobs
 
@@ -226,7 +178,7 @@ class StaticNumpyLoader(NumpyLoader):
         x_file: str,
         theta_file: str,
         xobs_file: Optional[str] = None,
-        thetafid_file: Optional[str] = None
+        thetafid_file: Optional[str] = None,
     ) -> None:
         self.in_dir = Path(in_dir)
         self.x_path = self.in_dir / x_file
@@ -277,7 +229,7 @@ class SBISimulator(NumpyLoader):
         in_dir: str,
         xobs_file: str,
         num_simulations: int,
-        simulator: Optional[callable] = None,
+        simulator: Optional[Callable] = None,
         save_simulated: Optional[bool] = False,
         x_file: Optional[str] = None,
         theta_file: Optional[str] = None,
@@ -291,9 +243,8 @@ class SBISimulator(NumpyLoader):
 
         # If save_simulated, check that x_file and theta_file are specified
         if save_simulated and (x_file is None or theta_file is None):
-            raise Exception(
-                "If save_simulated is True, x_file and theta_file must be "
-                "specified."
+            raise ValueError(
+                "If save_simulated is True, x_file and theta_file must be " "specified."
             )
 
         # Load stored data (if specified)
@@ -330,7 +281,7 @@ class SBISimulator(NumpyLoader):
         """
         self.simulator = simulator
 
-    def simulate(self, proposal: Any) -> Tuple[np.array, np.array]:
+    def simulate(self, proposal: Any) -> Tuple[np.ndarray, np.ndarray]:
         """Run simulations give a proposal and returns ($\theta, x$) pairs
         obtained from sampling the proposal and simulating.
 
@@ -392,7 +343,7 @@ class SummarizerDatasetLoader(NumpyLoader):
         train_test_split_file: str,
         param_names: List[str],
         xobs_file: Optional[str] = None,
-        thetafid_file: Optional[str] = None
+        thetafid_file: Optional[str] = None,
     ):
         self.in_dir = Path(in_dir)
         self.nodes = self.get_nodes_for_stage(
@@ -409,8 +360,7 @@ class SummarizerDatasetLoader(NumpyLoader):
             param_names=param_names,
         )
         if len(self.x) != len(self.theta):
-            raise Exception(
-                "Stored data and parameters are not of same length.")
+            raise ValueError("Stored data and parameters are not of same length.")
 
         if xobs_file is None:
             self.xobs_path = None
@@ -441,9 +391,7 @@ class SummarizerDatasetLoader(NumpyLoader):
         """
         return self.x.load().reshape((len(self), -1))
 
-    def get_nodes_for_stage(
-            self, stage: str,
-            train_test_split_file: str) -> List[int]:
+    def get_nodes_for_stage(self, stage: str, train_test_split_file: str) -> List[int]:
         """Get nodes for a given stage (train, test or val)
 
         Args:
@@ -494,7 +442,7 @@ class TorchLoader(_BaseLoader):
         train_loader: DataLoader,
         val_loader: DataLoader = None,
         xobs: Optional[Tensor] = None,
-        thetafid: Optional[Tensor] = None
+        thetafid: Optional[Tensor] = None,
     ) -> None:
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -543,6 +491,7 @@ class TorchLoader(_BaseLoader):
             Tensor: parameters
         """
         return self.thetafid
+
 
 # TODO: Add loaders which load dynamically from many files, so
 # that everything doesn't need to be stored in memory
