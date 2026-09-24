@@ -24,7 +24,7 @@ class Dataset:
         """Read dataset of summaries
 
         Args:
-            nodes (List[int]): list of nodes to read 
+            nodes (List[int]): list of nodes to read
             path_to_data (Path): path to where summaries are stored
             root_file (str): root file for summaries to be read
             islice_filters (Dict): dictionary of filters to slice on the summaries' coordinates indices
@@ -35,19 +35,19 @@ class Dataset:
         self.path_to_data = path_to_data
         self.root_file = root_file
         if islice_filters is not None:
-            self.islice_filters = self.transform_filters_to_islices(
-                islice_filters)
+            self.islice_filters = self.transform_filters_to_islices(islice_filters)
         else:
             self.islice_filters = None
         if slice_filters is not None:
-            self.slice_filters = self.transform_filters_to_slices(
-                slice_filters)
+            self.slice_filters = self.transform_filters_to_slices(slice_filters)
         else:
             self.slice_filters = None
         self.select_filters = select_filters
         self.summaries = self.load()
 
-    def __len__(self,) -> int:
+    def __len__(
+        self,
+    ) -> int:
         return len(self.nodes)
 
     def transform_filters_to_slices(self, filters: dict) -> dict:
@@ -78,7 +78,10 @@ class Dataset:
             filters[filter] = slice(min, max, step)
         return filters
 
-    def load_summary(self, node: int,) -> xr.DataArray:
+    def load_summary(
+        self,
+        node: int,
+    ) -> xr.DataArray:
         """Load the summary for a particular node
 
         Args:
@@ -88,7 +91,8 @@ class Dataset:
             xr.DataArray: data array with coordinates and summary value
         """
         summary = xr.open_dataarray(
-            self.path_to_data / f'{self.root_file}_node{node}.nc')
+            self.path_to_data / f"{self.root_file}_node{node}.nc"
+        )
         if self.islice_filters:
             summary = summary.isel(**self.islice_filters)
         if self.slice_filters:
@@ -97,7 +101,9 @@ class Dataset:
             summary = summary.sel(**self.select_filters)
         return summary
 
-    def load(self,) -> np.array:
+    def load(
+        self,
+    ) -> np.array:
         """Load all summaries as a numpy array
 
         Returns:
@@ -105,7 +111,5 @@ class Dataset:
         """
         summaries = []
         for node in self.nodes:
-            summaries.append(
-                np.array(self.load_summary(node=node))
-            )
+            summaries.append(np.array(self.load_summary(node=node)))
         return np.array(summaries)

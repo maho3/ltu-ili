@@ -1,15 +1,16 @@
-
 from pathlib import Path
 from typing import Any
 
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
+
     ModelClass = NeuralPosterior
-    interface = 'torch'
+    interface = "torch"
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
+
     ModelClass = DelfiWrapper
-    interface = 'tensorflow'
+    interface = "tensorflow"
 
 
 class _BaseRunner:
@@ -18,7 +19,7 @@ class _BaseRunner:
         prior: Any,
         train_args: dict | None = None,
         out_dir: str | Path | None = None,
-        device: str = 'cpu',
+        device: str = "cpu",
         name: str | None = "",
     ):
         self.prior = prior

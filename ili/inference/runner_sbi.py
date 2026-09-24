@@ -62,7 +62,7 @@ class SBIRunner(_BaseRunner):
         engine_kwargs: dict | None = None,
         train_args: dict | None = None,
         out_dir: str | Path | None = None,
-        device: str = 'cpu',
+        device: str = "cpu",
         proposal: Distribution = None,
         name: str | None = "",
         signatures: list[str] | None = None,
@@ -106,7 +106,7 @@ class SBIRunner(_BaseRunner):
 
         self.signatures = signatures
         if self.signatures is None:
-            self.signatures = [""]*len(self.nets)
+            self.signatures = [""] * len(self.nets)
 
     @classmethod
     def from_config(cls, config_path: Path, **kwargs) -> "SBIRunner":
@@ -125,13 +125,13 @@ class SBIRunner(_BaseRunner):
         update(config, **kwargs)
 
         # load prior distribution
-        config['prior']['args']['device'] = config['device']
+        config["prior"]["args"]["device"] = config["device"]
         prior = load_from_config(config["prior"])
 
         # load proposal distributions
         proposal = None
         if "proposal" in config:
-            config['proposal']['args']['device'] = config['device']
+            config["proposal"]["args"]["device"] = config["device"]
             proposal = load_from_config(config["proposal"])
 
         # load embedding net
@@ -146,7 +146,7 @@ class SBIRunner(_BaseRunner):
         train_args = config["train_args"]
         out_dir = Path(config["out_dir"])
         if "name" in config["model"]:
-            name = config["model"]["name"]+"_"
+            name = config["model"]["name"] + "_"
         else:
             name = ""
         signatures = []
@@ -158,7 +158,7 @@ class SBIRunner(_BaseRunner):
         nets = []
 
         # For every different nets architecture
-        for model_args in config['model']['nets']:
+        for model_args in config["model"]["nets"]:
             if "repeats" in model_args:
                 n_size = model_args["repeats"]
                 model_args.pop("repeats")
@@ -167,9 +167,13 @@ class SBIRunner(_BaseRunner):
 
             # Repeat to have an ensemble of n_size >=1 of the same nets architecture
             for n in range(n_size):
-                nets.append(load_nde_sbi(config['model']['engine'],
-                                         embedding_net=embedding_net,
-                                         **model_args))
+                nets.append(
+                    load_nde_sbi(
+                        config["model"]["engine"],
+                        embedding_net=embedding_net,
+                        **model_args,
+                    )
+                )
 
         # initialize
         return cls(
@@ -186,12 +190,12 @@ class SBIRunner(_BaseRunner):
 
     def _setup_engine(self, net: nn.Module):
         """Instantiate an sbi inference engine (SNPE/SNLE/SNRE)."""
-        if self.engine[0] == 'S':
+        if self.engine[0] == "S":
             engine_name = self.engine
         else:
-            engine_name = 'S'+self.engine
+            engine_name = "S" + self.engine
         try:
-            inference_class = load_class('sbi.inference', engine_name)
+            inference_class = load_class("sbi.inference", engine_name)
         except ImportError:
             raise ValueError(
                 f"Model class {self.engine} not supported. "
@@ -205,24 +209,27 @@ class SBIRunner(_BaseRunner):
                 density_estimator=net,
                 device=self.device,
             )
-        elif ("NRE" in self.engine):
+        elif "NRE" in self.engine:
             return inference_class(
                 prior=self.prior,
                 classifier=net,
                 device=self.device,
             )
         else:
-            raise ValueError(
-                f"Model class {self.engine} not supported with SBIRunner.")
+            raise ValueError(f"Model class {self.engine} not supported with SBIRunner.")
 
-    def _train_round(self, models: list[NeuralInference],
-                     x: torch.Tensor, theta: torch.Tensor,
-                     proposal: Distribution | None):
+    def _train_round(
+        self,
+        models: list[NeuralInference],
+        x: torch.Tensor,
+        theta: torch.Tensor,
+        proposal: Distribution | None,
+    ):
         """Train a single round of inference for an ensemble of models."""
 
         # append data to models
         for model in models:
-            if ("NPE" in self.engine):
+            if "NPE" in self.engine:
                 model = model.append_simulations(theta, x, proposal=proposal)
             else:
                 model = model.append_simulations(theta, x)
@@ -235,7 +242,8 @@ class SBIRunner(_BaseRunner):
         num_examples = x.shape[0]
         permuted_indices = torch.randperm(num_examples)
         num_training_examples = int(
-            (1 - self.train_args['validation_fraction']) * num_examples)
+            (1 - self.train_args["validation_fraction"]) * num_examples
+        )
         train_indices, val_indices = (
             permuted_indices[:num_training_examples],
             permuted_indices[num_training_examples:],
@@ -248,9 +256,11 @@ class SBIRunner(_BaseRunner):
             # hack to initialize sbi model without training (ref. issue #127)
             first_round = False
             if model._neural_net is None:
-                model.train(learning_rate=self.train_args['learning_rate'],
-                            resume_training=False,
-                            max_num_epochs=2**31-1)
+                model.train(
+                    learning_rate=self.train_args["learning_rate"],
+                    resume_training=False,
+                    max_num_epochs=2**31 - 1,
+                )
                 model._epochs_since_last_improvement = 0
                 first_round = True
 
@@ -260,29 +270,36 @@ class SBIRunner(_BaseRunner):
 
             # train
             if ("NPE" in self.engine) & first_round:
-                model.train(**self.train_args, resume_training=True,
-                            force_first_round_loss=True)
+                model.train(
+                    **self.train_args, resume_training=True, force_first_round_loss=True
+                )
             else:
                 model.epoch, model._val_log_prob = 0, float("-Inf")
-                model.train(**self.train_args,  resume_training=True)
+                model.train(**self.train_args, resume_training=True)
 
             # duplicate loss record (for backwards compatibility)
             # this is a mess, sorry
             # TODO: deprecate in future versions
             if "training_log_probs" in model.summary:
-                model.summary["training_loss"] = \
-                    [-1.*x for x in model.summary["training_log_probs"]]
-                model.summary["validation_loss"] = \
-                    [-1.*x for x in model.summary["validation_log_probs"]]
-                model.summary["best_validation_loss"] = \
-                    [-1.*x for x in model.summary["best_validation_log_prob"]]
+                model.summary["training_loss"] = [
+                    -1.0 * x for x in model.summary["training_log_probs"]
+                ]
+                model.summary["validation_loss"] = [
+                    -1.0 * x for x in model.summary["validation_log_probs"]
+                ]
+                model.summary["best_validation_loss"] = [
+                    -1.0 * x for x in model.summary["best_validation_log_prob"]
+                ]
             else:
-                model.summary["training_log_probs"] = \
-                    [-1.*x for x in model.summary["training_loss"]]
-                model.summary["validation_log_probs"] = \
-                    [-1.*x for x in model.summary["validation_loss"]]
-                model.summary["best_validation_log_prob"] = \
-                    [-1.*x for x in model.summary["best_validation_loss"]]
+                model.summary["training_log_probs"] = [
+                    -1.0 * x for x in model.summary["training_loss"]
+                ]
+                model.summary["validation_log_probs"] = [
+                    -1.0 * x for x in model.summary["validation_loss"]
+                ]
+                model.summary["best_validation_log_prob"] = [
+                    -1.0 * x for x in model.summary["best_validation_loss"]
+                ]
 
             # save model
             posteriors.append(model.build_posterior())
@@ -290,7 +307,8 @@ class SBIRunner(_BaseRunner):
 
         # ensemble all trained models, weighted by validation loss
         val_logprob = torch.tensor(
-            [-1.*float(x["best_validation_loss"][-1]) for x in summaries]).to(self.device)
+            [-1.0 * float(x["best_validation_loss"][-1]) for x in summaries]
+        ).to(self.device)
 
         # Exponentiate with numerical stability
         weights = torch.exp(val_logprob - val_logprob.max())
@@ -298,7 +316,7 @@ class SBIRunner(_BaseRunner):
         posterior_ensemble = EnsemblePosterior(
             posteriors=posteriors,
             weights=weights,
-            theta_transform=posteriors[0].theta_transform
+            theta_transform=posteriors[0].theta_transform,
         )  # raises warning due to bug in sbi
 
         # record the name of the ensemble
@@ -307,8 +325,9 @@ class SBIRunner(_BaseRunner):
 
         return posterior_ensemble, summaries
 
-    def _save_models(self, posterior_ensemble: EnsemblePosterior,
-                     summaries: list[dict]):
+    def _save_models(
+        self, posterior_ensemble: EnsemblePosterior, summaries: list[dict]
+    ):
         """Save models to file."""
 
         logger.info(f"Saving model to {self.out_dir}")
@@ -402,14 +421,16 @@ class SBIRunnerSequential(SBIRunner):
             logger.info(
                 "The first round of inference will use existing sims from the "
                 "loader. Make sure that the simulations were run from the "
-                "given proposal distribution for consistency.")
+                "given proposal distribution for consistency."
+            )
             x = torch.Tensor(loader.get_all_data()).to(self.device)
             theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
         # no pre-run data
         else:
             logger.info(
                 "The first round of inference will simulate from the given "
-                "proposal or prior.")
+                "proposal or prior."
+            )
             theta, x = loader.simulate(self.proposal)
             x = torch.Tensor(x).to(self.device)
             theta = torch.Tensor(theta).to(self.device)
@@ -448,18 +469,18 @@ class ABCRunner(_BaseRunner):
     """Class to run ABC inference models using the sbi package"""
 
     def __init__(
-            self,
-            prior: Distribution,
-            engine: str,
-            train_args: dict | None = None,
-            out_dir: str | Path | None = None,
-            device: str = 'cpu',
-            name: str | None = "",
+        self,
+        prior: Distribution,
+        engine: str,
+        train_args: dict | None = None,
+        out_dir: str | Path | None = None,
+        device: str = "cpu",
+        name: str | None = "",
     ):
 
         if train_args is None:
             train_args = {}
-        
+
         super().__init__(
             prior=prior,
             train_args=train_args,
@@ -497,7 +518,7 @@ class ABCRunner(_BaseRunner):
         out_dir = Path(config["out_dir"])
         name = ""
         if "name" in config["model"]:
-            name = config["model"]["name"]+"_"
+            name = config["model"]["name"] + "_"
 
         return cls(
             prior=prior,
@@ -522,11 +543,8 @@ class ABCRunner(_BaseRunner):
         x_obs = loader.get_obs_data()
 
         # setup and train each architecture
-        inference_class = load_class('sbi.inference', self.engine)
-        model = inference_class(
-            prior=self.prior,
-            simulator=loader.simulator
-        )
+        inference_class = load_class("sbi.inference", self.engine)
+        model = inference_class(prior=self.prior, simulator=loader.simulator)
         samples = model(x_obs, return_summary=False, **self.train_args)
 
         # save if output path is specified
@@ -535,6 +553,5 @@ class ABCRunner(_BaseRunner):
             with open(self.out_dir / str_p, "wb") as handle:
                 pickle.dump(samples, handle)
 
-        logger.info(
-            f"It took {time.time() - t0} seconds to run the model.")
+        logger.info(f"It took {time.time() - t0} seconds to run the model.")
         return samples

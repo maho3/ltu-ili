@@ -25,7 +25,7 @@ warnings.warn(
     "The 'runner_pydelfi' module and the 'pydelfi' backend are deprecated and "
     "will be removed in a future version. Please use an alternative runner.",
     DeprecationWarning,
-    stacklevel=2
+    stacklevel=2,
 )
 
 
@@ -45,11 +45,11 @@ class DelfiRunner(_BaseRunner):
         self,
         prior: Any,
         config_ndes: list[dict],
-        engine: str = 'NLE',
+        engine: str = "NLE",
         engine_kwargs: dict | None = None,
         train_args: dict | None = None,
         out_dir: str | Path | None = None,
-        device: str = 'cpu',
+        device: str = "cpu",
         name: str | None = "",
     ):
         super().__init__(
@@ -57,19 +57,17 @@ class DelfiRunner(_BaseRunner):
             train_args=train_args,
             out_dir=out_dir,
             device=device,
-            name=name
+            name=name,
         )
         self.config_ndes = config_ndes
         self.engine_kwargs = engine_kwargs
         self.inference_class = DelfiWrapper
-        if engine != 'NLE':
-            logger.warning(
-                'pydelfi only supports NLE engine. Engine set to NLE.')
-            self.engine = 'NLE'
-        if device != 'cpu':
-            logger.warning(
-                'pydelfi only supports cpu training. Device set to cpu.')
-            self.device = 'cpu'
+        if engine != "NLE":
+            logger.warning("pydelfi only supports NLE engine. Engine set to NLE.")
+            self.engine = "NLE"
+        if device != "cpu":
+            logger.warning("pydelfi only supports cpu training. Device set to cpu.")
+            self.device = "cpu"
 
     @classmethod
     def from_config(cls, config_path: Path, **kwargs) -> "DelfiRunner":
@@ -93,7 +91,7 @@ class DelfiRunner(_BaseRunner):
         prior = load_from_config(config["prior"])
 
         config_ndes = config["model"]["nets"]
-        if 'kwargs' in config["model"]:
+        if "kwargs" in config["model"]:
             engine_kwargs = config["model"]["kwargs"]
         else:
             engine_kwargs = {}
@@ -147,8 +145,7 @@ class DelfiRunner(_BaseRunner):
             config_ndes=self.config_ndes,
         )
 
-        results_dir = ('tmp' if self.out_dir is None
-                       else str(self.out_dir)) + '/'
+        results_dir = ("tmp" if self.out_dir is None else str(self.out_dir)) + "/"
 
         posterior = self.inference_class(
             config_ndes=self.config_ndes,
@@ -169,17 +166,19 @@ class DelfiRunner(_BaseRunner):
 
         train_probs = [(-t).tolist() for t in posterior.training_loss]
         val_probs = [(-t).tolist() for t in posterior.validation_loss]
-        summaries = [{
-            "training_log_probs": train_probs[i],
-            "validation_log_probs": val_probs[i],
-            "epochs_trained": [len(posterior.training_loss[i])]
-        } for i in range(len(nets))]
+        summaries = [
+            {
+                "training_log_probs": train_probs[i],
+                "validation_log_probs": val_probs[i],
+                "epochs_trained": [len(posterior.training_loss[i])],
+            }
+            for i in range(len(nets))
+        ]
 
         if self.out_dir is not None:
             self._save_models(posterior, summaries)
         tf.reset_default_graph()
 
-        logger.info(
-            f"It took {time.time() - t0} seconds to train all models.")
+        logger.info(f"It took {time.time() - t0} seconds to train all models.")
 
         return posterior, summaries

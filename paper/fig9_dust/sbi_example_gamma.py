@@ -13,28 +13,25 @@ from synthesizer.sed import Sed
 
 import ili
 
-directory = '/cosma7/data/dp004/dc-love2/codes/synthesizer-pipeline/Simba'
+directory = "/cosma7/data/dp004/dc-love2/codes/synthesizer-pipeline/Simba"
 
-with h5py.File(f'{directory}/simba.hdf5', 'r') as hf:
-    young_specs = hf['spectra/young_stellar'][:]
-    old_specs = hf['spectra/old_stellar'][:]
-    lam = hf['spectra/wavelength'][:]
+with h5py.File(f"{directory}/simba.hdf5", "r") as hf:
+    young_specs = hf["spectra/young_stellar"][:]
+    old_specs = hf["spectra/old_stellar"][:]
+    lam = hf["spectra/wavelength"][:]
 
 young_specs = Sed(lam=lam, lnu=young_specs)
 old_specs = Sed(lam=lam, lnu=old_specs)
 
 # define a filter collection object
 try:
-    fc = FilterCollection(path='custom_filter_collection.hdf5')
-except Exception:   # noqa: BLE001
-    fs = [f"SLOAN/SDSS.{f}" for f in ['u', 'g', 'r', 'i', 'z']]
+    fc = FilterCollection(path="custom_filter_collection.hdf5")
+except Exception:  # noqa: BLE001
+    fs = [f"SLOAN/SDSS.{f}" for f in ["u", "g", "r", "i", "z"]]
 
-    fc = FilterCollection(
-        filter_codes=fs,
-        new_lam=young_specs.lam
-    )
+    fc = FilterCollection(filter_codes=fs, new_lam=young_specs.lam)
 
-    fc.write_filters('custom_filter_collection.hdf5')
+    fc.write_filters("custom_filter_collection.hdf5")
 
 
 # binLimits = np.linspace(-25, -17, 10) # r-band
@@ -112,11 +109,7 @@ prior = ili.utils.Uniform(
 # specs = young_specs + old_specs
 # apply_dust_partial = partial(apply_dust, specs=specs, fc=fc, binLimits=binLimits)
 apply_dust_partial = partial(
-    apply_dust,
-    young_specs=young_specs,
-    old_specs=old_specs,
-    fc=fc,
-    binLimits=binLimits
+    apply_dust, young_specs=young_specs, old_specs=old_specs, fc=fc, binLimits=binLimits
 )
 simulator, prior = prepare_for_sbi(apply_dust_partial, prior)
 
@@ -129,21 +122,19 @@ theta, x = simulate_for_sbi(
 loader = ili.dataloaders.NumpyLoader(x=x, theta=theta)
 
 
-plt.plot(binLimits[:-1], x.squeeze().T, color='k', alpha=0.1)
+plt.plot(binLimits[:-1], x.squeeze().T, color="k", alpha=0.1)
 # plt.show()
-plt.savefig('test.png')
+plt.savefig("test.png")
 plt.close()
 
 # np.savetxt('data/simulations.txt', np.hstack([theta, x]))
 # dat = torch.tensor(np.loadtxt('data/simulations.txt'), dtype=torch.float32)
 # theta, x = dat[:,:2], dat[:,2:]
 
-nets = [
-    ili.utils.load_nde_sbi(engine='NPE', model='maf')
-]
+nets = [ili.utils.load_nde_sbi(engine="NPE", model="maf")]
 runner = ili.inference.InferenceRunner.load(
-    backend='sbi',
-    engine='NPE',
+    backend="sbi",
+    engine="NPE",
     nets=nets,
     prior=prior,
 )
@@ -156,7 +147,7 @@ x_o = apply_dust(theta_o, young_specs, old_specs, fc, binLimits)
 
 
 x_o += np.random.normal(0, scale=100, size=len(x_o)).astype(int)
-x_o[x_o < 0] = 0.
+x_o[x_o < 0] = 0.0
 
 
 """
@@ -172,11 +163,11 @@ plot corner
 fig = corner.corner(
     posterior_samples,
     # labels=['tau_v', 'slope'],
-    labels=['tau_v_ism', 'tau_v_bc', 'slope'],
+    labels=["tau_v_ism", "tau_v_bc", "slope"],
     quantiles=[0.16, 0.5, 0.84],  # 0.5
     show_titles=True,
     title_kwargs={"fontsize": 12},
-    plot_datapoints=False
+    plot_datapoints=False,
 )
 
 corner.overplot_lines(fig, theta_o, color="C1")
@@ -184,25 +175,37 @@ corner.overplot_points(fig, theta_o[None], marker="s", color="C1")
 
 ax = fig.add_axes([0.6, 0.6, 0.3, 0.3])
 
-bins = binLimits[:-1] + (binLimits[1:] - binLimits[:-1])/2
+bins = binLimits[:-1] + (binLimits[1:] - binLimits[:-1]) / 2
 # with np.errstate(divide='ignore'):
 # , device='cuda')
 mean = torch.tensor(np.median(np.array(posterior_samples), axis=0))
 # ax.plot(bins, apply_dust(mean, specs, fc, binLimits), label='Posterior median', zorder=2)
-ax.plot(bins, apply_dust(mean, young_specs, old_specs, fc,
-        binLimits), label='Posterior median', zorder=2)
-ax.plot(bins, x_o, label='True', zorder=3)
+ax.plot(
+    bins,
+    apply_dust(mean, young_specs, old_specs, fc, binLimits),
+    label="Posterior median",
+    zorder=2,
+)
+ax.plot(bins, x_o, label="True", zorder=3)
 
 # with MultiPool() as pool:
 # [ax.plot(bins, apply_dust(posterior_samples[i], specs, fc, binLimits),
-[ax.plot(bins, apply_dust(posterior_samples[i], young_specs, old_specs, fc, binLimits),
-         alpha=0.1, color='black', zorder=0) for i in np.arange(10)]
+[
+    ax.plot(
+        bins,
+        apply_dust(posterior_samples[i], young_specs, old_specs, fc, binLimits),
+        alpha=0.1,
+        color="black",
+        zorder=0,
+    )
+    for i in np.arange(10)
+]
 
 # ax.set_ylim(-4.5, -0.5);
 # ax.set_xlim(10, 14.4)
 ax.grid(alpha=0.1)
 # ax.set_xlabel('$M_{\mathrm{halo}} \,/\, \mathrm{M_{\odot}}$')
-ax.set_ylabel(r'$\phi \,/\, \mathrm{Mpc^{-3} \; dex^{-1}}$')
+ax.set_ylabel(r"$\phi \,/\, \mathrm{Mpc^{-3} \; dex^{-1}}$")
 ax.legend()
 
 plt.show()

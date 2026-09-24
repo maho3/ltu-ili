@@ -41,6 +41,7 @@ try:
     from .ndes_pt import LampeNPE as LampeNPE
     from .ndes_pt import load_nde_lampe as load_nde_lampe
     from .ndes_pt import load_nde_sbi as load_nde_sbi
+
     loaded = True
 except ImportError:
     pass
@@ -55,9 +56,12 @@ try:
     )
     from .distributions_tf import Uniform as Uniform
     from .ndes_tf import load_nde_pydelfi as load_nde_pydelfi
+
     loaded = True
 except ImportError:
     pass
 if not loaded:
-    raise ImportError("Neither Pytorch nor Tensorflow installed. "
-                      "Cannot import distributions or ndes.")
+    raise ImportError(
+        "Neither Pytorch nor Tensorflow installed. "
+        "Cannot import distributions or ndes."
+    )

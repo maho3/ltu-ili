@@ -11,19 +11,20 @@ from ili.validation import ValidationRunner
 def simulator(params):
     # create toy simulations
     x = np.arange(10)
-    y = 3 * params[0] * np.sin(x) + params[1] * x ** 2 - 2 * params[2] * x
+    y = 3 * params[0] * np.sin(x) + params[1] * x**2 - 2 * params[2] * x
     y += np.random.randn(len(x))
     return y
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # parse arguments
-    parser = argparse.ArgumentParser(
-        description="Run SBI inference for toy data.")
+    parser = argparse.ArgumentParser(description="Run SBI inference for toy data.")
     parser.add_argument(
-        "--model", type=str,
+        "--model",
+        type=str,
         default="NPE",
-        help="Configuration file to use for model training.")
+        help="Configuration file to use for model training.",
+    )
     args = parser.parse_args()
 
     # construct a working directory
@@ -40,12 +41,10 @@ if __name__ == '__main__':
     all_loader = StaticNumpyLoader.from_config("configs/data/toy.yaml")
 
     # train a model to infer x -> theta. save it as toy/posterior.pkl
-    runner = InferenceRunner.from_config(
-        f"configs/infer/toy_sbi_{args.model}.yaml")
+    runner = InferenceRunner.from_config(f"configs/infer/toy_sbi_{args.model}.yaml")
     runner(loader=all_loader)
 
     # use the trained posterior model to predict on a single example from
     # the test set
-    val_runner = ValidationRunner.from_config(
-        f"configs/val/toy_sbi_{args.model}.yaml")
+    val_runner = ValidationRunner.from_config(f"configs/val/toy_sbi_{args.model}.yaml")
     val_runner(loader=all_loader)

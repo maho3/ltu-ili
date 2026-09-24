@@ -10,7 +10,7 @@ from scipy.stats import norm
 
 class Uniform(Uniform):
     # Conform pydelfi's Uniform to sbi's BoxUniform
-    def __init__(self, low, high, device='cpu'):
+    def __init__(self, low, high, device="cpu"):
         low, high = map(np.ascontiguousarray, [low, high])
         self.low = low
         self.high = high
@@ -18,7 +18,7 @@ class Uniform(Uniform):
 
 
 class IndependentNormal:
-    def __init__(self, loc, scale, device='cpu'):
+    def __init__(self, loc, scale, device="cpu"):
         loc, scale = map(np.ascontiguousarray, [loc, scale])
         self.loc = loc
         self.scale = scale
@@ -36,23 +36,22 @@ class IndependentNormal:
 class MultivariateTruncatedNormal(TruncatedGaussian):
     """Note the pdf and logpdf as implemented in pydelfi are not normalized."""
 
-    def __init__(self, loc, covariance_matrix, low, high, device='cpu'):
+    def __init__(self, loc, covariance_matrix, low, high, device="cpu"):
         loc, covariance_matrix, low, high = map(
-            np.ascontiguousarray, [loc, covariance_matrix, low, high])
+            np.ascontiguousarray, [loc, covariance_matrix, low, high]
+        )
         self.loc = loc
         self.covariance_matrix = covariance_matrix
         self.low = low
         self.high = high
-        super().__init__(mean=loc, C=covariance_matrix,
-                         lower=low, upper=high)
+        super().__init__(mean=loc, C=covariance_matrix, lower=low, upper=high)
 
 
 class IndependentTruncatedNormal(MultivariateTruncatedNormal):
     """Note the pdf and logpdf as implemented in pydelfi are not normalized."""
 
-    def __init__(self, loc, scale, low, high, device='cpu'):
-        loc, scale, low, high = map(
-            np.ascontiguousarray, [loc, scale, low, high])
+    def __init__(self, loc, scale, low, high, device="cpu"):
+        loc, scale, low, high = map(np.ascontiguousarray, [loc, scale, low, high])
         self.loc = loc
         self.scale = scale
         self.low = low

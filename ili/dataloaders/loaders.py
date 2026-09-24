@@ -23,11 +23,7 @@ except ModuleNotFoundError:
 
 class _BaseLoader(ABC):
     @classmethod
-    def from_config(
-        cls,
-        config_path: str | Path,
-        **kwargs
-    ) -> "_BaseLoader":
+    def from_config(cls, config_path: str | Path, **kwargs) -> "_BaseLoader":
         """Create a data loader from a yaml config file
 
         Args:
@@ -91,6 +87,7 @@ class _BaseLoader(ABC):
         """
         return NotImplemented
 
+
 class NumpyLoader(_BaseLoader):
     r"""A class for loading in-memory data using numpy arrays.
 
@@ -110,13 +107,12 @@ class NumpyLoader(_BaseLoader):
         x: np.array,
         theta: np.array,
         xobs: np.array | None = None,
-        thetafid: np.array | None = None
+        thetafid: np.array | None = None,
     ) -> None:
         self.x = x
         self.theta = theta
         if len(self.x) != len(self.theta):
-            raise ValueError(
-                "Stored data and parameters are not of same length.")
+            raise ValueError("Stored data and parameters are not of same length.")
         self.xobs = xobs
         self.thetafid = thetafid
 
@@ -181,7 +177,7 @@ class StaticNumpyLoader(NumpyLoader):
         x_file: str,
         theta_file: str,
         xobs_file: str | None = None,
-        thetafid_file: str | None = None
+        thetafid_file: str | None = None,
     ) -> None:
         self.in_dir = Path(in_dir)
         self.x_path = self.in_dir / x_file
@@ -247,8 +243,7 @@ class SBISimulator(NumpyLoader):
         # If save_simulated, check that x_file and theta_file are specified
         if save_simulated and (x_file is None or theta_file is None):
             raise ValueError(
-                "If save_simulated is True, x_file and theta_file must be "
-                "specified."
+                "If save_simulated is True, x_file and theta_file must be " "specified."
             )
 
         # Load stored data (if specified)
@@ -347,7 +342,7 @@ class SummarizerDatasetLoader(NumpyLoader):
         train_test_split_file: str,
         param_names: list[str],
         xobs_file: str | None = None,
-        thetafid_file: str | None = None
+        thetafid_file: str | None = None,
     ):
         self.in_dir = Path(in_dir)
         self.nodes = self.get_nodes_for_stage(
@@ -364,8 +359,7 @@ class SummarizerDatasetLoader(NumpyLoader):
             param_names=param_names,
         )
         if len(self.x) != len(self.theta):
-            raise ValueError(
-                "Stored data and parameters are not of same length.")
+            raise ValueError("Stored data and parameters are not of same length.")
 
         if xobs_file is None:
             self.xobs_path = None
@@ -396,9 +390,7 @@ class SummarizerDatasetLoader(NumpyLoader):
         """
         return self.x.load().reshape((len(self), -1))
 
-    def get_nodes_for_stage(
-            self, stage: str,
-            train_test_split_file: str) -> list[int]:
+    def get_nodes_for_stage(self, stage: str, train_test_split_file: str) -> list[int]:
         """Get nodes for a given stage (train, test or val)
 
         Args:
@@ -449,7 +441,7 @@ class TorchLoader(_BaseLoader):
         train_loader: DataLoader,
         val_loader: DataLoader = None,
         xobs: Tensor | None = None,
-        thetafid: Tensor | None = None
+        thetafid: Tensor | None = None,
     ) -> None:
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -498,6 +490,7 @@ class TorchLoader(_BaseLoader):
             Tensor: parameters
         """
         return self.thetafid
+
 
 # TODO: Add loaders which load dynamically from many files, so
 # that everything doesn't need to be stored in memory

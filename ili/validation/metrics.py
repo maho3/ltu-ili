@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 try:
     from sbi.inference.posteriors import DirectPosterior
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
+
     try:  # sbi > 0.22.0
         from sbi.inference.posteriors import EnsemblePosterior
     except ImportError:  # sbi < 0.22.0
@@ -28,12 +29,14 @@ try:
             NeuralPosteriorEnsemble as EnsemblePosterior,
         )
     from ili.utils.ndes_pt import LampeEnsemble, LampeNPE
+
     ModelClass = NeuralPosterior
-    backend = 'torch'
+    backend = "torch"
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
+
     ModelClass = DelfiWrapper
-    backend = 'tensorflow'
+    backend = "tensorflow"
 
 
 class _BaseMetric(ABC):
@@ -70,7 +73,7 @@ class _SampleBasedMetric(_BaseMetric):
     def __init__(
         self,
         num_samples: int,
-        sample_method: str = 'emcee',
+        sample_method: str = "emcee",
         sample_params: dict | None = None,
         labels: list[str] | None = None,
         out_dir: Path | None = None,
@@ -95,32 +98,34 @@ class _SampleBasedMetric(_BaseMetric):
         Raises:
             ValueError: If the specified sample method is not supported.
         """
-        if self.sample_method == 'emcee':
+        if self.sample_method == "emcee":
             return EmceeSampler(posterior, **self.sample_params)
 
         # check if pytorch backend is available
-        if backend != 'torch':
-            raise ValueError(
-                'Pyro backend is only available for sbi posteriors')
+        if backend != "torch":
+            raise ValueError("Pyro backend is only available for sbi posteriors")
 
         # check if DirectPosterior is available
-        if self.sample_method == 'direct':
+        if self.sample_method == "direct":
             # First case: we have a EnsemblePosterior instance
             # We only need to check the first element
-            if (isinstance(posterior, EnsemblePosterior) and
-                    isinstance(posterior.posteriors[0], DirectPosterior)) or isinstance(posterior, (DirectPosterior, LampeNPE, LampeEnsemble)):
+            if (
+                isinstance(posterior, EnsemblePosterior)
+                and isinstance(posterior.posteriors[0], DirectPosterior)
+            ) or isinstance(posterior, (DirectPosterior, LampeNPE, LampeEnsemble)):
                 return DirectSampler(posterior)
             else:
                 raise ValueError(
-                    'Direct sampling is only available for DirectPosteriors')
-        elif self.sample_method == 'vi':
+                    "Direct sampling is only available for DirectPosteriors"
+                )
+        elif self.sample_method == "vi":
             return VISampler(posterior, **self.sample_params)
 
-        return PyroSampler(posterior, method=self.sample_method,
-                           **self.sample_params)
+        return PyroSampler(posterior, method=self.sample_method, **self.sample_params)
 
 
 # Metrics evaluated at a single data point (use x_obs and theta_fid)
+
 
 class PlotSinglePosterior(_SampleBasedMetric):
     """Perform inference sampling on a single test point and plot the
@@ -150,7 +155,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
         plot_kws: dict | None = None,
         grid: sns.PairGrid | None = None,
         name: str | None = None,
-        **grid_kws
+        **grid_kws,
     ):
         """Given a posterior and test data, plot the inferred posterior of a
         single test point and save to file.
@@ -192,7 +197,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
         ndim = samples.shape[-1]
 
         # set default plot parameters
-        _kw = { 'levels': [0.05, 0.32, 1], 'color': 'k' }
+        _kw = {"levels": [0.05, 0.32, 1], "color": "k"}
         if plot_kws is not None:
             _kw.update(plot_kws)
         plot_kws = _kw
@@ -201,11 +206,11 @@ class PlotSinglePosterior(_SampleBasedMetric):
         data = pd.DataFrame(samples, columns=self.labels)
         if name is None:
             if grid is None:  # account for overlapping plots
-                data['Model'] = 0
+                data["Model"] = 0
             else:
-                data['Model'] = np.max(grid.data['Model']) + 1
+                data["Model"] = np.max(grid.data["Model"]) + 1
         else:
-            data['Model'] = name
+            data["Model"] = name
 
         # plot
         if grid is not None:
@@ -218,16 +223,15 @@ class PlotSinglePosterior(_SampleBasedMetric):
             diag_kind=None,
             corner=True,
             vars=self.labels,
-            hue='Model' if grid is not None else None,
-            **grid_kws
+            hue="Model" if grid is not None else None,
+            **grid_kws,
         )
         fig.map_lower(sns.kdeplot, **plot_kws)
         fig.map_diag(sns.kdeplot, **plot_kws)
         if grid is not None:
             fig._legend.remove()
             fig.add_legend()
-            sns.move_legend(fig, "center right",
-                            bbox_to_anchor=(0.9, .5))
+            sns.move_legend(fig, "center right", bbox_to_anchor=(0.9, 0.5))
 
         # plot fiducial parameters and set axis limits
         lower = [None] * ndim if lower is None else lower
@@ -263,6 +267,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
 # Metrics evaluated over a whole test set (use x and theta)
 
+
 class PosteriorSamples(_SampleBasedMetric):
     """
     Class to save samples from posterior at x data (test data) for downstream
@@ -294,7 +299,8 @@ class PosteriorSamples(_SampleBasedMetric):
             try:
                 # Sample posterior P(theta | x[ii])
                 posterior_samples[:, ii] = sampler.sample(
-                    self.num_samples, x=x[ii], progress=False, **kwargs)
+                    self.num_samples, x=x[ii], progress=False, **kwargs
+                )
             except Warning as w:
                 logger.warning("WARNING\n%s", w)
                 continue
@@ -309,7 +315,7 @@ class PosteriorSamples(_SampleBasedMetric):
         # here for debugging purpose, otherwise error in runner.py line 123
         x_obs: np.array | None = None,
         theta_fid: np.array | None = None,
-        **kwargs
+        **kwargs,
     ):
         """Given a posterior and test data, infer posterior samples of a
         test dataset and save to file.
@@ -366,15 +372,14 @@ class PosteriorCoverage(PosteriorSamples):
             trues (np.array): true parameters of shape (ndata, npars)
 
         Returns:
-            np.array: ranks of the true parameters in the posterior samples 
+            np.array: ranks of the true parameters in the posterior samples
                 of shape (ndata, npars)
         """
         ranks = (samples < trues[None, ...]).sum(axis=0)
         return ranks
 
     def _plot_ranks_histogram(
-        self, samples: np.ndarray, trues: np.ndarray,
-        signature: str, nbins: int = 10
+        self, samples: np.ndarray, trues: np.ndarray, signature: str, nbins: int = 10
     ) -> plt.Figure:
         """
         Plot a histogram of ranks for each parameter.
@@ -400,15 +405,15 @@ class PosteriorCoverage(PosteriorSamples):
         for i in range(npars):
             ax[i].hist(np.array(ranks)[:, i], bins=nbins)
             ax[i].set_title(self.labels[i])
-        ax[0].set_ylabel('counts')
+        ax[0].set_ylabel("counts")
 
         for axis in ax:
             axis.set_xlim(0, ranks.max())
-            axis.set_xlabel('rank')
+            axis.set_xlabel("rank")
             axis.grid(visible=True)
-            axis.axhline(navg, color='k')
-            axis.axhline(navg - navg ** 0.5, color='k', ls="--")
-            axis.axhline(navg + navg ** 0.5, color='k', ls="--")
+            axis.axhline(navg, color="k")
+            axis.axhline(navg - navg**0.5, color="k", ls="--")
+            axis.axhline(navg + navg**0.5, color="k", ls="--")
 
         if self.out_dir is None:
             return fig
@@ -418,8 +423,11 @@ class PosteriorCoverage(PosteriorSamples):
         return fig
 
     def _plot_coverage(
-        self, samples: np.ndarray, trues: np.ndarray,
-        signature: str, plotscatter: bool = True
+        self,
+        samples: np.ndarray,
+        trues: np.ndarray,
+        signature: str,
+        plotscatter: bool = True,
     ) -> plt.Figure:
         """
         Plot the coverage of predicted percentiles against empirical percentiles.
@@ -447,20 +455,18 @@ class PosteriorCoverage(PosteriorSamples):
         for i in range(npars):
             xr = np.sort(ranks[:, i])
             xr = xr / xr[-1]
-            ax[i].plot(cdf, cdf, 'k--')
+            ax[i].plot(cdf, cdf, "k--")
             if plotscatter:
-                ax[i].fill_between(cdf, unip[0], unip[-1],
-                                   color='gray', alpha=0.2)
-                ax[i].fill_between(cdf, unip[1], unip[-2],
-                                   color='gray', alpha=0.4)
-            ax[i].plot(xr, cdf, lw=2, label='posterior')
-            ax[i].set(adjustable='box', aspect='equal')
+                ax[i].fill_between(cdf, unip[0], unip[-1], color="gray", alpha=0.2)
+                ax[i].fill_between(cdf, unip[1], unip[-2], color="gray", alpha=0.4)
+            ax[i].plot(xr, cdf, lw=2, label="posterior")
+            ax[i].set(adjustable="box", aspect="equal")
             ax[i].set_title(self.labels[i])
-            ax[i].set_xlabel('Predicted Percentile')
+            ax[i].set_xlabel("Predicted Percentile")
             ax[i].set_xlim(0, 1)
             ax[i].set_ylim(0, 1)
 
-        ax[0].set_ylabel('Empirical Percentile')
+        ax[0].set_ylabel("Empirical Percentile")
         for axis in ax:
             axis.grid(visible=True)
 
@@ -472,8 +478,7 @@ class PosteriorCoverage(PosteriorSamples):
         return fig
 
     def _plot_predictions(
-        self, samples: np.ndarray, trues: np.ndarray,
-        signature: str
+        self, samples: np.ndarray, trues: np.ndarray, signature: str
     ) -> plt.Figure:
         """
         Plot the mean and standard deviation of the predicted samples against
@@ -496,16 +501,25 @@ class PosteriorCoverage(PosteriorSamples):
         else:
             axs = axs.flatten()
         for j in range(npars):
-            axs[j].errorbar(trues[:, j], mus[:, j], stds[:, j],
-                            fmt="none", elinewidth=0.5, alpha=0.5)
+            axs[j].errorbar(
+                trues[:, j],
+                mus[:, j],
+                stds[:, j],
+                fmt="none",
+                elinewidth=0.5,
+                alpha=0.5,
+            )
             axs[j].plot(
                 *(2 * [np.linspace(min(trues[:, j]), max(trues[:, j]), 10)]),
-                'k--', ms=0.2, lw=0.5)
-            axs[j].grid(which='both', lw=0.5)
-            axs[j].set(adjustable='box', aspect='equal')
+                "k--",
+                ms=0.2,
+                lw=0.5,
+            )
+            axs[j].grid(which="both", lw=0.5)
+            axs[j].set(adjustable="box", aspect="equal")
             axs[j].set_title(self.labels[j], fontsize=12)
-            axs[j].set_xlabel('True')
-        axs[0].set_ylabel('Predicted')
+            axs[j].set_xlabel("True")
+        axs[0].set_ylabel("Predicted")
 
         if self.out_dir is None:
             return fig
@@ -514,12 +528,16 @@ class PosteriorCoverage(PosteriorSamples):
         return fig
 
     def _plot_TARP(
-        self, posterior_samples: np.array, theta: np.array,
+        self,
+        posterior_samples: np.array,
+        theta: np.array,
         signature: str,
-        references: str = "random", metric: str = "euclidean",
-        bootstrap: bool | None = True, norm: bool | None = True,
+        references: str = "random",
+        metric: str = "euclidean",
+        bootstrap: bool | None = True,
+        norm: bool | None = True,
         num_alpha_bins: int | None = None,
-        num_bootstrap: int | None = 100
+        num_bootstrap: int | None = 100,
     ) -> plt.Figure:
         """
         Plots the TARP credibility metric for the given posterior samples
@@ -529,11 +547,11 @@ class PosteriorCoverage(PosteriorSamples):
             posterior_samples (np.array): Array of posterior samples.
             theta (np.array): Array of theta values.
             signature (str): Signature for the plot.
-            references (str, optional): TARP reference type for TARP calculation. 
+            references (str, optional): TARP reference type for TARP calculation.
                 Defaults to "random".
-            metric (str, optional): TARP distance metric for TARP calculation. 
+            metric (str, optional): TARP distance metric for TARP calculation.
                 Defaults to "euclidean".
-            bootstrap (bool, optional): Whether to use bootstrapping for TARP error bars. 
+            bootstrap (bool, optional): Whether to use bootstrapping for TARP error bars.
                 Defaults to False.
             norm (bool, optional): Whether to normalize the TARP metric. Defaults to True.
             num_alpha_bins (int, optional):number of bins to use for the TARP
@@ -545,25 +563,34 @@ class PosteriorCoverage(PosteriorSamples):
             plt.Figure: The generated TARP plot.
         """
         ecp, alpha = tarp.get_tarp_coverage(
-            posterior_samples, theta,
-            references=references, metric=metric,
-            norm=norm, bootstrap=bootstrap,
+            posterior_samples,
+            theta,
+            references=references,
+            metric=metric,
+            norm=norm,
+            bootstrap=bootstrap,
             num_alpha_bins=num_alpha_bins,
-            num_bootstrap=num_bootstrap
+            num_bootstrap=num_bootstrap,
         )
 
         fig, ax = plt.subplots(1, 1, figsize=(4, 4))
-        ax.plot([0, 1], [0, 1], ls='--', color='k')
+        ax.plot([0, 1], [0, 1], ls="--", color="k")
         if bootstrap:
             ecp_mean = np.mean(ecp, axis=0)
             ecp_std = np.std(ecp, axis=0)
-            ax.plot(alpha, ecp_mean, label='TARP', color='b')
-            ax.fill_between(alpha, ecp_mean - ecp_std, ecp_mean + ecp_std,
-                            alpha=0.2, color='b')
-            ax.fill_between(alpha, ecp_mean - 2 * ecp_std, ecp_mean + 2 * ecp_std,
-                            alpha=0.2, color='b')
+            ax.plot(alpha, ecp_mean, label="TARP", color="b")
+            ax.fill_between(
+                alpha, ecp_mean - ecp_std, ecp_mean + ecp_std, alpha=0.2, color="b"
+            )
+            ax.fill_between(
+                alpha,
+                ecp_mean - 2 * ecp_std,
+                ecp_mean + 2 * ecp_std,
+                alpha=0.2,
+                color="b",
+            )
         else:
-            ax.plot(alpha, ecp, label='TARP')
+            ax.plot(alpha, ecp, label="TARP")
         ax.legend()
         ax.set_ylabel("Expected Coverage")
         ax.set_xlabel("Credibility Level")
@@ -575,8 +602,11 @@ class PosteriorCoverage(PosteriorSamples):
         return fig
 
     def _calc_true_logprob(
-        self, samples: np.array, trues: np.array,
-        signature: str, bw_method: str = "scott"
+        self,
+        samples: np.array,
+        trues: np.array,
+        signature: str,
+        bw_method: str = "scott",
     ) -> np.array:
         """Calculate the probability of the true parameters under the
         learned posterior.
@@ -606,18 +636,16 @@ class PosteriorCoverage(PosteriorSamples):
 
         mean = logprobs.mean()
         median = np.median(logprobs)
-        logger.info(f"Mean logprob: {mean:.4e}"
-                    f"Median logprob: {median:.4e}")
+        logger.info(f"Mean logprob: {mean:.4e}" f"Median logprob: {median:.4e}")
 
         # Plot a histogram of the logprobs
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
         ax.hist(logprobs, bins=20)
-        ax.axvline(mean, color="b", linestyle="--", label='mean')
-        ax.axvline(median, color="r", linestyle="--", label='median')
+        ax.axvline(mean, color="b", linestyle="--", label="mean")
+        ax.axvline(median, color="r", linestyle="--", label="median")
         ax.set_xlabel("Log-likelihood $\\mathbb{E}[\\log q(\\theta_o | x_o)]$")
         ax.set_ylabel("Counts")
-        ax.set_title(f"Mean: {mean:.3e}, "
-                     f"Median: {median:.3e}", fontsize=14)
+        ax.set_title(f"Mean: {mean:.3e}, " f"Median: {median:.3e}", fontsize=14)
         ax.legend()
 
         if self.out_dir is None:
@@ -647,7 +675,7 @@ class PosteriorCoverage(PosteriorSamples):
         num_alpha_bins: int | None = None,
         num_bootstrap: int = 100,
         norm: bool = True,
-        bootstrap: bool = True
+        bootstrap: bool = True,
     ):
         """Given a posterior and test data, compute the TARP metric and save
         to file.
@@ -680,32 +708,35 @@ class PosteriorCoverage(PosteriorSamples):
         # Sample the full dataset
         if self.save_samples:
             # Call PosteriorSamples to calculate and save samples
-            posterior_samples = super().__call__(
-                posterior, x, theta, signature)
+            posterior_samples = super().__call__(posterior, x, theta, signature)
         else:
             posterior_samples = self._sample_dataset(posterior, x)
 
         figs = []
         # Save the plots
         if "coverage" in self.plot_list:
-            figs.append(self._plot_coverage(
-                posterior_samples, theta, signature))
+            figs.append(self._plot_coverage(posterior_samples, theta, signature))
         if "histogram" in self.plot_list:
-            figs.append(self._plot_ranks_histogram(
-                posterior_samples, theta, signature))
+            figs.append(self._plot_ranks_histogram(posterior_samples, theta, signature))
         if "predictions" in self.plot_list:
-            figs.append(self._plot_predictions(
-                posterior_samples, theta, signature))
+            figs.append(self._plot_predictions(posterior_samples, theta, signature))
         if "logprob" in self.plot_list:
-            figs.append(self._calc_true_logprob(
-                posterior_samples, theta, signature))
+            figs.append(self._calc_true_logprob(posterior_samples, theta, signature))
 
         # Specifically for TARP
         if "tarp" in self.plot_list:
-            figs.append(self._plot_TARP(posterior_samples, theta, signature,
-                                        references=references, metric=metric,
-                                        num_alpha_bins=num_alpha_bins,
-                                        num_bootstrap=num_bootstrap,
-                                        norm=norm, bootstrap=bootstrap))
+            figs.append(
+                self._plot_TARP(
+                    posterior_samples,
+                    theta,
+                    signature,
+                    references=references,
+                    metric=metric,
+                    num_alpha_bins=num_alpha_bins,
+                    num_bootstrap=num_bootstrap,
+                    norm=norm,
+                    bootstrap=bootstrap,
+                )
+            )
 
         return figs

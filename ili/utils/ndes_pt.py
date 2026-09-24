@@ -42,17 +42,18 @@ logger = logging.getLogger(__name__)
 
 
 def load_nde_sbi(
-        engine: str,
-        model: str,
-        embedding_net: nn.Module | None = None,
-        repeats=1,
-        **model_args):
+    engine: str,
+    model: str,
+    embedding_net: nn.Module | None = None,
+    repeats=1,
+    **model_args,
+):
     """Load an nde from sbi.
 
     Args:
-        engine (str): engine to use. 
+        engine (str): engine to use.
             One of: NPE, NLE, NRE, SNPE, SNLE, or SNRE.
-        model (str): model to use. 
+        model (str): model to use.
             One of: mdn, maf, nsf, made, linear, mlp, resnet.
         embedding_net (nn.Module, optional): embedding network to use.
             Defaults to nn.Identity().
@@ -63,45 +64,49 @@ def load_nde_sbi(
         embedding_net = nn.Identity()
 
     # load NRE models (linear, mlp, resnet)
-    if 'NRE' in engine:
-        if model not in ['linear', 'mlp', 'resnet']:
+    if "NRE" in engine:
+        if model not in ["linear", "mlp", "resnet"]:
             raise ValueError(f"Model {model} not implemented for {engine}.")
         return [
             neural_nets.classifier_nn(
-                model=model, embedding_net_x=embedding_net,
-                **model_args) for _ in range(repeats)
+                model=model, embedding_net_x=embedding_net, **model_args
+            )
+            for _ in range(repeats)
         ]
 
-    if model not in ['mdn', 'maf', 'nsf', 'made']:
+    if model not in ["mdn", "maf", "nsf", "made"]:
         raise ValueError(f"Model {model} not implemented for {engine}.")
 
-    if (model == 'mdn'):
+    if model == "mdn":
         # check for arguments
-        if not (set(model_args.keys()) <= {'hidden_features', 'num_components'}):
+        if not (set(model_args.keys()) <= {"hidden_features", "num_components"}):
             raise ValueError(f"Model {model} arguments mispecified.")
     else:
         # check for arguments
-        if not (set(model_args.keys()) <= {'hidden_features', 'num_transforms'}):
+        if not (set(model_args.keys()) <= {"hidden_features", "num_transforms"}):
             raise ValueError(f"Model {model} arguments mispecified.")
     # Please use `from sbi.neural_nets import posterior_nn` in the future (not sbi.utils.posterior_nn)
     # Load NPE models (mdn, maf, nsf, made)
-    if 'NPE' in engine:
+    if "NPE" in engine:
         return [
             neural_nets.posterior_nn(
-                model=model, embedding_net=embedding_net,
-                **model_args) for _ in range(repeats)
+                model=model, embedding_net=embedding_net, **model_args
+            )
+            for _ in range(repeats)
         ]
 
     # Load NLE models (mdn, maf, nsf, made)
-    if 'NLE' in engine:
+    if "NLE" in engine:
         if not isinstance(embedding_net, nn.Identity):
             logger.warning(
                 "Using an embedding_net with NLE models compresses theta, not "
-                "x as might be expected.")
+                "x as might be expected."
+            )
         return [
             neural_nets.likelihood_nn(
-                model=model, embedding_net=embedding_net,
-                **model_args) for _ in range(repeats)
+                model=model, embedding_net=embedding_net, **model_args
+            )
+            for _ in range(repeats)
         ]
 
     raise ValueError(f"Engine {engine} not implemented.")
@@ -116,28 +121,28 @@ class LampeNPE(nn.Module):
         prior: Distribution,
         embedding_net: nn.Module | None = None,
         x_transform: Transform = identity_transform,
-        theta_transform: Transform = identity_transform
+        theta_transform: Transform = identity_transform,
     ):
         super().__init__()
         self.nde = nde
         self.prior = prior
-        self.embedding_net = embedding_net if embedding_net is not None else nn.Identity()
+        self.embedding_net = (
+            embedding_net if embedding_net is not None else nn.Identity()
+        )
         self.x_transform = x_transform
         self.theta_transform = theta_transform
-        self._device = 'cpu'
+        self._device = "cpu"
         self.max_sample_size = 1000
 
-    def forward(
-        self,
-        theta: torch.Tensor,
-        x: Any
-    ) -> torch.Tensor:
+    def forward(self, theta: torch.Tensor, x: Any) -> torch.Tensor:
         # check inputs
         if isinstance(x, (list, np.ndarray)):
             x = torch.Tensor(x)
         if isinstance(theta, (list, np.ndarray)):
             theta = torch.Tensor(theta)
-        if isinstance(self.nde.flow, zuko.flows.spline.NCSF) and ((theta < -np.pi).any() or (theta > np.pi).any()):
+        if isinstance(self.nde.flow, zuko.flows.spline.NCSF) and (
+            (theta < -np.pi).any() or (theta > np.pi).any()
+        ):
             raise ValueError(
                 "Encountered parameters outside of [-pi,pi]. "
                 "This is not supported by the chosen NDE, Neural Circular "
@@ -149,8 +154,8 @@ class LampeNPE(nn.Module):
         theta = theta.to(self._device)
 
         logprob = self.nde(
-            self.theta_transform.inv(theta),
-            self.embedding_net(self.x_transform.inv(x)))
+            self.theta_transform.inv(theta), self.embedding_net(self.x_transform.inv(x))
+        )
         log_abs_det_jacobian = self.theta_transform.log_abs_det_jacobian(
             theta, theta  # just for shape
         )  # for Affine/IdentityTransform, this outputs a constant
@@ -163,16 +168,12 @@ class LampeNPE(nn.Module):
     potential = forward
 
     def flow(self, x: torch.Tensor):  # -> Distribution
-        if hasattr(x, 'float'):
+        if hasattr(x, "float"):
             x = x.float()
-        return self.nde.flow(
-            self.embedding_net(self.x_transform.inv(x)).float())
+        return self.nde.flow(self.embedding_net(self.x_transform.inv(x)).float())
 
     def sample(
-        self,
-        shape: tuple,
-        x: torch.Tensor,
-        show_progress_bars: bool = True
+        self, shape: tuple, x: torch.Tensor, show_progress_bars: bool = True
     ) -> torch.Tensor:
         """Accept-reject sampling"""
         if isinstance(shape, int):
@@ -198,8 +199,7 @@ class LampeNPE(nn.Module):
         accepted = []
         tries = 0
         while num_remaining > 0:
-            candidates = self.theta_transform(
-                self.flow(x).sample((batch_size,)))
+            candidates = self.theta_transform(self.flow(x).sample((batch_size,)))
             are_accepted = self.prior.support.check(candidates)
             samples = candidates[are_accepted]
             accepted.append(samples)
@@ -207,12 +207,15 @@ class LampeNPE(nn.Module):
             num_remaining -= len(samples)
             pbar.update(len(samples))
             tries += 1
-            if tries > 10*len(samples)/batch_size:  # 10x the expected number of tries
+            if (
+                tries > 10 * len(samples) / batch_size
+            ):  # 10x the expected number of tries
                 warnings.warn(
                     "Direct sampling took too long. The posterior is poorly "
                     "constrained within the prior support. Consider using "
                     "emcee sampling or using a larger prior support. Returning"
-                    " prior samples.")
+                    " prior samples."
+                )
                 return self.prior.sample(shape)
         pbar.close()
 
@@ -227,11 +230,7 @@ class LampeNPE(nn.Module):
 class LampeEnsemble(nn.Module):
     """Simple module to wrap an ensemble of NPE models."""
 
-    def __init__(
-        self,
-        posteriors: list[LampeNPE],
-        weights: torch.Tensor
-    ):
+    def __init__(self, posteriors: list[LampeNPE], weights: torch.Tensor):
         super().__init__()
         self.posteriors = nn.ModuleList(posteriors)
         self.weights = weights
@@ -241,36 +240,36 @@ class LampeEnsemble(nn.Module):
         self.num_components = len(self.posteriors)
 
     def forward(self, theta: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-        return torch.stack([
-            weight * npe(theta, x)
-            for weight, npe in zip(self.weights, self.posteriors)
-        ], dim=-1)
+        return torch.stack(
+            [
+                weight * npe(theta, x)
+                for weight, npe in zip(self.weights, self.posteriors)
+            ],
+            dim=-1,
+        )
 
     potential = forward
 
-    def sample(
-        self,
-        shape: tuple,
-        x: Any,
-        show_progress_bars: bool = True
-    ):
+    def sample(self, shape: tuple, x: Any, show_progress_bars: bool = True):
         if isinstance(shape, int):
             shape = (shape,)
 
         # determine number of samples per model
         num_samples = np.prod(shape)
-        per_model = torch.ceil(
-            num_samples * self.weights/self.weights.sum())
+        per_model = torch.ceil(num_samples * self.weights / self.weights.sum())
         if show_progress_bars:
             logger.info(
-                f"Sampling models with {per_model.int().tolist()} "
-                "samples each.")
+                f"Sampling models with {per_model.int().tolist()} " "samples each."
+            )
 
         # sample
-        samples = torch.cat([
-            nde.sample((int(N),), x, show_progress_bars=show_progress_bars)
-            for nde, N in zip(self.posteriors, per_model)
-        ], dim=0)
+        samples = torch.cat(
+            [
+                nde.sample((int(N),), x, show_progress_bars=show_progress_bars)
+                for nde, N in zip(self.posteriors, per_model)
+            ],
+            dim=0,
+        )
         samples = samples[:num_samples]
         return samples.reshape(*shape, -1)
 
@@ -285,12 +284,12 @@ class LampeEnsemble(nn.Module):
 def load_nde_lampe(
     model: str,
     embedding_net: nn.Module | None = None,
-    device: str | None = 'cpu',
+    device: str | None = "cpu",
     x_normalize: bool = True,
     theta_normalize: bool = True,
-    engine: str = 'NPE',
+    engine: str = "NPE",
     repeats=1,
-    **model_args
+    **model_args,
 ):
     """Load an nde from lampe.
     Models include:
@@ -321,64 +320,64 @@ def load_nde_lampe(
             Must be set to 'NPE' or will be overwritten.
         **model_args: additional arguments to pass to the model.
     """
-    if 'NPE' not in engine:
+    if "NPE" not in engine:
         raise ValueError(
-            f'Engine {engine} not supported in lampe backend. '
+            f"Engine {engine} not supported in lampe backend. "
             'You probably meant to specify engine="NPE" or to use the NLE or NRE'
-            ' engines in the sbi or pydelfi backends.')
+            " engines in the sbi or pydelfi backends."
+        )
     if embedding_net is None:
         embedding_net = nn.Identity()
     model = model.lower()
 
     # check the model parameterizations
-    if model == 'mdn':
-        model_defaults = {'hidden_features': 16, 'num_components': 3}
+    if model == "mdn":
+        model_defaults = {"hidden_features": 16, "num_components": 3}
     else:
-        model_defaults = {'hidden_features': 16, 'num_transforms': 2}
+        model_defaults = {"hidden_features": 16, "num_transforms": 2}
     if not (set(model_args.keys()) <= set(model_defaults.keys())):
         raise ValueError(
             f"Model {model} arguments mispecified. Extra arguments found: "
-            f"{set(model_args.keys()) - set(model_defaults.keys())}.")
+            f"{set(model_args.keys()) - set(model_defaults.keys())}."
+        )
 
     # set defaults
     model_args = {**model_defaults, **model_args}
 
     # setup models
-    if model == 'mdn':  # for mixture density networks
-        model_args['hidden_features'] = [model_args['hidden_features']] * 3
-        model_args['components'] = model_args.pop('num_components', 2)
+    if model == "mdn":  # for mixture density networks
+        model_args["hidden_features"] = [model_args["hidden_features"]] * 3
+        model_args["components"] = model_args.pop("num_components", 2)
         flow_class = zuko.flows.mixture.GMM
     else:
-        if model == 'cnf':  # for continuous flow models
+        if model == "cnf":  # for continuous flow models
             # number of time embeddings
-            model_args['hidden_features'] = [
-                model_args['hidden_features']] * 2
-            model_args['freqs'] = model_args.pop('num_transforms', 2)
+            model_args["hidden_features"] = [model_args["hidden_features"]] * 2
+            model_args["freqs"] = model_args.pop("num_transforms", 2)
             flow_class = zuko.flows.continuous.CNF
         else:  # for all discrete flow models
-            model_args['hidden_features'] = [
-                model_args['hidden_features']] * 2
-            model_args['transforms'] = model_args.pop('num_transforms', 2)
+            model_args["hidden_features"] = [model_args["hidden_features"]] * 2
+            model_args["transforms"] = model_args.pop("num_transforms", 2)
 
-            if model == 'maf':
+            if model == "maf":
                 flow_class = zuko.flows.autoregressive.MAF
-            elif model == 'nsf':
+            elif model == "nsf":
                 flow_class = zuko.flows.spline.NSF
-            elif model == 'ncsf':
+            elif model == "ncsf":
                 logger.warning(
                     "You've selected a Neural Circular Spline Flow, for "
                     "which parameters are expected to be restricted to [-pi,pi]."
                 )
                 flow_class = zuko.flows.spline.NCSF
-            elif model == 'nice':
+            elif model == "nice":
                 flow_class = zuko.flows.coupling.NICE
-            elif model == 'gf':
+            elif model == "gf":
                 flow_class = zuko.flows.gaussianization.GF
-            elif model == 'sospf':
+            elif model == "sospf":
                 flow_class = zuko.flows.polynomial.SOSPF
-            elif model == 'naf':
+            elif model == "naf":
                 flow_class = zuko.flows.neural.NAF
-            elif model == 'unaf':
+            elif model == "unaf":
                 flow_class = zuko.flows.neural.UNAF
             else:
                 raise ValueError(f"Model {model} not implemented.")
@@ -387,8 +386,9 @@ def load_nde_lampe(
 
     net_constructor = [
         _Lampe_Net_Constructor(
-            flow_class, embedding_net, model_args,
-            device, x_normalize, theta_normalize) for _ in range(repeats)
+            flow_class, embedding_net, model_args, device, x_normalize, theta_normalize
+        )
+        for _ in range(repeats)
     ]
 
     return net_constructor
@@ -416,8 +416,15 @@ class _Lampe_Net_Constructor:
                 LampeNPE: An instance of the LampeNPE model.
     """
 
-    def __init__(self, flow_class, embedding_net, model_args,
-                 device, x_normalize, theta_normalize):
+    def __init__(
+        self,
+        flow_class,
+        embedding_net,
+        model_args,
+        device,
+        x_normalize,
+        theta_normalize,
+    ):
         self.flow_class = flow_class
         self.embedding_net = embedding_net
         self.model_args = model_args
@@ -446,9 +453,9 @@ class _Lampe_Net_Constructor:
         z_shape = z_batch.shape[1:]
         theta_shape = theta_batch.shape[1:]
 
-        if (len(z_shape) > 1):
+        if len(z_shape) > 1:
             raise ValueError("Embedding network must return a vector.")
-        if (len(theta_shape) > 1):
+        if len(theta_shape) > 1:
             raise ValueError("Parameters theta must be a vector.")
 
         # instantiate a neural density estimator
@@ -456,7 +463,7 @@ class _Lampe_Net_Constructor:
             theta_dim=theta_shape[0],
             x_dim=z_shape[0],
             build=self.flow_class,
-            **self.model_args
+            **self.model_args,
         ).to(self.device)
 
         # determine transformations
@@ -471,8 +478,7 @@ class _Lampe_Net_Constructor:
             x_std = torch.clamp(x_std, min=1e-16)
 
             # z-normalize x
-            x_transform = AffineTransform(
-                loc=x_mean, scale=x_std, event_dim=1)
+            x_transform = AffineTransform(loc=x_mean, scale=x_std, event_dim=1)
 
         if self.theta_normalize:
             theta_mean = theta_batch.mean(dim=0).to(self.device)
@@ -483,12 +489,13 @@ class _Lampe_Net_Constructor:
 
             # z-normalize theta
             theta_transform = AffineTransform(
-                loc=theta_mean, scale=theta_std, event_dim=1)
+                loc=theta_mean, scale=theta_std, event_dim=1
+            )
         npe = LampeNPE(
             nde=nde,
             embedding_net=self.embedding_net,
             prior=prior,
             x_transform=x_transform,
-            theta_transform=theta_transform
+            theta_transform=theta_transform,
         ).to(self.device)
         return npe

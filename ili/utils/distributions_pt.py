@@ -8,7 +8,6 @@ and return a scalar. This is not the default behavior of several
 distributions in torch.distributions, so we wrap them here.
 """
 
-
 import math
 from numbers import Number
 from typing import ClassVar
@@ -22,19 +21,34 @@ from .import_utils import load_class
 
 # These distributions will be loaded and wrapped
 dist_names = [
-    'Uniform', 'Normal', 'Beta', 'Cauchy', 'Chi2', 'Exponential',
-    'FisherSnedecor', 'Gamma', 'Gumbel', 'HalfCauchy', 'HalfNormal', 'Laplace',
-    'LogNormal', 'Pareto', 'StudentT', 'VonMises', 'Weibull'
+    "Uniform",
+    "Normal",
+    "Beta",
+    "Cauchy",
+    "Chi2",
+    "Exponential",
+    "FisherSnedecor",
+    "Gamma",
+    "Gumbel",
+    "HalfCauchy",
+    "HalfNormal",
+    "Laplace",
+    "LogNormal",
+    "Pareto",
+    "StudentT",
+    "VonMises",
+    "Weibull",
 ]
 
 
 class CustomIndependent(Independent):
-    def __init__(self, *args, device='cpu', **kwargs):
+    def __init__(self, *args, device="cpu", **kwargs):
         # Convert args and kwargs to torch tensors
-        args = [torch.as_tensor(v, dtype=torch.float32, device=device)
-                for v in args]
-        kwargs = {k: torch.as_tensor(v, dtype=torch.float32, device=device)
-                  for k, v in kwargs.items()}
+        args = [torch.as_tensor(v, dtype=torch.float32, device=device) for v in args]
+        kwargs = {
+            k: torch.as_tensor(v, dtype=torch.float32, device=device)
+            for k, v in kwargs.items()
+        }
 
         self.device = device
         self.dist = self.Distribution(*args, **kwargs)
@@ -52,9 +66,10 @@ class CustomIndependent(Independent):
 # Load and wrap distributions
 dist_dict = {}
 for name in dist_names:
-    dist = load_class('torch.distributions', name)
-    dist_dict['Independent'+name] = \
-        type('Independent'+name, (CustomIndependent,), {'Distribution': dist})
+    dist = load_class("torch.distributions", name)
+    dist_dict["Independent" + name] = type(
+        "Independent" + name, (CustomIndependent,), {"Distribution": dist}
+    )
 locals().update(dist_dict)
 # Now, for all distributions in dist_names, we have a custom Independent
 # version that can handle vectorized inputs. For example, if 'Normal' is in
@@ -65,32 +80,32 @@ Uniform = dist_dict["IndependentUniform"]  # Uniform is always independent
 
 # load multivariate, continuous distributions
 # this is done for API convenience, but we don't wrap them
-from torch.distributions import (  # noqa
-    MultivariateNormal, LowRankMultivariateNormal
-)
+from torch.distributions import MultivariateNormal, LowRankMultivariateNormal  # noqa
 
 # redefining these to not require torch tensors as inputs
 
 
 class MultivariateNormal(MultivariateNormal):
-    def __init__(self, device='cpu', *args, **kwargs):
+    def __init__(self, device="cpu", *args, **kwargs):
         # Convert args and kwargs to torch tensors
-        args = [torch.as_tensor(v, dtype=torch.float32, device=device)
-                for v in args]
-        kwargs = {k: torch.as_tensor(v, dtype=torch.float32, device=device)
-                  for k, v in kwargs.items()}
+        args = [torch.as_tensor(v, dtype=torch.float32, device=device) for v in args]
+        kwargs = {
+            k: torch.as_tensor(v, dtype=torch.float32, device=device)
+            for k, v in kwargs.items()
+        }
 
         self.device = device
         super().__init__(*args, **kwargs)
 
 
 class LowRankMultivariateNormal(LowRankMultivariateNormal):
-    def __init__(self, device='cpu', *args, **kwargs):
+    def __init__(self, device="cpu", *args, **kwargs):
         # Convert args and kwargs to torch tensors
-        args = [torch.as_tensor(v, dtype=torch.float32, device=device)
-                for v in args]
-        kwargs = {k: torch.as_tensor(v, dtype=torch.float32, device=device)
-                  for k, v in kwargs.items()}
+        args = [torch.as_tensor(v, dtype=torch.float32, device=device) for v in args]
+        kwargs = {
+            k: torch.as_tensor(v, dtype=torch.float32, device=device)
+            for k, v in kwargs.items()
+        }
 
         self.device = device
         super().__init__(*args, **kwargs)
@@ -126,12 +141,16 @@ class _TruncatedStandardNormal(Distribution):
             batch_shape = torch.Size()
         else:
             batch_shape = self.a.size()
-        super().__init__(
-            batch_shape, validate_args=validate_args
-        )
+        super().__init__(batch_shape, validate_args=validate_args)
         if self.a.dtype != self.b.dtype:
             raise ValueError("Truncation bounds types are different")
-        if any((self.a >= self.b).view(-1,).tolist()):
+        if any(
+            (self.a >= self.b)
+            .view(
+                -1,
+            )
+            .tolist()
+        ):
             raise ValueError("Incorrect truncation range")
         eps = self.eps
         self._dtype_min_gt_0 = eps
@@ -272,6 +291,8 @@ class _UnivariateTruncatedNormal(_TruncatedStandardNormal):
 
 
 # Define IndependentTruncatedNormal as a class for multivariate priors
-IndependentTruncatedNormal = \
-    type('IndependentTruncatedNormal', (CustomIndependent,),
-         {'Distribution': _UnivariateTruncatedNormal})
+IndependentTruncatedNormal = type(
+    "IndependentTruncatedNormal",
+    (CustomIndependent,),
+    {"Distribution": _UnivariateTruncatedNormal},
+)

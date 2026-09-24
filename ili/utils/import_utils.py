@@ -7,8 +7,8 @@ from typing import Any
 
 
 def load_class(
-        module_name: str,
-        class_name: str,
+    module_name: str,
+    class_name: str,
 ) -> Any:
     """General tool to load any class from any module, without initialization.
 
@@ -35,7 +35,7 @@ def load_from_config(config: dict) -> Any:
     Returns:
         object (Any): the object of choice
     """
-    return load_class(config['module'], config['class'])(**config["args"])
+    return load_class(config["module"], config["class"])(**config["args"])
 
 
 def update(config: dict, **kwargs) -> dict:

@@ -26,14 +26,9 @@ class DelfiWrapper(Delfi):
     Other parameters are passed as input to the pydelfi.delfi.Delfi class
     """
 
-    def __init__(
-        self,
-        config_ndes: list[dict],
-        name: str | None = '',
-        **kwargs
-    ):
+    def __init__(self, config_ndes: list[dict], name: str | None = "", **kwargs):
         super().__init__(**kwargs)
-        kwargs.pop('nde')
+        kwargs.pop("nde")
         self.kwargs = kwargs
         self.config_ndes = config_ndes
         self.num_components = len(config_ndes)
@@ -78,7 +73,7 @@ class DelfiWrapper(Delfi):
         num_chains: int = 10,
         burn_in=200,
         thin=3,
-        skip_initial_state_check: bool = False
+        skip_initial_state_check: bool = False,
     ) -> np.array:
         """Samples from the posterior distribution using MCMC rejection.
         Modification of Delfi.emcee_sample designed to conform with the
@@ -111,8 +106,7 @@ class DelfiWrapper(Delfi):
             return self.potential(t, x)
 
         # Initialize walkers
-        theta0 = np.stack([self.prior.sample()
-                           for _ in range(num_chains)])
+        theta0 = np.stack([self.prior.sample() for _ in range(num_chains)])
 
         # Set up the sampler
         sampler = emcee.EnsembleSampler(
@@ -129,7 +123,7 @@ class DelfiWrapper(Delfi):
             burn_in + per_chain,
             thin_by=thin,
             progress=show_progress_bars,
-            skip_initial_state_check=skip_initial_state_check
+            skip_initial_state_check=skip_initial_state_check,
         )
 
         # Pull out the unique samples and weights
@@ -159,8 +153,9 @@ class DelfiWrapper(Delfi):
         for i, model_args in enumerate(config_ndes):
             nets.append(
                 load_nde_pydelfi(
-                    n_params=n_params, n_data=n_data,
-                    index=i, **model_args))
+                    n_params=n_params, n_data=n_data, index=i, **model_args
+                )
+            )
         return nets
 
     def save_engine(
@@ -173,13 +168,13 @@ class DelfiWrapper(Delfi):
             meta_filename (str): filename of saved metadata
         """
         metadata = {
-            'n_data': self.D,
-            'n_params': self.npar,
-            'name': self.name,
-            'config_ndes': self.config_ndes,
-            'kwargs': self.kwargs
+            "n_data": self.D,
+            "n_params": self.npar,
+            "name": self.name,
+            "config_ndes": self.config_ndes,
+            "kwargs": self.kwargs,
         }
-        with open(self.results_dir + meta_filename, 'wb') as f:
+        with open(self.results_dir + meta_filename, "wb") as f:
             pickle.dump(metadata, f)
 
     @classmethod
@@ -195,21 +190,21 @@ class DelfiWrapper(Delfi):
         Returns:
             DelfiWrapper: a full Delfi inference model with pre-trained weights
         """
-        with open(meta_path, 'rb') as f:
+        with open(meta_path, "rb") as f:
             metadata = pickle.load(f)
 
         ndes = cls.load_ndes(
-            n_params=metadata['n_params'],
-            n_data=metadata['n_data'],
-            config_ndes=metadata['config_ndes']
+            n_params=metadata["n_params"],
+            n_data=metadata["n_data"],
+            config_ndes=metadata["config_ndes"],
         )
-        if 'restore' in metadata['kwargs']:
-            metadata['kwargs'].pop('restore')
+        if "restore" in metadata["kwargs"]:
+            metadata["kwargs"].pop("restore")
 
         return cls(
-            **metadata['kwargs'],
+            **metadata["kwargs"],
             nde=ndes,
-            config_ndes=metadata['config_ndes'],
-            name=metadata['name'],
-            restore=True
+            config_ndes=metadata["config_ndes"],
+            name=metadata["name"],
+            restore=True,
         )

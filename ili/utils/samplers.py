@@ -19,6 +19,7 @@ try:
     from sbi.inference.potentials.posterior_based_potential import (
         posterior_estimator_based_potential,
     )
+
     ModelClass = NeuralPosterior
     try:  # sbi > 0.22.0
         from sbi.inference.posteriors import EnsemblePosterior
@@ -28,6 +29,7 @@ try:
         )
 except ModuleNotFoundError:
     from ili.inference.pydelfi_wrappers import DelfiWrapper
+
     ModelClass = DelfiWrapper
 
 
@@ -45,15 +47,15 @@ class _MCMCSampler(ABC):
     """
 
     def __init__(
-            self,
-            posterior: ModelClass,
-            num_chains: int = -1,
-            thin: int = 10,
-            burn_in: int = 100,
+        self,
+        posterior: ModelClass,
+        num_chains: int = -1,
+        thin: int = 10,
+        burn_in: int = 100,
     ) -> None:
         super().__init__()
         self.posterior = posterior
-        self.num_chains = os.cpu_count()-1 if num_chains == -1 else num_chains
+        self.num_chains = os.cpu_count() - 1 if num_chains == -1 else num_chains
         self.thin = thin
         self.burn_in = burn_in
 
@@ -71,9 +73,14 @@ class EmceeSampler(_MCMCSampler):
             Defaults to 100
     """
 
-    def sample(self, nsteps: int, x: np.ndarray,
-               progress: bool = False,
-               skip_initial_state_check: bool = False, **kwargs) -> np.ndarray:
+    def sample(
+        self,
+        nsteps: int,
+        x: np.ndarray,
+        progress: bool = False,
+        skip_initial_state_check: bool = False,
+        **kwargs,
+    ) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -101,15 +108,13 @@ class EmceeSampler(_MCMCSampler):
 
         # build posterior to sample
         def log_target(t, x):
-            res = self.posterior.potential(
-                t.astype(np.float32), x.astype(np.float32))
-            if hasattr(res, 'cpu'):
+            res = self.posterior.potential(t.astype(np.float32), x.astype(np.float32))
+            if hasattr(res, "cpu"):
                 res = np.array(res.detach().cpu())
             return res
 
         # Initialize walkers
-        theta0 = [self.posterior.prior.sample()
-                  for _ in range(self.num_chains)]
+        theta0 = [self.posterior.prior.sample() for _ in range(self.num_chains)]
         if isinstance(theta0[0], np.ndarray):
             theta0 = np.stack(theta0)
         else:
@@ -130,7 +135,7 @@ class EmceeSampler(_MCMCSampler):
             self.burn_in + per_chain,
             thin_by=self.thin,
             progress=progress,
-            skip_initial_state_check=skip_initial_state_check
+            skip_initial_state_check=skip_initial_state_check,
         )
         return self.sampler.get_chain(discard=self.burn_in, flat=True)[:nsteps]
 
@@ -157,7 +162,7 @@ class PyroSampler(_MCMCSampler):
         num_chains: int = -1,
         thin: int = 10,
         burn_in: int = 100,
-        method='slice_np_vectorized'
+        method="slice_np_vectorized",
     ) -> None:
         # convert DirectPosteriors to MCMCPosteriors
         if isinstance(posterior, DirectPosterior):
@@ -165,11 +170,12 @@ class PyroSampler(_MCMCSampler):
         elif isinstance(posterior, EnsemblePosterior):
             posteriors = posterior.posteriors
             posterior = EnsemblePosterior(
-                [(self._Direct_to_MCMC(p) if isinstance(p, DirectPosterior)
-                  else p)
-                 for p in posteriors],
+                [
+                    (self._Direct_to_MCMC(p) if isinstance(p, DirectPosterior) else p)
+                    for p in posteriors
+                ],
                 weights=posterior.weights,
-                theta_transform=posterior.theta_transform
+                theta_transform=posterior.theta_transform,
             )
         super().__init__(posterior, num_chains, thin, burn_in)
         self.method = method
@@ -194,11 +200,12 @@ class PyroSampler(_MCMCSampler):
             potential_fn=potential_fn,
             proposal=posterior.prior,
             theta_transform=theta_transform,
-            device=posterior._device
+            device=posterior._device,
         )
 
-    def sample(self, nsteps: int, x: np.ndarray,
-               progress: bool = False, **kwargs) -> np.ndarray:
+    def sample(
+        self, nsteps: int, x: np.ndarray, progress: bool = False, **kwargs
+    ) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -210,16 +217,21 @@ class PyroSampler(_MCMCSampler):
             **kwargs: additional keyword arguments to pass to the
             posterior's sample method.
         """
-        return self.posterior.sample(
-            (nsteps,),
-            x=torch.Tensor(x).to(self.posterior._device),
-            method=self.method,
-            num_chains=self.num_chains,
-            thin=self.thin,
-            warmup_steps=self.burn_in,
-            show_progress_bars=progress,
-            **kwargs
-        ).detach().cpu().numpy()
+        return (
+            self.posterior.sample(
+                (nsteps,),
+                x=torch.Tensor(x).to(self.posterior._device),
+                method=self.method,
+                num_chains=self.num_chains,
+                thin=self.thin,
+                warmup_steps=self.burn_in,
+                show_progress_bars=progress,
+                **kwargs,
+            )
+            .detach()
+            .cpu()
+            .numpy()
+        )
 
 
 class DirectSampler(ABC):
@@ -234,7 +246,9 @@ class DirectSampler(ABC):
     def __init__(self, posterior: ModelClass) -> None:
         self.posterior = posterior
 
-    def sample(self, nsteps: int, x: Any, progress: bool = False, **kwargs) -> np.ndarray:
+    def sample(
+        self, nsteps: int, x: Any, progress: bool = False, **kwargs
+    ) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -243,24 +257,25 @@ class DirectSampler(ABC):
             x (np.ndarray): data to evaluate the posterior at
             progress (bool, optional): whether to show progress bar.
                 Defaults to False.
-            **kwargs: additional keyword arguments to pass to the 
+            **kwargs: additional keyword arguments to pass to the
             posterior's sample method
         """
         try:
             x = torch.as_tensor(x)
-            if hasattr(self.posterior, '_device'):
+            if hasattr(self.posterior, "_device"):
                 x = x.to(self.posterior._device)
         except ValueError:
             pass
-        return self.posterior.sample(
-            (nsteps,), x=x,
-            show_progress_bars=progress,
-            **kwargs
-        ).detach().cpu().numpy()
+        return (
+            self.posterior.sample((nsteps,), x=x, show_progress_bars=progress, **kwargs)
+            .detach()
+            .cpu()
+            .numpy()
+        )
 
 
 class VISampler(ABC):
-    """Sampler class for variational inference methods. See 
+    """Sampler class for variational inference methods. See
     https://sbi-dev.github.io/sbi/reference/#sbi.inference.posteriors.vi_posterior.VIPosterior
     for more details.
 
@@ -273,8 +288,9 @@ class VISampler(ABC):
             posterior's train method. Defaults to {}.
     """
 
-    def __init__(self, posterior: ModelClass,
-                 dist: str = 'maf', **train_kwargs) -> None:
+    def __init__(
+        self, posterior: ModelClass, dist: str = "maf", **train_kwargs
+    ) -> None:
         if isinstance(posterior, DirectPosterior):
             posterior = self._Direct_to_VI(posterior)
         elif isinstance(posterior, EnsemblePosterior):
@@ -282,7 +298,7 @@ class VISampler(ABC):
                 potential_fn=posterior.potential_fn,
                 prior=posterior.prior,
                 theta_transform=posterior.theta_transform,
-                device=posterior._device
+                device=posterior._device,
             )
         super().__init__()
         self.posterior = posterior
@@ -309,11 +325,12 @@ class VISampler(ABC):
             potential_fn=potential_fn,
             prior=posterior.prior,
             theta_transform=theta_transform,
-            device=posterior._device
+            device=posterior._device,
         )
 
-    def sample(self, nsteps: int, x: np.ndarray,
-               progress: bool = False, **kwargs) -> np.ndarray:
+    def sample(
+        self, nsteps: int, x: np.ndarray, progress: bool = False, **kwargs
+    ) -> np.ndarray:
         """
         Sample nsteps samples from the posterior, evaluated at data x.
 
@@ -329,8 +346,6 @@ class VISampler(ABC):
         self.posterior.set_default_x(x)
         self.posterior.set_q(self.dist)
         self.posterior.train(
-            show_progress_bar=progress,
-            quality_control=False,
-            **self.train_kwargs
+            show_progress_bar=progress, quality_control=False, **self.train_kwargs
         )
         return self.posterior.sample((nsteps,), **kwargs).detach().cpu().numpy()
