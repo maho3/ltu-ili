@@ -16,6 +16,8 @@ from scipy.stats import gaussian_kde
 
 from ili.utils.samplers import DirectSampler, EmceeSampler, PyroSampler, VISampler
 
+logger = logging.getLogger(__name__)
+
 try:
     from sbi.inference.posteriors import DirectPosterior
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
@@ -69,14 +71,17 @@ class _SampleBasedMetric(_BaseMetric):
         self,
         num_samples: int,
         sample_method: str = 'emcee',
-        sample_params: dict = {},
+        sample_params: dict | None = None,
         labels: list[str] | None = None,
         out_dir: Path | None = None,
     ):
         super().__init__(labels, out_dir)
         self.num_samples = num_samples
         self.sample_method = sample_method
-        self.sample_params = sample_params
+        if sample_params is None:
+            self.sample_params = {}
+        else:
+            self.sample_params = sample_params
 
     def _build_sampler(self, posterior: ModelClass) -> ABC:
         """Builds the sampler based on the specified sample method.
@@ -104,8 +109,7 @@ class _SampleBasedMetric(_BaseMetric):
             # First case: we have a EnsemblePosterior instance
             # We only need to check the first element
             if (isinstance(posterior, EnsemblePosterior) and
-                    isinstance(posterior.posteriors[0], DirectPosterior)) or isinstance(posterior, DirectPosterior) or (isinstance(posterior, LampeNPE) or
-                  isinstance(posterior, LampeEnsemble)):
+                    isinstance(posterior.posteriors[0], DirectPosterior)) or isinstance(posterior, (DirectPosterior, LampeNPE, LampeEnsemble)):
                 return DirectSampler(posterior)
             else:
                 raise ValueError(
@@ -144,7 +148,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
         signature: str | None = "",
         lower: list[float] | None = None,
         upper: list[float] | None = None,
-        plot_kws: dict | None = {},
+        plot_kws: dict | None = None,
         grid: sns.PairGrid | None = None,
         name: str | None = None,
         **grid_kws
@@ -190,7 +194,8 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
         # set default plot parameters
         _kw = { 'levels': [0.05, 0.32, 1], 'color': 'k' }
-        _kw.update(plot_kws)
+        if plot_kws is not None:
+            _kw.update(plot_kws)
         plot_kws = _kw
 
         # build DataFrame
@@ -245,13 +250,13 @@ class PlotSinglePosterior(_SampleBasedMetric):
         if self.out_dir is None:
             return fig
         filepath = self.out_dir / (signature + "plot_single_posterior.jpg")
-        logging.info(f"Saving single posterior plot to {filepath}...")
+        logger.info(f"Saving single posterior plot to {filepath}...")
         fig.savefig(filepath)
 
         # save single posterior samples if asked
         if self.save_samples:
             filepath = self.out_dir / (signature + "single_samples.npy")
-            logging.info(f"Saving single posterior samples to {filepath}...")
+            logger.info(f"Saving single posterior samples to {filepath}...")
             np.save(filepath, samples)
 
         return fig
@@ -292,7 +297,7 @@ class PosteriorSamples(_SampleBasedMetric):
                 posterior_samples[:, ii] = sampler.sample(
                     self.num_samples, x=x[ii], progress=False, **kwargs)
             except Warning as w:
-                logging.warning("WARNING\n", w)
+                logger.warning("WARNING\n%s", w)
                 continue
         return posterior_samples
 
@@ -323,7 +328,7 @@ class PosteriorSamples(_SampleBasedMetric):
         if self.out_dir is None:
             return posterior_samples
         filepath = self.out_dir / (signature + "posterior_samples.npy")
-        logging.info(f"Saving posterior samples to {filepath}...")
+        logger.info(f"Saving posterior samples to {filepath}...")
         np.save(filepath, posterior_samples)
         return posterior_samples
 
@@ -409,7 +414,7 @@ class PosteriorCoverage(PosteriorSamples):
         if self.out_dir is None:
             return fig
         filepath = self.out_dir / (signature + "ranks_histogram.jpg")
-        logging.info(f"Saving ranks histogram to {filepath}...")
+        logger.info(f"Saving ranks histogram to {filepath}...")
         fig.savefig(filepath)
         return fig
 
@@ -463,7 +468,7 @@ class PosteriorCoverage(PosteriorSamples):
         if self.out_dir is None:
             return fig
         filepath = self.out_dir / (signature + "plot_coverage.jpg")
-        logging.info(f"Saving coverage plot to {filepath}...")
+        logger.info(f"Saving coverage plot to {filepath}...")
         fig.savefig(filepath)
         return fig
 
@@ -592,7 +597,7 @@ class PosteriorCoverage(PosteriorSamples):
         Returns:
             np.array: model likelihood of each test data point; shape (ndata,)
         """
-        nsamples, ndata, npars = samples.shape
+        _, ndata, _ = samples.shape
 
         # Calculate the KDE for each test data point
         logprobs = np.zeros(ndata)
@@ -602,8 +607,8 @@ class PosteriorCoverage(PosteriorSamples):
 
         mean = logprobs.mean()
         median = np.median(logprobs)
-        logging.info(f"Mean logprob: {mean:.4e}"
-                     f"Median logprob: {median:.4e}")
+        logger.info(f"Mean logprob: {mean:.4e}"
+                    f"Median logprob: {median:.4e}")
 
         # Plot a histogram of the logprobs
         fig, ax = plt.subplots(1, 1, figsize=(6, 4))
@@ -621,12 +626,12 @@ class PosteriorCoverage(PosteriorSamples):
 
         # Save the logprobs
         filepath = self.out_dir / (signature + "true_logprobs.npy")
-        logging.info(f"Saving true logprobs to {filepath}...")
+        logger.info(f"Saving true logprobs to {filepath}...")
         np.save(filepath, logprobs)
 
         # Save the plot
         filepath = self.out_dir / (signature + "plot_true_logprobs.jpg")
-        logging.info(f"Saving true logprobs plot to {filepath}...")
+        logger.info(f"Saving true logprobs plot to {filepath}...")
         fig.savefig(filepath)
         return fig, logprobs
 

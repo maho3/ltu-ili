@@ -24,6 +24,8 @@ except ImportError:  # sbi < 0.22.0
         NeuralPosteriorEnsemble as EnsemblePosterior,
     )
 
+logger = logging.getLogger(__name__)
+
 from ili.dataloaders import _BaseLoader
 from ili.utils import load_class, load_from_config, load_nde_sbi, update
 
@@ -237,7 +239,7 @@ class SBIRunner(_BaseRunner):
 
         posteriors, summaries = [], []
         for i, model in enumerate(models):
-            logging.info(f"Training model {i+1} / {len(models)}.")
+            logger.info(f"Training model {i+1} / {len(models)}.")
 
             # hack to initialize sbi model without training (ref. issue #127)
             first_round = False
@@ -305,7 +307,7 @@ class SBIRunner(_BaseRunner):
                      summaries: list[dict]):
         """Save models to file."""
 
-        logging.info(f"Saving model to {self.out_dir}")
+        logger.info(f"Saving model to {self.out_dir}")
         str_p = self.name + "posterior.pkl"
         str_s = self.name + "summary.json"
         with open(self.out_dir / str_p, "wb") as handle:
@@ -326,7 +328,7 @@ class SBIRunner(_BaseRunner):
             torch.manual_seed(seed)
 
         # setup training engines for each model in the ensemble
-        logging.info(f"MODEL INFERENCE CLASS: {self.engine}")
+        logger.info(f"MODEL INFERENCE CLASS: {self.engine}")
         models = [self._setup_engine(net) for net in self.nets]
 
         # load single-round data
@@ -341,7 +343,7 @@ class SBIRunner(_BaseRunner):
             theta=theta,
             proposal=self.proposal,
         )
-        logging.info(f"It took {time.time() - t0} seconds to train models.")
+        logger.info(f"It took {time.time() - t0} seconds to train models.")
 
         # save if output path is specified
         if self.out_dir is not None:
@@ -385,7 +387,7 @@ class SBIRunnerSequential(SBIRunner):
             torch.manual_seed(seed)
 
         # setup training engines for each model in the ensemble
-        logging.info(f"MODEL INFERENCE CLASS: {self.engine}")
+        logger.info(f"MODEL INFERENCE CLASS: {self.engine}")
         models = [self._setup_engine(net) for net in self.nets]
 
         # load observed and pre-run data
@@ -393,7 +395,7 @@ class SBIRunnerSequential(SBIRunner):
 
         # pre-run data
         if len(loader) > 0:
-            logging.info(
+            logger.info(
                 "The first round of inference will use existing sims from the "
                 "loader. Make sure that the simulations were run from the "
                 "given proposal distribution for consistency.")
@@ -401,7 +403,7 @@ class SBIRunnerSequential(SBIRunner):
             theta = torch.Tensor(loader.get_all_parameters()).to(self.device)
         # no pre-run data
         else:
-            logging.info(
+            logger.info(
                 "The first round of inference will simulate from the given "
                 "proposal or prior.")
             theta, x = loader.simulate(self.proposal)
@@ -411,7 +413,7 @@ class SBIRunnerSequential(SBIRunner):
         # train multiple rounds of inference
         t0 = time.time()
         for rnd in range(self.num_rounds):
-            logging.info(f"Running round {rnd+1} / {self.num_rounds}")
+            logger.info(f"Running round {rnd+1} / {self.num_rounds}")
 
             # train a round of inference
             posterior_ensemble, summaries = self._train_round(
@@ -430,7 +432,7 @@ class SBIRunnerSequential(SBIRunner):
                 x = torch.Tensor(x).to(self.device)
                 theta = torch.Tensor(theta).to(self.device)
 
-        logging.info(f"It took {time.time() - t0} seconds to train models.")
+        logger.info(f"It took {time.time() - t0} seconds to train models.")
 
         if self.out_dir is not None:
             self._save_models(posterior_ensemble, summaries)
@@ -507,7 +509,7 @@ class ABCRunner(_BaseRunner):
         """
         t0 = time.time()
 
-        logging.info(f"MODEL INFERENCE CLASS: {self.engine}")
+        logger.info(f"MODEL INFERENCE CLASS: {self.engine}")
 
         x_obs = loader.get_obs_data()
 
@@ -525,6 +527,6 @@ class ABCRunner(_BaseRunner):
             with open(self.out_dir / str_p, "wb") as handle:
                 pickle.dump(samples, handle)
 
-        logging.info(
+        logger.info(
             f"It took {time.time() - t0} seconds to run the model.")
         return samples

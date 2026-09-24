@@ -14,6 +14,8 @@ from ili.dataloaders import _BaseLoader
 from ili.utils import load_from_config, update
 from ili.validation.metrics import _BaseMetric
 
+logger = logging.getLogger(__name__)
+
 try:
     from sbi.inference.posteriors.base_posterior import NeuralPosterior
     ModelClass = NeuralPosterior
@@ -110,13 +112,13 @@ class ValidationRunner:
         else:
             ensemble_mode = True
 
-        logging.info("Number of posteriors in the ensemble is "
-                     f"{posterior_ensemble.num_components}")
+        logger.info("Number of posteriors in the ensemble is "
+                    f"{posterior_ensemble.num_components}")
         if ensemble_mode:
-            logging.info(
+            logger.info(
                 "Metrics are computed for the ensemble posterior estimate.")
         else:
-            logging.info(
+            logger.info(
                 "Metrics are computed for each posterior in the ensemble.")
 
         metrics = {}
@@ -173,7 +175,7 @@ class ValidationRunner:
                 signature = self.signatures[n]+"_"
                 n += 1
                 for metric in self.metrics.values():
-                    logging.info(
+                    logger.info(
                         f"Running metric {metric.__class__.__name__}.")
                     metric(posterior_model, x_test, theta_test, x_obs=x_obs,
                            theta_fid=theta_fid, signature=signature)
@@ -183,8 +185,8 @@ class ValidationRunner:
             sigcat = [f"{t}_" for t in self.signatures if t != ""]
             signature = self.name+"".join(sigcat)
             for metric in self.metrics.values():
-                logging.info(f"Running metric {metric.__class__.__name__}.")
+                logger.info(f"Running metric {metric.__class__.__name__}.")
                 metric(self.posterior, x_test, theta_test,
                        x_obs=x_obs, theta_fid=theta_fid, signature=signature)
 
-        logging.info(f"It took {time.time() - t0} seconds to run all metrics.")
+        logger.info(f"It took {time.time() - t0} seconds to run all metrics.")

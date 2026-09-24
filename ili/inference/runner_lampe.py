@@ -22,6 +22,7 @@ from ili.dataloaders import _BaseLoader
 from ili.utils import LampeEnsemble, load_from_config, load_nde_lampe
 
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class LampeRunner:
@@ -65,7 +66,7 @@ class LampeRunner:
                 nets_list.append(net_el)
         self.nets = nets_list
         if engine != 'NPE':
-            logging.warning(
+            logger.warning(
                 'lampe only supports NPE engine. Engine set to NPE.')
         self.engine = 'NPE'
         self.train_args = dict(
@@ -242,7 +243,7 @@ class LampeRunner:
 
         posteriors, summaries = [], []
         for i, model in enumerate(models_rnd):
-            logging.info(f"Training model {i+1} / {len(models_rnd)}.")
+            logger.info(f"Training model {i+1} / {len(models_rnd)}.")
 
             # define optimizer
             optimizer = torch.optim.Adam(
@@ -282,7 +283,7 @@ class LampeRunner:
                     else:
                         wait += 1
                 else:
-                    logging.warning(
+                    logger.warning(
                         "Training did not converge in "
                         f"{self.train_args['max_epochs']} epochs.")
                 summary['best_validation_log_prob'] = -best_val
@@ -313,7 +314,7 @@ class LampeRunner:
                      summaries: list[dict]):
         """Save models to file."""
 
-        logging.info(f"Saving model to {self.out_dir}")
+        logger.info(f"Saving model to {self.out_dir}")
         str_p = self.name + "posterior.pkl"
         str_s = self.name + "summary.json"
         with open(self.out_dir / str_p, "wb") as handle:
@@ -334,7 +335,7 @@ class LampeRunner:
             torch.manual_seed(seed)
 
         # setup training engines for each model in the ensemble
-        logging.info("MODEL INFERENCE CLASS: NPE")
+        logger.info("MODEL INFERENCE CLASS: NPE")
 
         # load single-round data
         train_loader, val_loader = self._prepare_loader(loader)
@@ -346,7 +347,7 @@ class LampeRunner:
             train_loader=train_loader,
             val_loader=val_loader,
         )
-        logging.info(f"It took {time.time() - t0} seconds to train models.")
+        logger.info(f"It took {time.time() - t0} seconds to train models.")
 
         # save if output path is specified
         if self.out_dir is not None:

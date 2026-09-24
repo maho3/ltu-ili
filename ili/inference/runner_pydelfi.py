@@ -18,6 +18,8 @@ from ili.utils import load_from_config, update
 from .base import _BaseRunner
 from .pydelfi_wrappers import DelfiWrapper
 
+logger = logging.getLogger(__name__)
+
 # Deprecation warning for the entire module
 warnings.warn(
     "The 'runner_pydelfi' module and the 'pydelfi' backend are deprecated and "
@@ -61,11 +63,11 @@ class DelfiRunner(_BaseRunner):
         self.engine_kwargs = engine_kwargs
         self.inference_class = DelfiWrapper
         if engine != 'NLE':
-            logging.warning(
+            logger.warning(
                 'pydelfi only supports NLE engine. Engine set to NLE.')
             self.engine = 'NLE'
         if device != 'cpu':
-            logging.warning(
+            logger.warning(
                 'pydelfi only supports cpu training. Device set to cpu.')
             self.device = 'cpu'
 
@@ -118,7 +120,7 @@ class DelfiRunner(_BaseRunner):
 
     def _save_models(self, posterior: DelfiWrapper, summary: dict[str, Any]):
         """Save the trained models to file"""
-        logging.info(f"Saving models to {self.out_dir}")
+        logger.info(f"Saving models to {self.out_dir}")
         str_p = self.name + "posterior.pkl"
         str_s = self.name + "summary.json"
         posterior.save_engine(str_p)
@@ -177,7 +179,7 @@ class DelfiRunner(_BaseRunner):
             self._save_models(posterior, summaries)
         tf.reset_default_graph()
 
-        logging.info(
+        logger.info(
             f"It took {time.time() - t0} seconds to train all models.")
 
         return posterior, summaries

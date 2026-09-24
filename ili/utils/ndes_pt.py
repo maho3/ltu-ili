@@ -39,6 +39,8 @@ try:  # sbi > 0.22.0
 except ImportError:  # sbi <= 0.22.0
     from sbi import utils as neural_nets
 
+logger = logging.getLogger(__name__)
+
 
 def load_nde_sbi(
         engine: str,
@@ -91,7 +93,7 @@ def load_nde_sbi(
     # Load NLE models (mdn, maf, nsf, made)
     if 'NLE' in engine:
         if not isinstance(embedding_net, nn.Identity):
-            logging.warning(
+            logger.warning(
                 "Using an embedding_net with NLE models compresses theta, not "
                 "x as might be expected.")
         return [
@@ -259,7 +261,7 @@ class LampeEnsemble(nn.Module):
         per_model = torch.ceil(
             num_samples * self.weights/self.weights.sum())
         if show_progress_bars:
-            logging.info(
+            logger.info(
                 f"Sampling models with {per_model.int().tolist()} "
                 "samples each.")
 
@@ -360,7 +362,7 @@ def load_nde_lampe(
             elif model == 'nsf':
                 flow_class = zuko.flows.spline.NSF
             elif model == 'ncsf':
-                logging.warning(
+                logger.warning(
                     "You've selected a Neural Circular Spline Flow, for "
                     "which parameters are expected to be restricted to [-pi,pi]."
                 )
