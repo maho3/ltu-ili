@@ -1156,7 +1156,7 @@ def test_loaders():
     unittest.TestCase().assertEqual(len(loader), 10)
     # Exception if files not specified
     unittest.TestCase().assertRaises(
-        FileNotFoundError,
+        ValueError,
         SBISimulator,
         in_dir="./toy",
         xobs_file="x.npy",
@@ -1183,13 +1183,13 @@ def test_loaders():
     class Catalogue:
         def __init__(
             self,
-            pos: np.array,
-            vel: np.array,
+            pos: np.ndarray,
+            vel: np.ndarray,
             redshift: float,
             boxsize: float,
             cosmo_dict: dict[str, float],
             name: str,
-            mass: np.array | None = None,
+            mass: np.ndarray | None = None,
             mesh: bool = True,
             n_mesh: int | None = 360,
         ):

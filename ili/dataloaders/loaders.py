@@ -5,7 +5,7 @@ Module for loading data into the ltu-ili pipeline.
 import json
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
@@ -104,10 +104,10 @@ class NumpyLoader(_BaseLoader):
 
     def __init__(
         self,
-        x: np.array,
-        theta: np.array,
-        xobs: np.array | None = None,
-        thetafid: np.array | None = None,
+        x: np.ndarray,
+        theta: np.ndarray,
+        xobs: np.ndarray | None = None,
+        thetafid: np.ndarray | None = None,
     ) -> None:
         self.x = x
         self.theta = theta
@@ -126,11 +126,11 @@ class NumpyLoader(_BaseLoader):
             return 0
         return len(self.x)
 
-    def get_all_data(self) -> np.array:
+    def get_all_data(self) -> np.ndarray:
         """Returns all the loaded data for training
 
         Returns:
-            np.array: data
+            np.ndarray: data
         """
         return self.x
 
@@ -138,15 +138,15 @@ class NumpyLoader(_BaseLoader):
         """Returns all the loaded parameters for training
 
         Returns:
-            np.array: parameters
+            np.ndarray: parameters
         """
         return self.theta
 
-    def get_obs_data(self) -> np.array:
+    def get_obs_data(self) -> np.ndarray:
         """Returns the observed data
 
         Returns:
-            np.array: data
+            np.ndarray: data
         """
         return self.xobs
 
@@ -228,7 +228,7 @@ class SBISimulator(NumpyLoader):
         in_dir: str,
         xobs_file: str,
         num_simulations: int,
-        simulator: callable | None = None,
+        simulator: Callable | None = None,
         save_simulated: bool | None = False,
         x_file: str | None = None,
         theta_file: str | None = None,

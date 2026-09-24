@@ -145,10 +145,10 @@ class PlotSinglePosterior(_SampleBasedMetric):
     def __call__(
         self,
         posterior: ModelClass,
-        x: np.array | None = None,
-        theta: np.array | None = None,
-        x_obs: np.array | None = None,
-        theta_fid: np.array | None = None,
+        x: np.ndarray | None = None,
+        theta: np.ndarray | None = None,
+        x_obs: np.ndarray | None = None,
+        theta_fid: np.ndarray | None = None,
         signature: str | None = "",
         lower: list[float] | None = None,
         upper: list[float] | None = None,
@@ -162,10 +162,10 @@ class PlotSinglePosterior(_SampleBasedMetric):
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
-            x (np.array): tensor of test data
-            theta (np.array): tensor of test parameters
-            x_obs (np.array, optional): tensor of observed data
-            theta_fid (np.array, optional): tensor of fiducial parameters for
+            x (np.ndarray): tensor of test data
+            theta (np.ndarray): tensor of test parameters
+            x_obs (np.ndarray, optional): tensor of observed data
+            theta_fid (np.ndarray, optional): tensor of fiducial parameters for
                 x_obs
             signature (str, optional): signature for the output file name
             lower (List[float], optional): lower bounds for the plot axes
@@ -309,12 +309,12 @@ class PosteriorSamples(_SampleBasedMetric):
     def __call__(
         self,
         posterior: ModelClass,
-        x: np.array,
-        theta: np.array = None,
+        x: np.ndarray,
+        theta: np.ndarray | None = None,
         signature: str | None = "",
         # here for debugging purpose, otherwise error in runner.py line 123
-        x_obs: np.array | None = None,
-        theta_fid: np.array | None = None,
+        x_obs: np.ndarray | None = None,
+        theta_fid: np.ndarray | None = None,
         **kwargs,
     ):
         """Given a posterior and test data, infer posterior samples of a
@@ -322,10 +322,10 @@ class PosteriorSamples(_SampleBasedMetric):
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
-            x (np.array): tensor of test data
-            theta (np.array): tensor of test parameters (not used)
-            x_obs (np.array, optional): tensor of observed data
-            theta_fid (np.array, optional): tensor of fiducial parameters for x_obs
+            x (np.ndarray): tensor of test data
+            theta (np.ndarray): tensor of test parameters (not used)
+            x_obs (np.ndarray, optional): tensor of observed data
+            theta_fid (np.ndarray, optional): tensor of fiducial parameters for x_obs
         """
         # Sample the full dataset
         posterior_samples = self._sample_dataset(posterior, x, **kwargs)
@@ -603,11 +603,11 @@ class PosteriorCoverage(PosteriorSamples):
 
     def _calc_true_logprob(
         self,
-        samples: np.array,
-        trues: np.array,
+        samples: np.ndarray,
+        trues: np.ndarray,
         signature: str,
         bw_method: str = "scott",
-    ) -> np.array:
+    ) -> np.ndarray:
         """Calculate the probability of the true parameters under the
         learned posterior.
 
@@ -618,13 +618,13 @@ class PosteriorCoverage(PosteriorSamples):
             sharp priors, the KDE may be inaccurate.
 
         Args:
-            samples (np.array): posterior samples of shape (nsamples, ndata, npars)
-            trues (np.array): true parameters of shape (ndata, npars)
+            samples (np.ndarray): posterior samples of shape (nsamples, ndata, npars)
+            trues (np.ndarray): true parameters of shape (ndata, npars)
             signature (str): signature for the output file name
             bw_method (str, optional): bandwidth method for the KDE.
 
         Returns:
-            np.array: model likelihood of each test data point; shape (ndata,)
+            np.ndarray: model likelihood of each test data point; shape (ndata,)
         """
         _, ndata, _ = samples.shape
 
@@ -665,10 +665,10 @@ class PosteriorCoverage(PosteriorSamples):
     def __call__(
         self,
         posterior: ModelClass,
-        x: np.array,
-        theta: np.array,
-        x_obs: np.array | None = None,
-        theta_fid: np.array | None = None,
+        x: np.ndarray,
+        theta: np.ndarray,
+        x_obs: np.ndarray | None = None,
+        theta_fid: np.ndarray | None = None,
         signature: str | None = "",
         references: str = "random",
         metric: str = "euclidean",
@@ -682,10 +682,10 @@ class PosteriorCoverage(PosteriorSamples):
 
         Args:
             posterior (ModelClass): trained sbi posterior inference engine
-            x (np.array): tensor of test data
-            theta (np.array): tensor of test parameters
-            x_obs (np.array, optional): Not used
-            theta_fid (np.array, optional): Not used
+            x (np.ndarray): tensor of test data
+            theta (np.ndarray): tensor of test parameters
+            x_obs (np.ndarray, optional): Not used
+            theta_fid (np.ndarray, optional): Not used
             signature (str, optional): signature for the output file name
 
         Args (TARP only):
