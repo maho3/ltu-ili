@@ -6,6 +6,7 @@ Forked code from https://github.com/florpi/ili-summarizer/blob/main/summarizer/d
 """
 
 from pathlib import Path
+from typing import Dict, List, Optional
 
 import numpy as np
 import xarray as xr
@@ -14,12 +15,12 @@ import xarray as xr
 class Dataset:
     def __init__(
         self,
-        nodes: list[int],
+        nodes: List[int],
         path_to_data: Path,
         root_file: str,
-        islice_filters: dict = None,
-        slice_filters: dict = None,
-        select_filters: dict = None,
+        islice_filters: Optional[Dict] = None,
+        slice_filters: Optional[Dict] = None,
+        select_filters: Optional[Dict] = None,
     ):
         """Read dataset of summaries
 

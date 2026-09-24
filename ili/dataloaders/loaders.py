@@ -6,7 +6,7 @@ import json
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -24,7 +24,7 @@ except ModuleNotFoundError:
 
 class _BaseLoader(ABC):
     @classmethod
-    def from_config(cls, config_path: str | Path, **kwargs) -> "_BaseLoader":
+    def from_config(cls, config_path: Union[str, Path], **kwargs) -> "_BaseLoader":
         """Create a data loader from a yaml config file
 
         Args:
@@ -107,8 +107,8 @@ class NumpyLoader(_BaseLoader):
         self,
         x: np.ndarray,
         theta: np.ndarray,
-        xobs: np.ndarray | None = None,
-        thetafid: np.ndarray | None = None,
+        xobs: Optional[np.ndarray] = None,
+        thetafid: Optional[np.ndarray] = None,
     ) -> None:
         self.x = x
         self.theta = theta
@@ -177,8 +177,8 @@ class StaticNumpyLoader(NumpyLoader):
         in_dir: str,
         x_file: str,
         theta_file: str,
-        xobs_file: str | None = None,
-        thetafid_file: str | None = None,
+        xobs_file: Optional[str] = None,
+        thetafid_file: Optional[str] = None,
     ) -> None:
         self.in_dir = Path(in_dir)
         self.x_path = self.in_dir / x_file
@@ -229,11 +229,11 @@ class SBISimulator(NumpyLoader):
         in_dir: str,
         xobs_file: str,
         num_simulations: int,
-        simulator: Callable | None = None,
-        save_simulated: bool | None = False,
-        x_file: str | None = None,
-        theta_file: str | None = None,
-        thetafid_file: str | None = None,
+        simulator: Optional[Callable] = None,
+        save_simulated: Optional[bool] = False,
+        x_file: Optional[str] = None,
+        theta_file: Optional[str] = None,
+        thetafid_file: Optional[str] = None,
     ):
         self.in_dir = Path(in_dir)
         self.xobs_path = self.in_dir / xobs_file
@@ -281,7 +281,7 @@ class SBISimulator(NumpyLoader):
         """
         self.simulator = simulator
 
-    def simulate(self, proposal: Any) -> tuple[np.array, np.array]:
+    def simulate(self, proposal: Any) -> Tuple[np.ndarray, np.ndarray]:
         """Run simulations give a proposal and returns ($\theta, x$) pairs
         obtained from sampling the proposal and simulating.
 
@@ -341,9 +341,9 @@ class SummarizerDatasetLoader(NumpyLoader):
         x_root: str,
         theta_file: str,
         train_test_split_file: str,
-        param_names: list[str],
-        xobs_file: str | None = None,
-        thetafid_file: str | None = None,
+        param_names: List[str],
+        xobs_file: Optional[str] = None,
+        thetafid_file: Optional[str] = None,
     ):
         self.in_dir = Path(in_dir)
         self.nodes = self.get_nodes_for_stage(
@@ -391,7 +391,7 @@ class SummarizerDatasetLoader(NumpyLoader):
         """
         return self.x.load().reshape((len(self), -1))
 
-    def get_nodes_for_stage(self, stage: str, train_test_split_file: str) -> list[int]:
+    def get_nodes_for_stage(self, stage: str, train_test_split_file: str) -> List[int]:
         """Get nodes for a given stage (train, test or val)
 
         Args:
@@ -407,7 +407,7 @@ class SummarizerDatasetLoader(NumpyLoader):
         return train_test_split[stage]
 
     def load_parameters(
-        self, param_file: str, nodes: list[int], param_names: list[str]
+        self, param_file: str, nodes: List[int], param_names: List[str]
     ) -> np.array:
         """Get parameters for nodes
 
@@ -441,8 +441,8 @@ class TorchLoader(_BaseLoader):
         self,
         train_loader: DataLoader,
         val_loader: DataLoader = None,
-        xobs: Tensor | None = None,
-        thetafid: Tensor | None = None,
+        xobs: Optional[Tensor] = None,
+        thetafid: Optional[Tensor] = None,
     ) -> None:
         self.train_loader = train_loader
         self.val_loader = val_loader
