@@ -45,9 +45,9 @@ def load_nde_pydelfi(
 
     # check the model parameterizations
     if model == 'mdn':
-        model_defaults = dict(hidden_features=16, num_components=3)
+        model_defaults = {'hidden_features': 16, 'num_components': 3}
     else:
-        model_defaults = dict(hidden_features=16, num_transforms=2)
+        model_defaults = {'hidden_features': 16, 'num_transforms': 2}
     if not (set(model_args.keys()) <= set(model_defaults.keys())):
         raise ValueError(
             f"Model {model} arguments mispecified. Extra arguments found: "

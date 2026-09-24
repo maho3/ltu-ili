@@ -189,7 +189,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
         ndim = samples.shape[-1]
 
         # set default plot parameters
-        _kw = dict(levels=[0.05, 0.32, 1], color='k')
+        _kw = { 'levels': [0.05, 0.32, 1], 'color': 'k' }
         _kw.update(plot_kws)
         plot_kws = _kw
 
