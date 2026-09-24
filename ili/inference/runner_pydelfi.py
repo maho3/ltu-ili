@@ -46,9 +46,9 @@ class DelfiRunner(_BaseRunner):
         prior: Any,
         config_ndes: list[dict],
         engine: str = 'NLE',
-        engine_kwargs: dict = {},
-        train_args: dict = {},
-        out_dir: str | Path = None,
+        engine_kwargs: dict | None = None,
+        train_args: dict | None = None,
+        out_dir: str | Path | None = None,
         device: str = 'cpu',
         name: str | None = "",
     ):
@@ -169,11 +169,11 @@ class DelfiRunner(_BaseRunner):
 
         train_probs = [(-t).tolist() for t in posterior.training_loss]
         val_probs = [(-t).tolist() for t in posterior.validation_loss]
-        summaries = [dict(
-            training_log_probs=train_probs[i],
-            validation_log_probs=val_probs[i],
-            epochs_trained=[len(posterior.training_loss[i])]
-        ) for i in range(len(nets))]
+        summaries = [{
+            "training_log_probs": train_probs[i],
+            "validation_log_probs": val_probs[i],
+            "epochs_trained": [len(posterior.training_loss[i])]
+        } for i in range(len(nets))]
 
         if self.out_dir is not None:
             self._save_models(posterior, summaries)

@@ -11,6 +11,7 @@ distributions in torch.distributions, so we wrap them here.
 
 import math
 from numbers import Number
+from typing import ClassVar
 
 # Not used directly, but raises error if tried loading with wrong backend
 import torch
@@ -37,11 +38,11 @@ class CustomIndependent(Independent):
 
         self.device = device
         self.dist = self.Distribution(*args, **kwargs)
-        return super().__init__(self.dist, 1)
+        super().__init__(self.dist, 1)
 
     def to(self, device):
         self.device = device
-        for param_name in self.dist.arg_constraints.keys():
+        for param_name in self.dist.arg_constraints:
             param = getattr(self.dist, param_name, None)
             if isinstance(param, torch.Tensor):
                 setattr(self.dist, param_name, param.to(device))
@@ -60,7 +61,7 @@ locals().update(dist_dict)
 # dist_names, then we have a 'IndependentNormal' class parameterized by a
 # loc and scale vector
 
-Uniform = IndependentUniform  # Uniform is always independent
+Uniform = dist_dict["IndependentUniform"]  # Uniform is always independent
 
 # load multivariate, continuous distributions
 # this is done for API convenience, but we don't wrap them
@@ -80,7 +81,7 @@ class MultivariateNormal(MultivariateNormal):
                   for k, v in kwargs.items()}
 
         self.device = device
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class LowRankMultivariateNormal(LowRankMultivariateNormal):
@@ -92,7 +93,7 @@ class LowRankMultivariateNormal(LowRankMultivariateNormal):
                   for k, v in kwargs.items()}
 
         self.device = device
-        return super().__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 # Define TruncatedIndependentNormal to mirror pydelfi distribution
@@ -112,7 +113,7 @@ class _TruncatedStandardNormal(Distribution):
     Theory: https://people.sc.fsu.edu/~jburkardt/presentations/truncated_normal.pdf
     """
 
-    arg_constraints = {
+    arg_constraints: ClassVar[dict[str, constraints.Constraint]] = {
         "a": constraints.real,
         "b": constraints.real,
     }
@@ -203,7 +204,9 @@ class _TruncatedStandardNormal(Distribution):
         out.masked_fill_((value < self.a) | (value > self.b), -float("inf"))
         return out.squeeze()
 
-    def rsample(self, sample_shape=torch.Size()):
+    def rsample(self, sample_shape=None):
+        if sample_shape is None:
+            sample_shape = torch.Size()
         shape = self._extended_shape(sample_shape)
         p = torch.empty(shape, device=self.a.device).uniform_(
             self._dtype_min_gt_0, self._dtype_max_lt_1

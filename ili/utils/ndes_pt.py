@@ -35,7 +35,6 @@ from tqdm import tqdm
 
 try:  # sbi > 0.22.0
     from sbi import neural_nets
-    from sbi.neural_nets import posterior_nn
 except ImportError:  # sbi <= 0.22.0
     from sbi import utils as neural_nets
 
@@ -45,7 +44,7 @@ logger = logging.getLogger(__name__)
 def load_nde_sbi(
         engine: str,
         model: str,
-        embedding_net: nn.Module = nn.Identity(),
+        embedding_net: nn.Module | None = None,
         repeats=1,
         **model_args):
     """Load an nde from sbi.
@@ -60,6 +59,9 @@ def load_nde_sbi(
         repeats (int, optional): number of models to load. Defaults to 1.
         **model_args: additional arguments to pass to the model.
     """
+    if embedding_net is None:
+        embedding_net = nn.Identity()
+
     # load NRE models (linear, mlp, resnet)
     if 'NRE' in engine:
         if model not in ['linear', 'mlp', 'resnet']:
@@ -112,14 +114,14 @@ class LampeNPE(nn.Module):
         self,
         nde: nn.Module,
         prior: Distribution,
-        embedding_net: nn.Module = nn.Identity(),
+        embedding_net: nn.Module | None = None,
         x_transform: Transform = identity_transform,
         theta_transform: Transform = identity_transform
     ):
         super().__init__()
         self.nde = nde
         self.prior = prior
-        self.embedding_net = embedding_net
+        self.embedding_net = embedding_net if embedding_net is not None else nn.Identity()
         self.x_transform = x_transform
         self.theta_transform = theta_transform
         self._device = 'cpu'
@@ -135,13 +137,12 @@ class LampeNPE(nn.Module):
             x = torch.Tensor(x)
         if isinstance(theta, (list, np.ndarray)):
             theta = torch.Tensor(theta)
-        if isinstance(self.nde.flow, zuko.flows.spline.NCSF):
-            if (theta < -np.pi).any() or (theta > np.pi).any():
-                raise ValueError(
-                    "Encountered parameters outside of [-pi,pi]. "
-                    "This is not supported by the chosen NDE, Neural Circular "
-                    "Spline Flow (ncsf)."
-                )
+        if isinstance(self.nde.flow, zuko.flows.spline.NCSF) and ((theta < -np.pi).any() or (theta > np.pi).any()):
+            raise ValueError(
+                "Encountered parameters outside of [-pi,pi]. "
+                "This is not supported by the chosen NDE, Neural Circular "
+                "Spline Flow (ncsf)."
+            )
 
         # move them to device
         x = x.to(self._device)
@@ -283,7 +284,7 @@ class LampeEnsemble(nn.Module):
 
 def load_nde_lampe(
     model: str,
-    embedding_net: nn.Module = nn.Identity(),
+    embedding_net: nn.Module | None = None,
     device: str | None = 'cpu',
     x_normalize: bool = True,
     theta_normalize: bool = True,
@@ -325,6 +326,8 @@ def load_nde_lampe(
             f'Engine {engine} not supported in lampe backend. '
             'You probably meant to specify engine="NPE" or to use the NLE or NRE'
             ' engines in the sbi or pydelfi backends.')
+    if embedding_net is None:
+        embedding_net = nn.Identity()
     model = model.lower()
 
     # check the model parameterizations

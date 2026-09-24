@@ -1,1 +1,1 @@
-from .fcn import FCN
+from .fcn import FCN as FCN

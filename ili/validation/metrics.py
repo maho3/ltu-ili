@@ -99,7 +99,6 @@ class _SampleBasedMetric(_BaseMetric):
             return EmceeSampler(posterior, **self.sample_params)
 
         # check if pytorch backend is available
-        global backend
         if backend != 'torch':
             raise ValueError(
                 'Pyro backend is only available for sbi posteriors')
@@ -133,7 +132,7 @@ class PlotSinglePosterior(_SampleBasedMetric):
         out_dir (str, Path): directory where to store outputs.
     """
 
-    def __init__(self, save_samples: bool = False, seed: int = None, **kwargs):
+    def __init__(self, save_samples: bool = False, seed: int | None = None, **kwargs):
         self.save_samples = save_samples
         self.seed = seed
         super().__init__(**kwargs)

@@ -49,8 +49,8 @@ class LampeRunner:
         prior: Distribution,
         nets: list[Callable],
         engine: str = 'NPE',
-        train_args: dict = {},
-        out_dir: Path = None,
+        train_args: dict | None = None,
+        out_dir: Path | None = None,
         device: str = 'cpu',
         proposal: Distribution = None,
         name: str | None = "",
@@ -58,10 +58,11 @@ class LampeRunner:
     ):
         self.prior = prior
         nets_list = []
+        if train_args is None:
+            train_args = {}
         for net_el in nets:
             if isinstance(net_el, list):  # for repeat nets
-                for net in net_el:
-                    nets_list.append(net)
+                nets_list.extend(net_el)
             else:
                 nets_list.append(net_el)
         self.nets = nets_list
@@ -69,11 +70,14 @@ class LampeRunner:
             logger.warning(
                 'lampe only supports NPE engine. Engine set to NPE.')
         self.engine = 'NPE'
-        self.train_args = dict(
-            training_batch_size=50, learning_rate=5e-4,
-            stop_after_epochs=30, clip_max_norm=5,
-            max_epochs=int(1e10),
-            validation_fraction=0.1)
+        self.train_args = {
+            "training_batch_size": 50,
+            "learning_rate": 5e-4,
+            "stop_after_epochs": 30,
+            "clip_max_norm": 5,
+            "max_epochs": int(1e10),
+            "validation_fraction": 0.1
+        }
         self.train_args.update(train_args)
         self.out_dir = out_dir
         if self.out_dir is not None:
@@ -322,7 +326,7 @@ class LampeRunner:
         with open(self.out_dir / str_s, "w") as handle:
             json.dump(summaries, handle)
 
-    def __call__(self, loader: _BaseLoader, seed: int = None):
+    def __call__(self, loader: _BaseLoader, seed: int | None = None):
         """Train your posterior and save it to file
 
         Args:

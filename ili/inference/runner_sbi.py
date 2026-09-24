@@ -59,13 +59,18 @@ class SBIRunner(_BaseRunner):
         prior: Distribution,
         engine: str,
         nets: list[Callable],
-        train_args: dict = {},
-        out_dir: str | Path = None,
+        engine_kwargs: dict | None = None,
+        train_args: dict | None = None,
+        out_dir: str | Path | None = None,
         device: str = 'cpu',
         proposal: Distribution = None,
         name: str | None = "",
         signatures: list[str] | None = None,
     ):
+        if train_args is None:
+            train_args = {}
+        if engine_kwargs is None:
+            engine_kwargs = {}
         super().__init__(
             prior=prior,
             train_args=train_args,
@@ -82,21 +87,20 @@ class SBIRunner(_BaseRunner):
         nets_list = []
         for net_el in nets:
             if isinstance(net_el, list):
-                for net in net_el:
-                    nets_list.append(net)
+                nets_list.extend(net_el)
             else:
                 nets_list.append(net_el)
         self.nets = nets_list
 
         self.num_rounds = self.train_args.pop("num_round", 1)
 
-        train_default = dict(
-            training_batch_size=50,
-            learning_rate=5e-4,
-            validation_fraction=0.1,
-            stop_after_epochs=20,
-            clip_max_norm=5,
-        )
+        train_default = {
+            "training_batch_size": 50,
+            "learning_rate": 5e-4,
+            "validation_fraction": 0.1,
+            "stop_after_epochs": 20,
+            "clip_max_norm": 5,
+        }
         train_default.update(self.train_args)
         self.train_args = train_default
 
@@ -315,7 +319,7 @@ class SBIRunner(_BaseRunner):
         with open(self.out_dir / str_s, "w") as handle:
             json.dump(summaries, handle)
 
-    def __call__(self, loader: _BaseLoader, seed: int = None):
+    def __call__(self, loader: _BaseLoader, seed: int | None = None):
         """Train your posterior and save it to file
 
         Args:
@@ -363,7 +367,7 @@ class SBIRunnerSequential(SBIRunner):
         * engine='SNRE': https://arxiv.org/pdf/2002.03712
     """
 
-    def __call__(self, loader: _BaseLoader, seed: int = None):
+    def __call__(self, loader: _BaseLoader, seed: int | None = None):
         """Train your posterior and save it to file
 
         Args:
@@ -447,11 +451,15 @@ class ABCRunner(_BaseRunner):
             self,
             prior: Distribution,
             engine: str,
-            train_args: dict = {},
-            out_dir: str | Path = None,
+            train_args: dict | None = None,
+            out_dir: str | Path | None = None,
             device: str = 'cpu',
             name: str | None = "",
     ):
+
+        if train_args is None:
+            train_args = {}
+        
         super().__init__(
             prior=prior,
             train_args=train_args,
@@ -500,7 +508,7 @@ class ABCRunner(_BaseRunner):
             name=name,
         )
 
-    def __call__(self, loader: _BaseLoader, seed: int = None):
+    def __call__(self, loader: _BaseLoader, seed: int | None = None):
         """Train your posterior and save it to file
 
         Args:

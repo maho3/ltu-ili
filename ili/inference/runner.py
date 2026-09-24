@@ -35,7 +35,7 @@ class InferenceRunner:
         backend: str,
         engine: str,
         prior: Any,
-        out_dir: str | Path = None,
+        out_dir: str | Path | None = None,
         device: str = 'cpu',
         name: str = '',
         **kwargs
@@ -97,7 +97,6 @@ class InferenceRunner:
             Any: the loaded training class
             Any: the loaded engine class
         """
-        global interface
 
         if backend == 'sbi':
             if interface != 'torch':  # check installation

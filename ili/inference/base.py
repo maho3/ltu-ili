@@ -16,12 +16,14 @@ class _BaseRunner:
     def __init__(
         self,
         prior: Any,
-        train_args: dict = {},
-        out_dir: str | Path = None,
+        train_args: dict | None = None,
+        out_dir: str | Path | None = None,
         device: str = 'cpu',
         name: str | None = "",
     ):
         self.prior = prior
+        if train_args is None:
+            train_args = {}
         self.train_args = train_args
         self.device = device
         self.name = name

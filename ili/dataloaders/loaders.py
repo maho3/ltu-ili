@@ -91,53 +91,6 @@ class _BaseLoader(ABC):
         """
         return NotImplemented
 
-    @abstractmethod
-    def __len__(self) -> int:
-        """Returns the total number of data points in the dataset
-
-        Returns:
-            int: length of dataset
-        """
-        return NotImplemented
-
-    @abstractmethod
-    def get_all_data(self) -> Any:
-        """Returns all the loaded data
-
-        Returns:
-            Any: data
-        """
-        return NotImplemented
-
-    @abstractmethod
-    def get_all_parameters(self) -> Any:
-        """Returns all the loaded parameters
-
-        Returns:
-            Any: parameters
-        """
-        return NotImplemented
-
-    @abstractmethod
-    def get_obs_data(self) -> Any:
-        """Returns the observed data
-
-        Returns:
-            Any: data
-        """
-        return NotImplemented
-
-    @abstractmethod
-    def get_fid_parameters(self) -> Any:
-        """Returns the fiducial parameters which we expect the
-        observed data to resemble
-
-        Returns:
-            Any: parameters
-        """
-        return NotImplemented
-
-
 class NumpyLoader(_BaseLoader):
     r"""A class for loading in-memory data using numpy arrays.
 
@@ -162,7 +115,7 @@ class NumpyLoader(_BaseLoader):
         self.x = x
         self.theta = theta
         if len(self.x) != len(self.theta):
-            raise Exception(
+            raise ValueError(
                 "Stored data and parameters are not of same length.")
         self.xobs = xobs
         self.thetafid = thetafid
@@ -293,7 +246,7 @@ class SBISimulator(NumpyLoader):
 
         # If save_simulated, check that x_file and theta_file are specified
         if save_simulated and (x_file is None or theta_file is None):
-            raise Exception(
+            raise ValueError(
                 "If save_simulated is True, x_file and theta_file must be "
                 "specified."
             )
@@ -411,7 +364,7 @@ class SummarizerDatasetLoader(NumpyLoader):
             param_names=param_names,
         )
         if len(self.x) != len(self.theta):
-            raise Exception(
+            raise ValueError(
                 "Stored data and parameters are not of same length.")
 
         if xobs_file is None:

@@ -17,9 +17,9 @@ class Dataset:
         nodes: list[int],
         path_to_data: Path,
         root_file: str,
-        islice_filters: dict = None,
-        slice_filters: dict = None,
-        select_filters: dict = None,
+        islice_filters: dict | None = None,
+        slice_filters: dict | None = None,
+        select_filters: dict | None = None,
     ):
         """Read dataset of summaries
 

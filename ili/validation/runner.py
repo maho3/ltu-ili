@@ -57,7 +57,7 @@ class ValidationRunner:
         out_dir: str | Path,
         ensemble_mode: bool | None = True,
         name: str | None = "",
-        signatures: list[str] | None = [],
+        signatures: list[str] | None = None,
     ):
         self.posterior = posterior
         self.metrics = metrics
@@ -67,7 +67,10 @@ class ValidationRunner:
             self.out_dir.mkdir(parents=True, exist_ok=True)
         self.ensemble_mode = ensemble_mode
         self.name = name
-        self.signatures = signatures
+        if signatures is None:
+            self.signatures = []
+        else:
+            self.signatures = signatures
 
     @classmethod
     def from_config(
@@ -92,7 +95,6 @@ class ValidationRunner:
 
         out_dir = Path(config["out_dir"])
 
-        global interface
         if interface == 'torch':
             posterior_ensemble = cls.load_posterior_sbi(
                 out_dir / config["posterior_file"])
@@ -167,13 +169,10 @@ class ValidationRunner:
         theta_fid = loader.get_fid_parameters()
 
         # evaluate metrics on each posterior in the ensemble separately
-        global interface
         if ((not self.ensemble_mode) and (interface == 'torch') and
                 isinstance(self.posterior, EnsemblePosterior)):
-            n = 0
-            for posterior_model in self.posterior.posteriors:
+            for n, posterior_model in enumerate(self.posterior.posteriors):
                 signature = self.signatures[n]+"_"
-                n += 1
                 for metric in self.metrics.values():
                     logger.info(
                         f"Running metric {metric.__class__.__name__}.")
