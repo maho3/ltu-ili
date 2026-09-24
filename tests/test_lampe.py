@@ -1,4 +1,4 @@
-import warnings  # noqa
+import warnings
 
 warnings.filterwarnings("ignore")
 
